@@ -4,7 +4,6 @@ import altair as alt
 import numpy as np
 import json
 import math
-import os
 from datetime import date, timedelta
 from typing import Dict, Any
 import boto3
@@ -12,11 +11,11 @@ from pyathena import connect
 from pyathena.pandas.cursor import PandasCursor
 
 # ------------------------------
-# 1. AWS Athena Connection (no secrets.toml required)
+# 1. AWS Athena Connection
 # ------------------------------
-ATHENA_S3_STAGING_DIR = os.environ.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")
-ATHENA_REGION = os.environ.get("ATHENA_REGION", "us-east-1")
-ATHENA_DATABASE = os.environ.get("ATHENA_DATABASE", "procure2pay")
+ATHENA_S3_STAGING_DIR = st.secrets.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")#s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/
+ATHENA_REGION = st.secrets.get("ATHENA_REGION", "us-east-1")
+ATHENA_DATABASE = st.secrets.get("ATHENA_DATABASE", "procure2pay")
 ATHENA_CATALOG = "AwsDataCatalog"
 
 @st.cache_resource
@@ -98,12 +97,9 @@ def safe_int(val, default=0):
 def abbr_currency(v: float, currency_symbol: str = "$") -> str:
     n = abs(v)
     sign = "-" if v < 0 else ""
-    if n >= 1_000_000_000:
-        return f"{sign}{currency_symbol}{n/1_000_000_000:.1f}B"
-    if n >= 1_000_000:
-        return f"{sign}{currency_symbol}{n/1_000_000:.1f}M"
-    if n >= 1_000:
-        return f"{sign}{currency_symbol}{n/1_000:.1f}K"
+    if n >= 1_000_000_000: return f"{sign}{currency_symbol}{n/1_000_000_000:.1f}B"
+    if n >= 1_000_000:     return f"{sign}{currency_symbol}{n/1_000_000:.1f}M"
+    if n >= 1_000:         return f"{sign}{currency_symbol}{n/1_000:.1f}K"
     return f"{sign}{currency_symbol}{n:.0f}"
 
 def compute_range_preset(preset: str):
@@ -119,6 +115,7 @@ def compute_range_preset(preset: str):
 
 def prior_window(start: date, end: date):
     from calendar import monthrange
+    # If full calendar month, compare to same month previous year
     if start.day == 1 and end.day == monthrange(end.year, end.month)[1]:
         prev_start = date(start.year - 1, start.month, 1)
         prev_end = date(end.year - 1, end.month, monthrange(end.year - 1, end.month)[1])
@@ -265,30 +262,12 @@ def branding_bar():
     .nav-item {
         padding: 8px 16px; border-radius: 999px; font-weight: 600;
         color: #475569; background: transparent; cursor: pointer;
-        text-decoration: none; transition: all 0.2s;
+        text-decoration: none;
     }
     .nav-item.active {
         background: #2563eb; color: white;
     }
-    .nav-item:hover:not(.active) {
-        background: #f1f5f9;
-    }
-    /* Radio tabs (Needs Attention) selected text blue */
-    div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"] input:checked + div:first-child + div span p {
-        color: #2563eb !important;
-        font-weight: 600;
-    }
-    .tag.overdue { background: #fee2e2; color: #b91c1c; }
-    .tag.disputed { background: #fff4e5; color: #b54708; }
-    .invoice-link {
-        color: #2563eb;
-        text-decoration: none;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .invoice-link:hover {
-        text-decoration: underline;
-    }
+    .brand-right img { height: 40px; }
     </style>
     <div class="brandbar">
         <div class="brandrow">
@@ -303,29 +282,19 @@ def branding_bar():
     pages = [("dashboard", "Dashboard"), ("genie", "Genie"), ("cash_flow", "Forecast"), ("invoice", "Invoices")]
     for key, label in pages:
         active = "active" if cur_page == key else ""
-        st.markdown(f'<a href="?page={key}" class="nav-item {active}" onclick="event.preventDefault(); window.parent.location.href=\'?page={key}\'">{label}</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="#" class="nav-item {active}" onclick="window.parent.dispatchEvent(new CustomEvent(\\'set-page\\', {{detail: \\'{key}\\'}}))">{label}</a>', unsafe_allow_html=True)
     st.markdown("""
             </div>
             <div class="brand-right">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Yash_Technologies_logo.png" style="height:40px;" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Yash_Technologies_logo.png" />
             </div>
         </div>
     </div>
     <hr style="margin:0 0 16px 0;">
     """, unsafe_allow_html=True)
-    
-    # Handle page query param
-    page_param = st.query_params.get("page")
-    if page_param and page_param in ["dashboard", "genie", "cash_flow", "invoice"]:
-        if st.session_state.get("page") != page_param:
-            st.session_state.page = page_param
-            st.rerun()
-    # Handle invoice navigation from dashboard
-    inv_param = st.query_params.get("invoice")
-    if inv_param:
-        st.session_state.page = "invoice"
-        st.session_state.invoice_search = inv_param
-        st.query_params.clear()
+    # Handle custom event via query params
+    if st.query_params.get('page'):
+        st.session_state.page = st.query_params.get('page')
         st.rerun()
 
 def kpi_tile(title: str, value: str, delta_text: str = None, is_up_change: bool = True):
@@ -349,7 +318,7 @@ def kpi_tile(title: str, value: str, delta_text: str = None, is_up_change: bool 
 # 6. Page Renderers
 # ------------------------------
 def render_dashboard():
-    # Date and vendor filters - default preset Last 30 Days
+    # Date and vendor filters
     if "preset" not in st.session_state:
         st.session_state.preset = "Last 30 Days"
     if "date_range" not in st.session_state:
@@ -386,7 +355,7 @@ def render_dashboard():
     p_start_lit, p_end_lit = sql_date(p_start), sql_date(p_end)
     vendor_where = build_vendor_where(vendor)
 
-    # KPI queries
+    # KPI queries (current vs prior)
     kpi_sql = f"""
     WITH base AS (
         SELECT f.*, v.vendor_name
@@ -438,7 +407,8 @@ def render_dashboard():
 
     st.markdown("---")
 
-    # Needs Attention Section
+    # Needs Attention Tabs
+    st.subheader("Needs Attention")
     na_counts = run_df(f"""
         SELECT
             SUM(CASE WHEN due_date < CURRENT_DATE AND upper(invoice_status) = 'OVERDUE' THEN 1 ELSE 0 END) AS overdue,
@@ -450,11 +420,8 @@ def render_dashboard():
     overdue_cnt = safe_int(na_counts.at[0,'overdue'] if not na_counts.empty else 0)
     disputed_cnt = safe_int(na_counts.at[0,'disputed'] if not na_counts.empty else 0)
     due_cnt = safe_int(na_counts.at[0,'due'] if not na_counts.empty else 0)
-    total_attention = overdue_cnt + disputed_cnt + due_cnt
-    st.subheader(f"Needs Attention ({total_attention})")
 
     na_tab = st.radio("", ["Overdue", "Disputed", "Due"], horizontal=True, label_visibility="collapsed")
-    
     if na_tab == "Overdue":
         na_sql = f"""
         SELECT f.invoice_number, f.invoice_amount_local, f.due_date, upper(f.invoice_status) as status, v.vendor_name, f.aging_days
@@ -499,7 +466,7 @@ def render_dashboard():
                 status = row['status'].lower()
                 st.markdown(f"""
                 <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:8px; margin-bottom:8px;">
-                    <div><a href="?invoice={ref}" class="invoice-link">{ref}</a></div>
+                    <div><strong>{ref}</strong></div>
                     <div style="font-size:12px; color:#64748b;">{vendor}</div>
                     <div>{amt}</div>
                     <div style="font-size:11px;">Due: {due}</div>
@@ -510,8 +477,10 @@ def render_dashboard():
             st.caption(f"Showing first 8 of {len(na_df)} {na_tab.lower()} invoices.")
 
     st.markdown("---")
+    # Charts
     col_a, col_b = st.columns(2)
     with col_a:
+        # Invoice status donut
         status_df = run_df(f"""
             SELECT CASE
                 WHEN upper(invoice_status) IN ('PAID','CLEARED') THEN 'Paid'
@@ -525,6 +494,7 @@ def render_dashboard():
         """)
         alt_donut_status(status_df, 'status', 'cnt', title="Invoice Status", height=300)
     with col_b:
+        # Top 10 vendors
         vendors_df = run_df(f"""
             SELECT v.vendor_name, SUM(f.invoice_amount_local) AS spend
             FROM fact_all_sources_vw f
@@ -540,6 +510,7 @@ def render_genie():
     st.header("ProcureIQ Genie")
     st.markdown("Ask natural language questions about your procurement data.")
 
+    # Quick analysis buttons
     quick_questions = {
         "Spending Overview": "Show me total spend YTD, monthly trends, and top 5 vendors",
         "Vendor Analysis": "Analyze vendor concentration and dependency",
@@ -558,6 +529,7 @@ def render_genie():
                     st.session_state.show_analysis = True
                     st.rerun()
 
+    # Custom query input
     with st.form("genie_form"):
         user_q = st.text_input("Ask anything:", placeholder="e.g., What is our total spend this month?")
         submitted = st.form_submit_button("Ask Genie")
@@ -573,6 +545,7 @@ def render_genie():
         if "error" in response:
             st.error(response["error"])
         elif "layout" in response and response["layout"] == "quick":
+            # Quick analysis result from pre‑defined SQL
             m = response.get("metrics", {})
             if m:
                 col1, col2, col3 = st.columns(3)
@@ -586,11 +559,13 @@ def render_genie():
                 alt_line_monthly(response["monthly_df"], month_col='month', value_col='value', title="Monthly Spend Trend")
             if response.get("vendors_df") is not None:
                 alt_bar(response["vendors_df"], x='vendor_name', y='spend', title="Top Vendors", horizontal=True)
+            # Prescriptive from Bedrock
             pres = call_bedrock(f"Based on this spend data: {response.get('metrics')} and top vendors, give 3 specific actions to reduce costs or improve payment terms.")
             if pres:
                 st.markdown("### Prescriptive Recommendations")
                 st.info(pres)
         else:
+            # General SQL response
             for block in response.get("content", []):
                 if block.get("type") == "text":
                     st.markdown(block.get("text"))
@@ -608,7 +583,9 @@ def render_genie():
             st.rerun()
 
 def process_genie_query(query: str) -> Dict[str, Any]:
+    """Map natural language to verified queries or run generic SQL."""
     q_lower = query.lower()
+    # First pass PO's
     if "first pass po" in q_lower:
         sql = """
         WITH inv_flags AS (
@@ -633,10 +610,12 @@ def process_genie_query(query: str) -> Dict[str, Any]:
         """
         df = run_df(sql)
         return {"layout": "quick", "vendors_df": df, "content": []}
+    # Spending overview
     elif "spending overview" in q_lower or "total spend" in q_lower:
         total = run_df("SELECT SUM(invoice_amount_local) AS total FROM fact_all_sources_vw WHERE upper(invoice_status) NOT IN ('CANCELLED','REJECTED')")
         monthly = run_df("SELECT date_format(posting_date, '%Y-%m') AS month, SUM(invoice_amount_local) AS value FROM fact_all_sources_vw WHERE upper(invoice_status) NOT IN ('CANCELLED','REJECTED') GROUP BY 1 ORDER BY 1")
         top5 = run_df("SELECT v.vendor_name, SUM(f.invoice_amount_local) AS spend FROM fact_all_sources_vw f LEFT JOIN dim_vendor_vw v ON f.vendor_id = v.vendor_id GROUP BY 1 ORDER BY spend DESC LIMIT 5")
+        # Calculate MoM change
         mom = 0
         if len(monthly) >= 2:
             cur = monthly.iloc[-1]['value']
@@ -644,12 +623,15 @@ def process_genie_query(query: str) -> Dict[str, Any]:
             mom = ((cur - prev) / prev * 100) if prev != 0 else 0
         top5_pct = (top5['spend'].sum() / total.at[0,'total'] * 100) if not total.empty and total.at[0,'total'] != 0 else 0
         return {"layout": "quick", "metrics": {"total_ytd": total.at[0,'total'] if not total.empty else 0, "mom_pct": mom, "top5_pct": top5_pct}, "monthly_df": monthly, "vendors_df": top5}
+    # Vendor analysis
     elif "vendor analysis" in q_lower or "vendor concentration" in q_lower:
         vendors = run_df("SELECT v.vendor_name, SUM(f.invoice_amount_local) AS spend, COUNT(*) AS cnt FROM fact_all_sources_vw f LEFT JOIN dim_vendor_vw v ON f.vendor_id = v.vendor_id GROUP BY 1 ORDER BY spend DESC")
         return {"layout": "quick", "vendors_df": vendors}
+    # Payment performance
     elif "payment performance" in q_lower or "payment delays" in q_lower:
         payment = run_df("SELECT date_format(posting_date, '%Y-%m') AS month, AVG(datediff('day', posting_date, payment_date)) AS avg_days FROM fact_all_sources_vw WHERE payment_date IS NOT NULL GROUP BY 1 ORDER BY 1")
         return {"layout": "quick", "monthly_df": payment}
+    # Invoice aging
     elif "invoice aging" in q_lower or "overdue invoices" in q_lower:
         aging = run_df("""
             SELECT CASE WHEN aging_days <= 30 THEN '0-30 days' WHEN aging_days <= 60 THEN '31-60 days' WHEN aging_days <= 90 THEN '61-90 days' ELSE '90+ days' END AS bucket,
@@ -659,11 +641,13 @@ def process_genie_query(query: str) -> Dict[str, Any]:
             GROUP BY 1
         """)
         return {"layout": "quick", "vendors_df": aging}
+    # Cost reduction
     elif "cost reduction" in q_lower or "reduce costs" in q_lower:
         df = run_df("SELECT po_purpose, SUM(invoice_amount_local) AS spend FROM fact_all_sources_vw GROUP BY po_purpose ORDER BY spend DESC")
         pres = call_bedrock(f"Given spend by category: {df.to_dict()}, suggest 3 cost reduction actions.")
         return {"layout": "quick", "vendors_df": df, "content": [{"type": "text", "text": pres}] if pres else []}
     else:
+        # Generic: run a simple SQL that tries to answer
         sql = f"""
         SELECT 'Total Spend' AS metric, SUM(invoice_amount_local) AS value
         FROM fact_all_sources_vw
@@ -673,7 +657,7 @@ def process_genie_query(query: str) -> Dict[str, Any]:
         return {"layout": "quick", "metrics": {"total": df.at[0,'value'] if not df.empty else 0}, "content": []}
 
 def render_forecast():
-    st.header("Cash Flow and GR/IR Forecast")
+    st.header("Cash Flow & GR/IR Forecast")
     tab1, tab2 = st.tabs(["Cash Flow Forecast", "GR/IR Reconciliation"])
     with tab1:
         st.subheader("Unpaid Obligations by Due Date")
@@ -725,13 +709,7 @@ def render_forecast():
 
 def render_invoices():
     st.header("Invoice Management")
-    if "invoice_search" in st.session_state and st.session_state.invoice_search:
-        default_search = st.session_state.invoice_search
-        st.session_state.invoice_search = None
-    else:
-        default_search = ""
-    
-    search_term = st.text_input("Search by Invoice or PO Number", value=default_search, key="inv_search_input")
+    search_term = st.text_input("Search by Invoice or PO Number", key="inv_search")
     if search_term:
         df = run_df(f"""
             SELECT f.invoice_number, f.purchase_order_reference, f.invoice_amount_local, f.posting_date, f.due_date, upper(f.invoice_status) as status, v.vendor_name
@@ -743,6 +721,7 @@ def render_invoices():
         """)
         if not df.empty:
             st.dataframe(df, use_container_width=True)
+            # AI suggestion for the first invoice
             inv_num = df.iloc[0]['invoice_number']
             prompt = f"Analyze invoice {inv_num}: status {df.iloc[0]['status']}, amount {df.iloc[0]['invoice_amount_local']}, due {df.iloc[0]['due_date']}. Suggest action."
             suggestion = call_bedrock(prompt)
@@ -756,7 +735,8 @@ def render_invoices():
 # ------------------------------
 # 7. Main App
 # ------------------------------
-st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
+st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon=None)
+# Load minimal CSS (inline to avoid external files)
 st.markdown("""
 <style>
 .block-container { padding-top: 1rem; }
@@ -767,17 +747,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialize session state
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 if "show_analysis" not in st.session_state:
     st.session_state.show_analysis = False
 if "analyst_response" not in st.session_state:
     st.session_state.analyst_response = None
-if "invoice_search" not in st.session_state:
-    st.session_state.invoice_search = None
 
 branding_bar()
 
+# Page routing
 if st.session_state.page == "dashboard":
     render_dashboard()
 elif st.session_state.page == "genie":
