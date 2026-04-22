@@ -304,10 +304,18 @@ def branding_bar():
     </div>
     <hr style="margin:0 0 16px 0;">
     """, unsafe_allow_html=True)
-    # Handle custom event via query params
-    if st.query_params.get('page'):
-        st.session_state.page = st.query_params.get('page')
-        st.rerun()
+    # Handle custom event via query params (compatible with older Streamlit versions)
+    try:
+        # For newer Streamlit versions
+        if st.query_params.get('page'):
+            st.session_state.page = st.query_params.get('page')
+            st.rerun()
+    except AttributeError:
+        # Fallback for older versions
+        query_params = st.experimental_get_query_params()
+        if 'page' in query_params:
+            st.session_state.page = query_params['page'][0]
+            st.rerun()
 
 def kpi_tile(title: str, value: str, delta_text: str = None, is_up_change: bool = True):
     arrow_up_svg = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3l6 6H4l6-6zm0 14V6h-2v11h2z"/></svg>'
