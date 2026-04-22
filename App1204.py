@@ -11,11 +11,19 @@ from pyathena import connect
 from pyathena.pandas.cursor import PandasCursor
 
 # ------------------------------
-# 1. AWS Athena Connection
+# 1. AWS Athena Connection (with safe secrets handling)
 # ------------------------------
-ATHENA_S3_STAGING_DIR = st.secrets.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")#s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/
-ATHENA_REGION = st.secrets.get("ATHENA_REGION", "us-east-1")
-ATHENA_DATABASE = st.secrets.get("ATHENA_DATABASE", "procure2pay")
+def get_secret(key: str, default: str) -> str:
+    """Safely retrieve a secret from st.secrets, returning default if not found or secrets unavailable."""
+    try:
+        # Accessing st.secrets will raise FileNotFoundError if no secrets file exists
+        return st.secrets.get(key, default)
+    except FileNotFoundError:
+        return default
+
+ATHENA_S3_STAGING_DIR = get_secret("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")
+ATHENA_REGION = get_secret("ATHENA_REGION", "us-east-1")
+ATHENA_DATABASE = get_secret("ATHENA_DATABASE", "procure2pay")
 ATHENA_CATALOG = "AwsDataCatalog"
 
 @st.cache_resource
