@@ -4,6 +4,7 @@ import altair as alt
 import numpy as np
 import json
 import math
+import os
 from datetime import date, timedelta
 from typing import Dict, Any
 import boto3
@@ -11,11 +12,11 @@ from pyathena import connect
 from pyathena.pandas.cursor import PandasCursor
 
 # ------------------------------
-# 1. AWS Athena Connection
+# 1. AWS Athena Connection (no secrets.toml required)
 # ------------------------------
-ATHENA_S3_STAGING_DIR = st.secrets.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")
-ATHENA_REGION = st.secrets.get("ATHENA_REGION", "us-east-1")
-ATHENA_DATABASE = st.secrets.get("ATHENA_DATABASE", "procure2pay")
+ATHENA_S3_STAGING_DIR = os.environ.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")
+ATHENA_REGION = os.environ.get("ATHENA_REGION", "us-east-1")
+ATHENA_DATABASE = os.environ.get("ATHENA_DATABASE", "procure2pay")
 ATHENA_CATALOG = "AwsDataCatalog"
 
 @st.cache_resource
@@ -272,28 +273,10 @@ def branding_bar():
     .nav-item:hover:not(.active) {
         background: #f1f5f9;
     }
-    /* Override any red defaults */
-    .stRadio > div[role="radiogroup"] label[data-baseweb="radio"] div:first-child {
-        border-color: #cbd5e1;
-    }
-    .stRadio > div[role="radiogroup"] label[data-baseweb="radio"] div[data-testid="stMarkdownContainer"] p {
-        color: #1e293b;
-    }
-    .stRadio > div[role="radiogroup"] label[data-baseweb="radio"] input:checked + div:first-child {
-        border-color: #2563eb;
-        background-color: #2563eb;
-    }
-    /* Needs attention tabs (radio) selected text color blue */
-    div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"] span:has(div[data-testid="stMarkdownContainer"]) p {
-        font-weight: 500;
-    }
+    /* Radio tabs (Needs Attention) selected text blue */
     div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"] input:checked + div:first-child + div span p {
         color: #2563eb !important;
         font-weight: 600;
-    }
-    /* Ensure KPI tiles and other elements have no unwanted red */
-    .stButton button {
-        border-radius: 20px;
     }
     .tag.overdue { background: #fee2e2; color: #b91c1c; }
     .tag.disputed { background: #fff4e5; color: #b54708; }
@@ -320,7 +303,6 @@ def branding_bar():
     pages = [("dashboard", "Dashboard"), ("genie", "Genie"), ("cash_flow", "Forecast"), ("invoice", "Invoices")]
     for key, label in pages:
         active = "active" if cur_page == key else ""
-        # Use javascript to set session state via query param
         st.markdown(f'<a href="?page={key}" class="nav-item {active}" onclick="event.preventDefault(); window.parent.location.href=\'?page={key}\'">{label}</a>', unsafe_allow_html=True)
     st.markdown("""
             </div>
@@ -343,7 +325,6 @@ def branding_bar():
     if inv_param:
         st.session_state.page = "invoice"
         st.session_state.invoice_search = inv_param
-        # Clear query param to avoid repeated redirect
         st.query_params.clear()
         st.rerun()
 
@@ -368,7 +349,7 @@ def kpi_tile(title: str, value: str, delta_text: str = None, is_up_change: bool 
 # 6. Page Renderers
 # ------------------------------
 def render_dashboard():
-    # Date and vendor filters - ensure default preset is Last 30 Days
+    # Date and vendor filters - default preset Last 30 Days
     if "preset" not in st.session_state:
         st.session_state.preset = "Last 30 Days"
     if "date_range" not in st.session_state:
@@ -405,7 +386,7 @@ def render_dashboard():
     p_start_lit, p_end_lit = sql_date(p_start), sql_date(p_end)
     vendor_where = build_vendor_where(vendor)
 
-    # KPI queries (current vs prior)
+    # KPI queries
     kpi_sql = f"""
     WITH base AS (
         SELECT f.*, v.vendor_name
@@ -457,7 +438,7 @@ def render_dashboard():
 
     st.markdown("---")
 
-    # Needs Attention Section with total count
+    # Needs Attention Section
     na_counts = run_df(f"""
         SELECT
             SUM(CASE WHEN due_date < CURRENT_DATE AND upper(invoice_status) = 'OVERDUE' THEN 1 ELSE 0 END) AS overdue,
@@ -472,7 +453,6 @@ def render_dashboard():
     total_attention = overdue_cnt + disputed_cnt + due_cnt
     st.subheader(f"Needs Attention ({total_attention})")
 
-    # Radio tabs - customize to show blue when selected via CSS
     na_tab = st.radio("", ["Overdue", "Disputed", "Due"], horizontal=True, label_visibility="collapsed")
     
     if na_tab == "Overdue":
@@ -517,7 +497,6 @@ def render_dashboard():
                 due = row['due_date'].strftime('%Y-%m-%d') if pd.notna(row['due_date']) else '—'
                 vendor = row['vendor_name']
                 status = row['status'].lower()
-                # Make invoice number clickable - link to invoices tab with search param
                 st.markdown(f"""
                 <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:8px; margin-bottom:8px;">
                     <div><a href="?invoice={ref}" class="invoice-link">{ref}</a></div>
@@ -531,10 +510,8 @@ def render_dashboard():
             st.caption(f"Showing first 8 of {len(na_df)} {na_tab.lower()} invoices.")
 
     st.markdown("---")
-    # Charts
     col_a, col_b = st.columns(2)
     with col_a:
-        # Invoice status donut
         status_df = run_df(f"""
             SELECT CASE
                 WHEN upper(invoice_status) IN ('PAID','CLEARED') THEN 'Paid'
@@ -548,7 +525,6 @@ def render_dashboard():
         """)
         alt_donut_status(status_df, 'status', 'cnt', title="Invoice Status", height=300)
     with col_b:
-        # Top 10 vendors
         vendors_df = run_df(f"""
             SELECT v.vendor_name, SUM(f.invoice_amount_local) AS spend
             FROM fact_all_sources_vw f
@@ -561,7 +537,7 @@ def render_dashboard():
         alt_bar(vendors_df, x='vendor_name', y='spend', title="Top 10 Vendors by Spend", horizontal=True, color="#22C55E", height=300)
 
 def render_genie():
-    st.header("🧞 ProcureIQ Genie")
+    st.header("ProcureIQ Genie")
     st.markdown("Ask natural language questions about your procurement data.")
 
     quick_questions = {
@@ -612,7 +588,7 @@ def render_genie():
                 alt_bar(response["vendors_df"], x='vendor_name', y='spend', title="Top Vendors", horizontal=True)
             pres = call_bedrock(f"Based on this spend data: {response.get('metrics')} and top vendors, give 3 specific actions to reduce costs or improve payment terms.")
             if pres:
-                st.markdown("### 💡 Prescriptive Recommendations")
+                st.markdown("### Prescriptive Recommendations")
                 st.info(pres)
         else:
             for block in response.get("content", []):
@@ -697,7 +673,7 @@ def process_genie_query(query: str) -> Dict[str, Any]:
         return {"layout": "quick", "metrics": {"total": df.at[0,'value'] if not df.empty else 0}, "content": []}
 
 def render_forecast():
-    st.header("📈 Cash Flow & GR/IR Forecast")
+    st.header("Cash Flow and GR/IR Forecast")
     tab1, tab2 = st.tabs(["Cash Flow Forecast", "GR/IR Reconciliation"])
     with tab1:
         st.subheader("Unpaid Obligations by Due Date")
@@ -727,7 +703,7 @@ def render_forecast():
         else:
             st.info("No unpaid obligations found.")
 
-        st.markdown("### 💡 Payment Strategy")
+        st.markdown("### Payment Strategy")
         if st.button("Ask Genie for optimal payment timing"):
             st.session_state.page = "genie"
             st.session_state.genie_prefill = "Which invoices should we pay early to capture discounts?"
@@ -748,11 +724,9 @@ def render_forecast():
             st.info("No GR/IR data.")
 
 def render_invoices():
-    st.header("📄 Invoice Management")
-    # Pre-fill search if navigated from dashboard
+    st.header("Invoice Management")
     if "invoice_search" in st.session_state and st.session_state.invoice_search:
         default_search = st.session_state.invoice_search
-        # Clear after use
         st.session_state.invoice_search = None
     else:
         default_search = ""
@@ -773,7 +747,7 @@ def render_invoices():
             prompt = f"Analyze invoice {inv_num}: status {df.iloc[0]['status']}, amount {df.iloc[0]['invoice_amount_local']}, due {df.iloc[0]['due_date']}. Suggest action."
             suggestion = call_bedrock(prompt)
             if suggestion:
-                st.info(f"💡 Genie Suggestion: {suggestion}")
+                st.info(f"Genie Suggestion: {suggestion}")
         else:
             st.info("No invoices found.")
     else:
@@ -790,28 +764,9 @@ st.markdown("""
 .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; }
 .tag.overdue { background: #fee2e2; color: #b91c1c; }
 .tag.disputed { background: #fff4e5; color: #b54708; }
-.invoice-link {
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: 600;
-    cursor: pointer;
-}
-.invoice-link:hover {
-    text-decoration: underline;
-}
-/* Ensure radio tabs selected text is blue */
-div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"] input:checked + div:first-child + div span p {
-    color: #2563eb !important;
-    font-weight: 600;
-}
-/* Override any red accents from theme */
-.st-emotion-cache-1y4p8pa {
-    background-color: #2563eb;
-}
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 if "show_analysis" not in st.session_state:
@@ -823,7 +778,6 @@ if "invoice_search" not in st.session_state:
 
 branding_bar()
 
-# Page routing
 if st.session_state.page == "dashboard":
     render_dashboard()
 elif st.session_state.page == "genie":
