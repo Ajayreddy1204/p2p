@@ -282,7 +282,7 @@ def branding_bar():
     pages = [("dashboard", "Dashboard"), ("genie", "Genie"), ("cash_flow", "Forecast"), ("invoice", "Invoices")]
     for key, label in pages:
         active = "active" if cur_page == key else ""
-        st.markdown(f'<a href="#" class="nav-item {active}" onclick="window.parent.dispatchEvent(new CustomEvent(\\'set-page\\', {{detail: \\'{key}\\'}}))">{label}</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="#" class="nav-item {active}" onclick="window.parent.dispatchEvent(new CustomEvent(\'set-page\', {{detail: \'{key}\'}}))">{label}</a>', unsafe_allow_html=True)
     st.markdown("""
             </div>
             <div class="brand-right">
