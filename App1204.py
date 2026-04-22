@@ -11,19 +11,11 @@ from pyathena import connect
 from pyathena.pandas.cursor import PandasCursor
 
 # ------------------------------
-# 1. AWS Athena Connection (with safe secrets handling)
+# 1. AWS Athena Connection
 # ------------------------------
-def get_secret(key: str, default: str) -> str:
-    """Safely retrieve a secret from st.secrets, returning default if not found or secrets unavailable."""
-    try:
-        # Accessing st.secrets will raise FileNotFoundError if no secrets file exists
-        return st.secrets.get(key, default)
-    except FileNotFoundError:
-        return default
-
-ATHENA_S3_STAGING_DIR = get_secret("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")
-ATHENA_REGION = get_secret("ATHENA_REGION", "us-east-1")
-ATHENA_DATABASE = get_secret("ATHENA_DATABASE", "procure2pay")
+ATHENA_S3_STAGING_DIR = st.secrets.get("ATHENA_S3_STAGING_DIR", "s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/")#s3://yignite-procurespendiq-miniature-landing/procure2pay_dev/athena-results/
+ATHENA_REGION = st.secrets.get("ATHENA_REGION", "us-east-1")
+ATHENA_DATABASE = st.secrets.get("ATHENA_DATABASE", "procure2pay")
 ATHENA_CATALOG = "AwsDataCatalog"
 
 @st.cache_resource
@@ -290,7 +282,7 @@ def branding_bar():
     pages = [("dashboard", "Dashboard"), ("genie", "Genie"), ("cash_flow", "Forecast"), ("invoice", "Invoices")]
     for key, label in pages:
         active = "active" if cur_page == key else ""
-        st.markdown(f'<a href="#" class="nav-item {active}" onclick="window.parent.dispatchEvent(new CustomEvent(\'set-page\', {{detail: \'{key}\'}}))">{label}</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="#" class="nav-item {active}" onclick="window.parent.dispatchEvent(new CustomEvent(\\'set-page\\', {{detail: \\'{key}\\'}}))">{label}</a>', unsafe_allow_html=True)
     st.markdown("""
             </div>
             <div class="brand-right">
@@ -515,7 +507,7 @@ def render_dashboard():
         alt_bar(vendors_df, x='vendor_name', y='spend', title="Top 10 Vendors by Spend", horizontal=True, color="#22C55E", height=300)
 
 def render_genie():
-    st.header("ProcureIQ Genie")
+    st.header("🧞 ProcureIQ Genie")
     st.markdown("Ask natural language questions about your procurement data.")
 
     # Quick analysis buttons
@@ -570,7 +562,7 @@ def render_genie():
             # Prescriptive from Bedrock
             pres = call_bedrock(f"Based on this spend data: {response.get('metrics')} and top vendors, give 3 specific actions to reduce costs or improve payment terms.")
             if pres:
-                st.markdown("### Prescriptive Recommendations")
+                st.markdown("### 💡 Prescriptive Recommendations")
                 st.info(pres)
         else:
             # General SQL response
@@ -665,7 +657,7 @@ def process_genie_query(query: str) -> Dict[str, Any]:
         return {"layout": "quick", "metrics": {"total": df.at[0,'value'] if not df.empty else 0}, "content": []}
 
 def render_forecast():
-    st.header("Cash Flow & GR/IR Forecast")
+    st.header("📈 Cash Flow & GR/IR Forecast")
     tab1, tab2 = st.tabs(["Cash Flow Forecast", "GR/IR Reconciliation"])
     with tab1:
         st.subheader("Unpaid Obligations by Due Date")
@@ -695,7 +687,7 @@ def render_forecast():
         else:
             st.info("No unpaid obligations found.")
 
-        st.markdown("### Payment Strategy")
+        st.markdown("### 💡 Payment Strategy")
         if st.button("Ask Genie for optimal payment timing"):
             st.session_state.page = "genie"
             st.session_state.genie_prefill = "Which invoices should we pay early to capture discounts?"
@@ -716,7 +708,7 @@ def render_forecast():
             st.info("No GR/IR data.")
 
 def render_invoices():
-    st.header("Invoice Management")
+    st.header("📄 Invoice Management")
     search_term = st.text_input("Search by Invoice or PO Number", key="inv_search")
     if search_term:
         df = run_df(f"""
@@ -734,7 +726,7 @@ def render_invoices():
             prompt = f"Analyze invoice {inv_num}: status {df.iloc[0]['status']}, amount {df.iloc[0]['invoice_amount_local']}, due {df.iloc[0]['due_date']}. Suggest action."
             suggestion = call_bedrock(prompt)
             if suggestion:
-                st.info(f"Genie Suggestion: {suggestion}")
+                st.info(f"💡 Genie Suggestion: {suggestion}")
         else:
             st.info("No invoices found.")
     else:
@@ -743,7 +735,7 @@ def render_invoices():
 # ------------------------------
 # 7. Main App
 # ------------------------------
-st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon=None)
+st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
 # Load minimal CSS (inline to avoid external files)
 st.markdown("""
 <style>
