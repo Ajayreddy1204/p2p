@@ -15,6 +15,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Union
 import numpy as np
+
 # ------------------------------------------------------------
 # config.py
 # ------------------------------------------------------------
@@ -22,9 +23,40 @@ DATABASE = "procure2pay"
 ATHENA_REGION = "us-east-1"
 BEDROCK_MODEL_ID = "amazon.nova-micro-v1:0"
 DB_PATH = "procureiq.db"
-LOGO_URL = "[th.bing.com](https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3)"
+LOGO_URL = "https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3"
+
+# ------------------------------------------------------------
+# Query params compatibility (fixes AttributeError)
+# ------------------------------------------------------------
+try:
+    # Streamlit >= 1.27.0
+    def get_query_params():
+        return st.query_params
+
+    def set_query_param(key, value):
+        st.query_params[key] = value
+
+    def clear_query_params():
+        st.query_params.clear()
+
+except AttributeError:
+    # Older Streamlit
+    def get_query_params():
+        return st.experimental_get_query_params()
+
+    def set_query_param(key, value):
+        params = get_query_params()
+        params[key] = value
+        st.experimental_set_query_params(params)
+
+    def clear_query_params():
+        st.experimental_set_query_params({})
+
+# ------------------------------------------------------------
 # Cache for expensive operations
+# ------------------------------------------------------------
 _query_cache = {}
+
 def compute_range_preset(preset: str):
     today = date.today()
     if preset == "Last 30 Days":
@@ -35,6 +67,8 @@ def compute_range_preset(preset: str):
     if preset == "YTD":
         return date(today.year, 1, 1), today
     return today.replace(day=1), today
+
+
 # ------------------------------------------------------------
 # utils.py
 # ------------------------------------------------------------
@@ -45,6 +79,7 @@ def safe_number(val, default=0.0):
         return float(val)
     except Exception:
         return default
+
 def safe_int(val, default=0):
     try:
         if pd.isna(val):
@@ -52,6 +87,7 @@ def safe_int(val, default=0):
         return int(float(val))
     except Exception:
         return default
+
 def abbr_currency(v: float, currency_symbol: str = "$") -> str:
     n = abs(v)
     sign = "-" if v < 0 else ""
@@ -62,8 +98,10 @@ def abbr_currency(v: float, currency_symbol: str = "$") -> str:
     if n >= 1_000:
         return f"{sign}{currency_symbol}{n/1_000:.1f}K"
     return f"{sign}{currency_symbol}{n:.0f}"
+
 def sql_date(d: date) -> str:
     return f"DATE '{d.strftime('%Y-%m-%d')}'"
+
 def clean_invoice_number(inv_num):
     try:
         if isinstance(inv_num, (float, Decimal)):
@@ -74,6 +112,7 @@ def clean_invoice_number(inv_num):
         return s
     except:
         return str(inv_num)
+
 def pct_delta(cur, prev):
     if prev == 0:
         if cur == 0:
@@ -84,11 +123,13 @@ def pct_delta(cur, prev):
         return "0%", True
     sign = "↑" if change >= 0 else "↓"
     return f"{sign} {abs(change):.1f}%", change >= 0
+
 def prior_window(start: date, end: date):
     days = (end - start).days + 1
     prev_end = start - timedelta(days=1)
     prev_start = prev_end - timedelta(days=days - 1)
     return prev_start, prev_end
+
 def make_json_serializable(obj):
     if isinstance(obj, (str, int, float, bool, type(None))):
         return obj
@@ -111,6 +152,7 @@ def make_json_serializable(obj):
     if isinstance(obj, (list, tuple)):
         return [make_json_serializable(i) for i in obj]
     return str(obj)
+
 def kpi_tile(title: str, value: str, delta_text: str = None, is_positive: bool = True):
     if delta_text and delta_text != "0%":
         if "↑" in delta_text:
@@ -129,6 +171,7 @@ def kpi_tile(title: str, value: str, delta_text: str = None, is_positive: bool =
             {delta_html}
         </div>
     """, unsafe_allow_html=True)
+
 def alt_bar(df, x, y, title=None, horizontal=False, color="#1459d2", height=320):
     if df.empty:
         st.info("No data for this chart.")
@@ -149,6 +192,7 @@ def alt_bar(df, x, y, title=None, horizontal=False, color="#1459d2", height=320)
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def alt_line_monthly(df, month_col='month', value_col='value', height=140, title=None):
     if df.empty:
         st.info("No data for this chart.")
@@ -168,6 +212,7 @@ def alt_line_monthly(df, month_col='month', value_col='value', height=140, title
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def alt_donut_status(df, label_col="status", value_col="cnt", title=None, height=340):
     if df.empty or df[value_col].sum() == 0:
         st.info("No data for donut chart.")
@@ -190,11 +235,13 @@ def alt_donut_status(df, label_col="status", value_col="cnt", title=None, height
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def build_vendor_where(selected_vendor: str) -> str:
     if selected_vendor == "All Vendors":
         return ""
     safe_vendor = selected_vendor.replace("'", "''")
     return f"AND UPPER(v.vendor_name) = UPPER('{safe_vendor}')"
+
 def is_safe_sql(sql: str) -> bool:
     sql_lower = sql.lower().strip()
     if not sql_lower.startswith("select"):
@@ -204,6 +251,7 @@ def is_safe_sql(sql: str) -> bool:
         if re.search(r'\b' + word + r'\b', sql_lower):
             return False
     return True
+
 def ensure_limit(sql: str, default_limit: int = 100) -> str:
     sql_lower = sql.lower()
     if "limit" in sql_lower:
@@ -211,6 +259,7 @@ def ensure_limit(sql: str, default_limit: int = 100) -> str:
     if re.search(r'\b(count|sum|avg|min|max)\b', sql_lower) and "group by" not in sql_lower:
         return sql
     return f"{sql.rstrip(';')} LIMIT {default_limit}"
+
 def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
     if df.empty or len(df) > 200:
         return None
@@ -236,12 +285,15 @@ def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
             )
         return chart.interactive()
     return None
+
+
 # ------------------------------------------------------------
 # athena_client.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_aws_session():
     return boto3.Session()
+
 @st.cache_data(ttl=300, show_spinner=False)
 def run_query(sql: str) -> pd.DataFrame:
     try:
@@ -254,6 +306,7 @@ def run_query(sql: str) -> pd.DataFrame:
     except Exception as e:
         st.error(f"Athena query failed: {e}\nSQL: {sql[:500]}")
         return pd.DataFrame()
+
 # Batch query execution for dashboard
 @st.cache_data(ttl=300, show_spinner=False)
 def run_dashboard_queries(start_lit: str, end_lit: str, p_start_lit: str, p_end_lit: str, vendor_where: str):
@@ -321,6 +374,7 @@ def run_dashboard_queries(start_lit: str, end_lit: str, p_start_lit: str, p_end_
     auto_df = run_query(auto_rate_sql)
     
     return cur_df, prev_df, fp_df, auto_df
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_attention_counts(rng_start, rng_end, vendor_where):
     """Get attention counts in a single query"""
@@ -334,6 +388,7 @@ def get_attention_counts(rng_start, rng_end, vendor_where):
         {vendor_where}
     """
     return run_query(counts_sql)
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_attention_invoices(rng_start, rng_end, vendor_where, condition):
     """Get attention invoices based on condition"""
@@ -351,12 +406,15 @@ def get_attention_invoices(rng_start, rng_end, vendor_where, condition):
         LIMIT 100
     """
     return run_query(attention_sql)
+
+
 # ------------------------------------------------------------
 # bedrock_client.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_bedrock_runtime():
     return boto3.client("bedrock-runtime", region_name=ATHENA_REGION)
+
 @lru_cache(maxsize=100)
 def ask_bedrock(prompt: str, system_prompt: str) -> str:
     try:
@@ -377,12 +435,15 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
     except Exception as e:
         st.error(f"Bedrock invocation failed: {e}")
         return ""
+
+
 # ------------------------------------------------------------
 # persistence.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_db_connection():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -407,8 +468,10 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+
 def get_current_user():
     return "user1"
+
 def save_chat_message(session_id, turn_index, role, content, sql_used="", source=""):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -417,6 +480,7 @@ def save_chat_message(session_id, turn_index, role, content, sql_used="", source
               (session_id, turn_index, role, content, sql_used, source, datetime.now()))
     conn.commit()
     conn.close()
+
 def save_question(query, analysis_type):
     norm = query.lower().strip()
     user = get_current_user()
@@ -426,6 +490,7 @@ def save_question(query, analysis_type):
               (norm, query, user, analysis_type, datetime.now()))
     conn.commit()
     conn.close()
+
 def save_insight(question, title, analysis_type="custom", page="genie"):
     insight_id = str(uuid.uuid4())
     user = get_current_user()
@@ -436,6 +501,7 @@ def save_insight(question, title, analysis_type="custom", page="genie"):
               (insight_id, user, page, title, question, analysis_type, datetime.now()))
     conn.commit()
     conn.close()
+
 def get_cache(question):
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH)
@@ -446,6 +512,7 @@ def get_cache(question):
     if row:
         return json.loads(row[0])
     return None
+
 def set_cache(question, response):
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     serializable_response = make_json_serializable(response)
@@ -461,6 +528,7 @@ def set_cache(question, response):
               (q_hash, question, response_json, datetime.now(), datetime.now(), q_hash))
     conn.commit()
     conn.close()
+
 @st.cache_data(ttl=300)
 def get_saved_insights_cached(page="genie", limit=20):
     user = get_current_user()
@@ -471,6 +539,7 @@ def get_saved_insights_cached(page="genie", limit=20):
     rows = c.fetchall()
     conn.close()
     return [{"id": row[0], "title": row[1], "question": row[2], "type": row[3], "created_at": row[4]} for row in rows]
+
 @st.cache_data(ttl=300)
 def get_frequent_questions_by_user_cached(limit=10):
     user = get_current_user()
@@ -481,6 +550,7 @@ def get_frequent_questions_by_user_cached(limit=10):
     rows = c.fetchall()
     conn.close()
     return [{"query": row[0], "count": row[1]} for row in rows]
+
 @st.cache_data(ttl=300)
 def get_frequent_questions_all_cached(limit=10):
     conn = sqlite3.connect(DB_PATH)
@@ -490,6 +560,8 @@ def get_frequent_questions_all_cached(limit=10):
     rows = c.fetchall()
     conn.close()
     return [{"query": row[0], "count": row[1]} for row in rows]
+
+
 # ------------------------------------------------------------
 # dashboard.py
 # ------------------------------------------------------------
@@ -661,10 +733,53 @@ def inject_dashboard_css():
     .invoice-circle-selected .inv-bottom {
         color: white;
     }
+    /* New style for clickable circle button */
+    .stButton button[kind="secondary"]:has(.inv-top) {
+        width: 70px !important;
+        height: 70px !important;
+        border-radius: 50% !important;
+        background: #d1d5db !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        border: none !important;
+        transition: all 0.2s ease !important;
+        margin: 0 !important;
+    }
+    .stButton button[kind="secondary"]:has(.inv-top):hover {
+        background: #9ca3af !important;
+        transform: scale(1.05) !important;
+    }
+    .stButton button[kind="secondary"]:has(.inv-top) .inv-top {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        line-height: 1.2 !important;
+    }
+    .stButton button[kind="secondary"]:has(.inv-top) .inv-bottom {
+        font-size: 1.2rem !important;
+        font-weight: 700 !important;
+        color: #6b7280 !important;
+        line-height: 1.2 !important;
+    }
+    /* Selected state */
+    .stButton button[kind="primary"]:has(.inv-top) {
+        background: #3b82f6 !important;
+    }
+    .stButton button[kind="primary"]:has(.inv-top):hover {
+        background: #2563eb !important;
+    }
+    .stButton button[kind="primary"]:has(.inv-top) .inv-top,
+    .stButton button[kind="primary"]:has(.inv-top) .inv-bottom {
+        color: white !important;
+    }
 </style>
 """,
         unsafe_allow_html=True,
     )
+
 def format_invoice_number(invoice_num):
     if invoice_num is None:
         return ""
@@ -676,12 +791,14 @@ def format_invoice_number(invoice_num):
     except (ValueError, TypeError):
         pass
     return inv_str
+
 def split_invoice_number(invoice_num):
     inv_str = format_invoice_number(invoice_num)
     if len(inv_str) <= 5:
         return inv_str, ""
     else:
         return inv_str[:5], inv_str[5:]
+
 def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yellow"):
     delta_html = ""
     if delta is not None:
@@ -698,6 +815,7 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
 """,
         unsafe_allow_html=True,
     )
+
 @st.cache_data(ttl=300)
 def get_vendor_list(rng_start, rng_end):
     """Cache vendor list separately"""
@@ -711,6 +829,7 @@ def get_vendor_list(rng_start, rng_end):
     """
     vendors_df = run_query(vendor_sql)
     return ["All Vendors"] + vendors_df["vendor_name"].tolist() if not vendors_df.empty else ["All Vendors"]
+
 def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
@@ -754,6 +873,7 @@ def render_filters():
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
+
 def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df):
     cur_active_pos = safe_int(cur_df.loc[0, "active_pos"]) if not cur_df.empty else 147
     cur_total_pos = safe_int(cur_df.loc[0, "total_pos"]) if not cur_df.empty else 474
@@ -808,14 +928,16 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df):
         render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
     with col4:
         render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", None, True, "green")
+
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
     st.session_state.selected_invoice = inv_str
     st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
-    st.query_params["tab"] = "Invoices"
-    st.query_params["invoice"] = inv_str
+    set_query_param("tab", "Invoices")
+    set_query_param("invoice", inv_str)
     st.rerun()
+
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -823,12 +945,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         st.session_state.na_page = 0
     active_tab = st.session_state.na_tab
     page = st.session_state.na_page
-    # Get counts using cached function
+
     cnt_df = get_attention_counts(rng_start, rng_end, vendor_where)
     overdue_count = safe_int(cnt_df.loc[0, "overdue_count"]) if not cnt_df.empty else 31
     disputed_count = safe_int(cnt_df.loc[0, "disputed_count"]) if not cnt_df.empty else 33
     due_count = safe_int(cnt_df.loc[0, "due_count"]) if not cnt_df.empty else 0
     total_attention = overdue_count + disputed_count + due_count
+
     st.markdown(
         f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_attention})</h2>",
         unsafe_allow_html=True,
@@ -865,6 +988,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.session_state.na_page = 0
             st.rerun()
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+
     if active_tab == "Overdue":
         condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
         status_label = "Overdue"
@@ -884,7 +1008,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         status_label = "Due"
         status_class = "status-due"
         card_class = "invoice-card-due"
-    # Get invoices using cached function
+
     attention_df = get_attention_invoices(rng_start, rng_end, vendor_where, condition)
     if attention_df.empty:
         attention_df = pd.DataFrame(
@@ -900,6 +1024,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             ]
         )
         attention_df["due_date"] = pd.to_datetime(attention_df["due_date"])
+
     items_per_page = 8
     total_items = len(attention_df)
     total_pages = max(1, math.ceil(total_items / items_per_page))
@@ -907,7 +1032,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     end_idx = start_idx + items_per_page
     page_df = attention_df.iloc[start_idx:end_idx]
     selected_invoice = st.session_state.get("selected_invoice", None)
-    # Render cards in rows of 4
+
     for row_start in range(0, len(page_df), 4):
         cols = st.columns(4)
         for col_idx in range(4):
@@ -920,25 +1045,25 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 vendor = row["vendor_name"] if pd.notna(row["vendor_name"]) else "Unknown Vendor"
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
                 is_selected = selected_invoice == inv_num
-                circle_class = "invoice-circle invoice-circle-selected" if is_selected else "invoice-circle"
+                btn_key = f"inv_circle_{page}_{item_idx}_{inv_num}"
+                button_type = "primary" if is_selected else "secondary"
                 with cols[col_idx]:
-                    # Create clickable card with invoice number circle integrated
-                    if st.button(
-                        f"📄 {inv_num}",
-                        key=f"inv_btn_{page}_{item_idx}_{inv_num}",
-                        use_container_width=True,
+                    # Clickable circle button
+                    st.button(
+                        label=f"<div class='inv-top'>{inv_top}</div><div class='inv-bottom'>{inv_bottom}</div>",
+                        key=btn_key,
+                        type=button_type,
+                        on_click=navigate_to_invoice,
+                        args=(inv_num,),
+                        use_container_width=False,
                         help=f"Click to view invoice {inv_num}"
-                    ):
-                        navigate_to_invoice(inv_num)
-                    
+                    )
                     st.markdown(
                         f"""
 <div class="invoice-card {card_class}">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <div class="{circle_class}">
-            <div class="inv-top">{inv_top}</div>
-            <div class="inv-bottom">{inv_bottom}</div>
-        </div>
+        <!-- empty placeholder for layout -->
+        <div style="width: 70px; height: 70px;"></div>
         <div style="text-align: right;">
             <span class="invoice-status {status_class}">{status_label}</span>
             <div class="invoice-amount" style="margin-top: 0.5rem;">{amt}</div>
@@ -953,7 +1078,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         unsafe_allow_html=True,
                     )
         st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-    # Pagination
+
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     col_prev, col_info, col_next = st.columns([1, 2, 1])
     with col_prev:
@@ -974,6 +1099,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         ):
             st.session_state.na_page += 1
             st.rerun()
+
 @st.cache_data(ttl=300)
 def get_chart_data(start_lit, end_lit, vendor_where):
     """Cache chart data queries"""
@@ -1014,10 +1140,10 @@ def get_chart_data(start_lit, end_lit, vendor_where):
     trend_df = run_query(trend_sql)
     
     return status_df, top_df, trend_df
+
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
-    # Get cached chart data
     status_df, top_df, trend_df = get_chart_data(start_lit, end_lit, vendor_where)
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -1114,6 +1240,7 @@ def render_charts(rng_start, rng_end, vendor_where):
             .properties(height=280)
         )
         st.altair_chart(bar_chart, use_container_width=True)
+
 def render_dashboard():
     inject_dashboard_css()
     if "date_range" not in st.session_state:
@@ -1134,9 +1261,7 @@ def render_dashboard():
     p_start, p_end = prior_window(rng_start, rng_end)
     p_start_lit = sql_date(p_start)
     p_end_lit = sql_date(p_end)
-    # Use batch query function for KPIs
     cur_df, prev_df, fp_df, auto_df = run_dashboard_queries(start_lit, end_lit, p_start_lit, p_end_lit, vendor_where)
-    
     cur_spend = safe_number(cur_df.loc[0, "total_spend"]) if not cur_df.empty else 5_500_000
     prev_spend = safe_number(prev_df.loc[0, "total_spend"]) if not prev_df.empty else 14_200_000
     render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df)
@@ -1144,6 +1269,8 @@ def render_dashboard():
     render_needs_attention(rng_start, rng_end, vendor_where)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
+
+
 # ------------------------------------------------------------
 # forecast.py
 # ------------------------------------------------------------
@@ -1170,6 +1297,7 @@ def get_cash_flow_data():
             ELSE 8 END
     """
     return run_query(cf_sql), cf_sql
+
 def render_forecast():
     cf_df, cf_sql = get_cash_flow_data()
     if cf_df.empty:
@@ -1374,6 +1502,8 @@ def render_forecast():
                 st.session_state.auto_run_query = question
                 st.session_state.page = "Genie"
                 st.rerun()
+
+
 # ------------------------------------------------------------
 # genie.py (all functions included)
 # ------------------------------------------------------------
@@ -1383,6 +1513,7 @@ def _safe_sql_string(sql_val):
     if isinstance(sql_val, (dict, list)):
         return json.dumps(sql_val)
     return str(sql_val)
+
 def get_sql_for_question(question: str) -> str:
     q = question.lower()
     if ("total spend" in q or "spend ytd" in q or "year-to-date spend" in q) and ("ytd" in q or "year to date" in q):
@@ -1567,6 +1698,7 @@ SQL:
             WHERE f.invoice_status NOT IN ('Cancelled', 'Rejected')
         """
     return sql
+
 def process_custom_query(query: str) -> dict:
     sql = get_sql_for_question(query)
     if not sql or not is_safe_sql(sql):
@@ -1602,6 +1734,7 @@ Respond in plain text using markdown for headings and bullet points. Do not incl
         "question": query,
         "analyst_response": analyst_text
     }
+
 def process_cash_flow_forecast(question: str) -> dict:
     cf_sql = f"""
         SELECT
@@ -1700,6 +1833,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_early_payment(question: str) -> dict:
     ep_sql = f"""
         SELECT
@@ -1776,6 +1910,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question,
         "empty": ep_df.empty
     }
+
 def process_payment_timing(question: str) -> dict:
     timing_sql = f"""
         WITH due_buckets AS (
@@ -1825,6 +1960,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_late_payment_trend(question: str) -> dict:
     trend_sql = f"""
         SELECT
@@ -1862,6 +1998,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_grir_hotspots(question: str) -> dict:
     sql = f"""
         SELECT
@@ -1895,6 +2032,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_grir_root_causes(question: str) -> dict:
     aging_sql = f"""
         SELECT
@@ -1939,6 +2077,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_grir_working_capital(question: str) -> dict:
     sql = f"""
         SELECT
@@ -1978,6 +2117,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def process_grir_vendor_followup(question: str) -> dict:
     sql = f"""
         SELECT
@@ -2015,6 +2155,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "analyst_response": analyst_text,
         "question": question
     }
+
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT
@@ -2087,6 +2228,7 @@ Respond in plain text using markdown headings and bullet points.
         "sql": {"monthly_trend": monthly_sql, "top_vendors": top_vendors_sql},
         "question": "Spending Overview"
     }
+
 def _quick_vendor_analysis():
     vendors_sql = f"""
         SELECT
@@ -2149,6 +2291,7 @@ Respond in plain text using markdown headings and bullet points.
         "sql": {"top_vendors": vendors_sql, "monthly_vendors": monthly_vendors_sql},
         "question": "Vendor Analysis"
     }
+
 def _quick_payment_performance():
     sql = f"""
         SELECT
@@ -2201,6 +2344,7 @@ Respond in plain text using markdown headings and bullet points.
         "sql": sql,
         "question": "Payment Performance"
     }
+
 def _quick_invoice_aging():
     sql = f"""
         SELECT
@@ -2259,6 +2403,7 @@ Respond in plain text using markdown headings and bullet points.
         "sql": sql,
         "question": "Invoice Aging"
     }
+
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2286,6 +2431,7 @@ def render_cash_flow_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_early_payment_response(result: dict):
     df = pd.DataFrame(result["df"])
     empty = result.get("empty", False)
@@ -2306,6 +2452,7 @@ def render_early_payment_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_payment_timing_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2318,6 +2465,7 @@ def render_payment_timing_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_late_payment_trend_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2339,6 +2487,7 @@ def render_late_payment_trend_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_grir_hotspots(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2354,6 +2503,7 @@ def render_grir_hotspots(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_grir_root_causes(result: dict):
     df = pd.DataFrame(result.get("df", []))
     extra_df = pd.DataFrame(result.get("extra_df", []))
@@ -2368,6 +2518,7 @@ def render_grir_root_causes(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_grir_working_capital(result: dict):
     metrics = result.get("metrics", {})
     col1, col2 = st.columns(2)
@@ -2384,6 +2535,7 @@ def render_grir_working_capital(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_grir_vendor_followup(result: dict):
     df = pd.DataFrame(result["df"])
     if not df.empty:
@@ -2394,6 +2546,7 @@ def render_grir_vendor_followup(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 def render_quick_analysis_response(result: dict):
     analysis_type = result.get("analysis_type", "spending_overview")
     metrics = result.get("metrics", {})
@@ -2534,6 +2687,7 @@ def render_quick_analysis_response(result: dict):
             st.code(sql_queries, language="sql")
         else:
             st.caption("No SQL available.")
+
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
         cached = get_cache(user_question)
@@ -2587,6 +2741,7 @@ def process_user_question(user_question: str):
             else:
                 st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
     st.rerun()
+
 def render_genie():
     st.markdown("""
 <style>
@@ -2812,6 +2967,8 @@ def render_genie():
                 submitted = st.form_submit_button("→", type="primary", use_container_width=True)
             if submitted and user_question:
                 process_user_question(user_question)
+
+
 # ------------------------------------------------------------
 # invoices.py
 # ------------------------------------------------------------
@@ -3033,18 +3190,22 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
+
 @st.cache_data(ttl=300)
 def get_invoice_vendor_list():
     """Cache invoice vendor list"""
     vendor_df = run_query(f"SELECT DISTINCT vendor_name FROM {DATABASE}.dim_vendor_vw ORDER BY vendor_name")
     return ["All Vendors"] + vendor_df["vendor_name"].tolist() if not vendor_df.empty else ["All Vendors"]
+
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
     
     # Check for selected invoice from query params
-    query_params = st.query_params
+    query_params = get_query_params()
     selected_invoice = query_params.get("invoice", None)
+    if isinstance(selected_invoice, list):
+        selected_invoice = selected_invoice[0] if selected_invoice else None
     
     if selected_invoice:
         inv_sql = f"""
@@ -3076,14 +3237,14 @@ def render_invoices():
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
             if st.button("← Back to Invoices List", use_container_width=True):
-                st.query_params.clear()
-                st.query_params["tab"] = "Invoices"
+                clear_query_params()
+                set_query_param("tab", "Invoices")
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
-            st.query_params.clear()
-            st.query_params["tab"] = "Invoices"
+            clear_query_params()
+            set_query_param("tab", "Invoices")
             st.rerun()
     
     if "invoice_search_term" not in st.session_state:
@@ -3166,6 +3327,8 @@ def render_invoices():
         st.dataframe(df_display, use_container_width=True, height=400)
     else:
         st.info("No invoices found. Try a different search term.")
+
+
 # ------------------------------------------------------------
 # Main App (app.py)
 # ------------------------------------------------------------
@@ -3222,8 +3385,10 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
+
 col_title, col_nav, col_logo = st.columns([1.6, 2.4, 1])
 with col_title:
     st.markdown('<div class="title-section">', unsafe_allow_html=True)
@@ -3254,12 +3419,13 @@ with col_logo:
     st.markdown(
         f"""
         <div class="logo-container">
-            <img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" />
+            <img src="{LOGO_URL}" style="width: 120px; height: auto; object-fit: contain;" />
         </div>
         """,
         unsafe_allow_html=True
     )
 st.markdown("---")
+
 if st.session_state.page == "Dashboard":
     render_dashboard()
 elif st.session_state.page == "Genie":
