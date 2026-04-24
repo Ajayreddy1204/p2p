@@ -860,7 +860,7 @@ def render_kpi_rows(kpi_dict):
     total_inv = fp['total_inv']
     fp_inv = fp['first_pass_inv']
     first_pass_rate = (fp_inv / total_inv * 100) if total_inv > 0 else 60.5
-    prev_fp_rate = 59.8   # could also be computed from prior period if needed
+    prev_fp_rate = 59.8
     fp_delta = first_pass_rate - prev_fp_rate
     fp_delta_str = f"{abs(fp_delta):.1f}%"
     fp_up = fp_delta > 0
@@ -905,6 +905,7 @@ def navigate_to_invoice(invoice_number):
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
+# FIXED: Replaced OFFSET with ROW_NUMBER() for Athena compatibility
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -915,7 +916,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     page = st.session_state.na_page
     items_per_page = 8
 
-    # Determine condition and status label
+    # Define condition and status label based on tab
     if active_tab == "Overdue":
         condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
         status_label = "Overdue"
@@ -941,22 +942,28 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     total_items = cnt_df.loc[0, "total"] if not cnt_df.empty else 0
     total_pages = max(1, math.ceil(total_items / items_per_page))
 
-    # Fetch only the slice needed
+    # Fetch slice using ROW_NUMBER() instead of OFFSET (for Athena compatibility)
     offset = page * items_per_page
     attention_sql = f"""
-        SELECT f.invoice_number,
-               f.invoice_amount_local AS amount,
-               v.vendor_name,
-               f.due_date
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
-        {vendor_where} AND {condition}
-        ORDER BY f.due_date ASC
-        LIMIT {items_per_page} OFFSET {offset}
+        SELECT invoice_number, amount, vendor_name, due_date
+        FROM (
+            SELECT
+                f.invoice_number,
+                f.invoice_amount_local AS amount,
+                v.vendor_name,
+                f.due_date,
+                ROW_NUMBER() OVER (ORDER BY f.due_date ASC) AS rn
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+            {vendor_where} AND {condition}
+        ) AS numbered
+        WHERE rn > {offset} AND rn <= {offset + items_per_page}
+        ORDER BY due_date ASC
     """
     page_df = run_query(attention_sql)
 
+    # Render header and tabs
     st.markdown(
         f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_items})</h2>",
         unsafe_allow_html=True,
@@ -965,7 +972,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     tab_cols = st.columns(3)
     with tab_cols[0]:
         if st.button(
-            f"Overdue ({cnt_df.loc[0,'total'] if not cnt_df.empty else 0})",
+            f"Overdue ({cnt_df.loc[0,'total'] if not cnt_df.empty and active_tab=='Overdue' else 0})",
             use_container_width=True,
             type="primary" if active_tab == "Overdue" else "secondary",
             key="tab_overdue",
@@ -975,7 +982,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with tab_cols[1]:
         if st.button(
-            f"Disputed ({0})",   # Disputed count not fetched separately; can be added
+            f"Disputed ({0})",  # We don't have disputed count; can be added if needed
             use_container_width=True,
             type="primary" if active_tab == "Disputed" else "secondary",
             key="tab_disputed",
