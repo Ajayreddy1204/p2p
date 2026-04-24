@@ -57,11 +57,6 @@ UI_FONT_FAMILY   = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto"
 UI_RADIUS        = "14px"
 UI_SHADOW_1      = "0 10px 30px rgba(2,8,23,.06)"
 
-# =============================================================================
-# ██  PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
-# =============================================================================
-st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
-
 def compute_range_preset(preset: str):
     today = date.today()
     if preset == "Last 30 Days": return today - timedelta(days=30), today
@@ -1488,6 +1483,9 @@ def render_invoices():
 # =============================================================================
 init_db()
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+
+# ── Page config ───────────────────────────────────────────────────────────────
+st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
 
 # ── Session defaults ──────────────────────────────────────────────────────────
 if "page" not in st.session_state: st.session_state.page = "Dashboard"
