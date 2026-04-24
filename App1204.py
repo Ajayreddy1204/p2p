@@ -905,7 +905,7 @@ def navigate_to_invoice(invoice_number):
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
-# FIXED: Replaced OFFSET with ROW_NUMBER() for Athena compatibility
+# FIXED: Correctcounts for Overdue, Disputed, Due
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -916,33 +916,45 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     page = st.session_state.na_page
     items_per_page = 8
 
-    # Define condition and status label based on tab
+    # Get all three counts in one query
+    counts_sql = f"""
+        SELECT
+            SUM(CASE WHEN f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE' THEN 1 ELSE 0 END) AS overdue_count,
+            SUM(CASE WHEN UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED') THEN 1 ELSE 0 END) AS disputed_count,
+            SUM(CASE WHEN f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN' THEN 1 ELSE 0 END) AS due_count
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+        {vendor_where}
+    """
+    counts_df = run_query(counts_sql)
+    if not counts_df.empty:
+        overdue_total = counts_df.loc[0, "overdue_count"]
+        disputed_total = counts_df.loc[0, "disputed_count"]
+        due_total = counts_df.loc[0, "due_count"]
+    else:
+        overdue_total = disputed_total = due_total = 0
+
+    # Determine condition and total for the active tab
     if active_tab == "Overdue":
         condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
         status_label = "Overdue"
         status_class = "status-overdue"
+        total_items = overdue_total
     elif active_tab == "Disputed":
         condition = "UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')"
         status_label = "Disputed"
         status_class = "status-disputed"
+        total_items = disputed_total
     else:
         condition = "f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN'"
         status_label = "Due"
         status_class = "status-due"
+        total_items = due_total
 
-    # Count total items for pagination
-    count_sql = f"""
-        SELECT COUNT(*) AS total
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
-        {vendor_where} AND {condition}
-    """
-    cnt_df = run_query(count_sql)
-    total_items = cnt_df.loc[0, "total"] if not cnt_df.empty else 0
     total_pages = max(1, math.ceil(total_items / items_per_page))
 
-    # Fetch slice using ROW_NUMBER() instead of OFFSET (for Athena compatibility)
+    # Fetch slice using ROW_NUMBER() (Athena compatible)
     offset = page * items_per_page
     attention_sql = f"""
         SELECT invoice_number, amount, vendor_name, due_date
@@ -963,16 +975,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     """
     page_df = run_query(attention_sql)
 
-    # Render header and tabs
+    # Render header and tabs with correct counts
     st.markdown(
-        f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_items})</h2>",
+        f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({overdue_total + disputed_total + due_total})</h2>",
         unsafe_allow_html=True,
     )
 
     tab_cols = st.columns(3)
     with tab_cols[0]:
         if st.button(
-            f"Overdue ({cnt_df.loc[0,'total'] if not cnt_df.empty and active_tab=='Overdue' else 0})",
+            f"Overdue ({overdue_total})",
             use_container_width=True,
             type="primary" if active_tab == "Overdue" else "secondary",
             key="tab_overdue",
@@ -982,7 +994,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with tab_cols[1]:
         if st.button(
-            f"Disputed ({0})",  # We don't have disputed count; can be added if needed
+            f"Disputed ({disputed_total})",
             use_container_width=True,
             type="primary" if active_tab == "Disputed" else "secondary",
             key="tab_disputed",
@@ -992,7 +1004,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with tab_cols[2]:
         if st.button(
-            f"Due ({0})",
+            f"Due ({due_total})",
             use_container_width=True,
             type="primary" if active_tab == "Due" else "secondary",
             key="tab_due",
@@ -1084,13 +1096,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with col_info:
         st.markdown(
-            f"<p class='pagination-info'>{page + 1} of {total_pages}</p>",
+            f"<p class='pagination-info'>{page + 1} of {total_pages if total_items > 0 else 1}</p>",
             unsafe_allow_html=True,
         )
     with col_next:
         if st.button(
             "Next →",
-            disabled=(page >= total_pages - 1),
+            disabled=(page >= total_pages - 1 or total_items == 0),
             use_container_width=True,
             key="na_next",
         ):
