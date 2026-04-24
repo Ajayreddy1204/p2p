@@ -1289,12 +1289,13 @@ def render_charts(rng_start, rng_end, vendor_where):
 def render_dashboard():
     inject_dashboard_css()
 
+    # Default to Last 30 Days
     if "date_range" not in st.session_state:
-        st.session_state.date_range = compute_range_preset("YTD")
+        st.session_state.date_range = compute_range_preset("Last 30 Days")
     if "selected_vendor" not in st.session_state:
         st.session_state.selected_vendor = "All Vendors"
     if "preset" not in st.session_state:
-        st.session_state.preset = "YTD"
+        st.session_state.preset = "Last 30 Days"
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
     if "na_page" not in st.session_state:
@@ -1459,10 +1460,10 @@ def render_forecast():
         st.markdown("### Action Playbook")
         st.markdown("Use these guided analyses to turn the forecast into decisions: who to pay now, who to pay early, and where we are at risk of paying late.")
         actions = [
-            ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
-            ("⏰ Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
-            ("⚠️ Late payment trend and risk", "Show late payment trend for forecasting")
+            ("Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
+            ("Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
+            ("Late payment trend and risk", "Show late payment trend for forecasting")
         ]
         for label, question in actions:
             if st.button(label, use_container_width=True):
@@ -2549,7 +2550,7 @@ def render_cash_flow_response(result: dict):
     st.subheader("Forecast Details")
     st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2566,11 +2567,11 @@ def render_early_payment_response(result: dict):
         with col1:
             st.metric("Total Potential Savings", abbr_currency(total_savings))
         with col2:
-            st.metric("High‑Priority Invoices", high_priority)
+            st.metric("High Priority Invoices", high_priority)
         st.subheader("Top Candidates for Early Payment")
         st.dataframe(df.head(10), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2583,7 +2584,7 @@ def render_payment_timing_response(result: dict):
     st.subheader("Payment Timing Summary")
     st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2605,7 +2606,7 @@ def render_late_payment_trend_response(result: dict):
     st.subheader("Payment Performance Data")
     st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2621,7 +2622,7 @@ def render_grir_hotspots(result: dict):
     alt_bar(chart_df, x="year_month", y="total_grir_balance", title="Top months with highest GR/IR", horizontal=False, height=300, color="#ef4444")
     st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2636,7 +2637,7 @@ def render_grir_root_causes(result: dict):
         st.subheader("Outstanding Balances (Last 6 Months)")
         st.dataframe(extra_df, use_container_width=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2653,7 +2654,7 @@ def render_grir_working_capital(result: dict):
         st.subheader("GR/IR Balance by Month (with aging estimates)")
         st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2664,7 +2665,7 @@ def render_grir_vendor_followup(result: dict):
         st.subheader("Top Vendors with Outstanding GR/IR Items")
         st.dataframe(df, use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
-        st.markdown("### 💡 Key Insights")
+        st.markdown("### Key Insights")
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
@@ -2975,12 +2976,15 @@ def render_genie():
         {"icon": "⏱️", "title": "Payment Performance", "description": "Identify delays, late payments, and cycle time issues"},
         {"icon": "📅", "title": "Invoice Aging", "description": "See overdue invoices, risk buckets, and problem areas"}
     ]
+    # Remove emojis from the card data
+    for card in cards_data:
+        card["icon"] = ""  # effectively remove
     cols = st.columns(4, gap="small")
     for idx, (col, card) in enumerate(zip(cols, cards_data)):
         with col:
             st.markdown(f"""
 <div class="quick-card">
-<div class="card-icon">{card['icon']}</div>
+<div class="card-icon"></div>
 <h3>{card['title']}</h3>
 <p>{card['description']}</p>
 </div>
@@ -3036,7 +3040,7 @@ def render_genie():
                 if msg["role"] == "user":
                     st.markdown(f'<div class="message-user"><strong>You</strong><br/>{html.escape(msg["content"])}</div>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="message-assistant"><strong>🧞 Genie</strong></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="message-assistant"><strong>Genie</strong></div>', unsafe_allow_html=True)
                     if "response" in msg and msg["response"]:
                         resp = msg["response"]
                         layout = resp.get("layout")
@@ -3112,14 +3116,14 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <div style="color: white; font-size: 1.1rem; font-weight: 600;">🔍 Genie Insights</div>
+        <div style="color: white; font-size: 1.1rem; font-weight: 600;">Genie Insights</div>
         <div style="color: #f0f0f0; margin-top: 6px;">
             Recommend immediate review of invoice <strong>{inv_num}</strong> as it is overdue 
             and has been outstanding for <strong>{aging_days}</strong> days.
         </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("### 📄 Invoice Summary")
+    st.markdown("### Invoice Summary")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Invoice Number", inv_num)
@@ -3146,7 +3150,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     with col4:
         st.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
     st.markdown("---")
-    st.markdown("### 📜 Status History")
+    st.markdown("### Status History")
     hist_sql = f"""
         SELECT
             invoice_number,
@@ -3197,8 +3201,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         }
     )
     st.markdown("---")
-    st.markdown("### 🏢 Party Information")
-    tab1, tab2 = st.tabs(["🏷️ Vendor Info", "🏭 Company Info"])
+    st.markdown("### Party Information")
+    tab1, tab2 = st.tabs(["Vendor Info", "Company Info"])
     with tab1:
         vendor_sql = f"""
             SELECT DISTINCT
@@ -3219,38 +3223,38 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             row = vendor_df.iloc[0]
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🆔 Vendor ID**")
+                st.markdown("**Vendor ID**")
                 st.info(row.get("vendor_id", ""))
-                st.markdown("**📛 Vendor Name**")
+                st.markdown("**Vendor Name**")
                 st.info(row.get("vendor_name", ""))
-                st.markdown("**📝 Alias/Name 2**")
+                st.markdown("**Alias/Name 2**")
                 st.info(row.get("vendor_name_2", ""))
             with col2:
-                st.markdown("**🌍 Country**")
+                st.markdown("**Country**")
                 st.info(row.get("country_code", ""))
-                st.markdown("**🏙️ City**")
+                st.markdown("**City**")
                 st.info(row.get("city", ""))
-                st.markdown("**📮 Postal Code**")
+                st.markdown("**Postal Code**")
                 st.info(row.get("postal_code", ""))
-                st.markdown("**🏢 Street**")
+                st.markdown("**Street**")
                 st.info(row.get("street", ""))
         else:
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🆔 Vendor ID**")
+                st.markdown("**Vendor ID**")
                 st.info("0001000007")
-                st.markdown("**📛 Vendor Name**")
+                st.markdown("**Vendor Name**")
                 st.info("McMaster-Carr")
-                st.markdown("**📝 Alias/Name 2**")
+                st.markdown("**Alias/Name 2**")
                 st.info("VN-03608")
             with col2:
-                st.markdown("**🌍 Country**")
+                st.markdown("**Country**")
                 st.info("NL")
-                st.markdown("**🏙️ City**")
+                st.markdown("**City**")
                 st.info("Bangalore")
-                st.markdown("**📮 Postal Code**")
+                st.markdown("**Postal Code**")
                 st.info("13607")
-                st.markdown("**🏢 Street**")
+                st.markdown("**Street**")
                 st.info("Tech Center 611")
     with tab2:
         company_sql = f"""
@@ -3273,47 +3277,47 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             row = company_df.iloc[0]
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🏢 Company Code**")
+                st.markdown("**Company Code**")
                 st.info(row.get("company_code", ""))
-                st.markdown("**📛 Company Name**")
+                st.markdown("**Company Name**")
                 st.info(row.get("company_name", ""))
-                st.markdown("**🏭 Plant Code**")
+                st.markdown("**Plant Code**")
                 st.info(row.get("plant_code", ""))
             with col2:
-                st.markdown("**🌿 Plant Name**")
+                st.markdown("**Plant Name**")
                 st.info(row.get("plant_name", ""))
                 addr_parts = [row.get("street", ""), row.get("city", ""), row.get("postal_code", "")]
                 addr = ", ".join([p for p in addr_parts if p])
-                st.markdown("**📍 Company Address**")
+                st.markdown("**Company Address**")
                 st.info(addr)
         else:
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🏢 Company Code**")
+                st.markdown("**Company Code**")
                 st.info("1000")
-                st.markdown("**📛 Company Name**")
+                st.markdown("**Company Name**")
                 st.info("Alpha Manufacturing Inc.")
-                st.markdown("**🏭 Plant Code**")
+                st.markdown("**Plant Code**")
                 st.info("1000")
             with col2:
-                st.markdown("**🌿 Plant Name**")
+                st.markdown("**Plant Name**")
                 st.info("Main Production Plant")
-                st.markdown("**📍 Company Address**")
+                st.markdown("**Company Address**")
                 st.info("350 Fifth Avenue, New York 10001")
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
     if st.session_state.get(paid_key, False):
-        st.success("✅ Invoice has been processed and marked as Paid.")
+        st.success("Invoice has been processed and marked as Paid.")
     else:
         if current_status == "PAID":
-            st.info("ℹ️ This invoice is already marked as PAID.")
+            st.info("This invoice is already marked as PAID.")
         else:
-            if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
+            if st.button("Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
 
 def render_invoices():
-    st.subheader("📑 Invoices")
+    st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
     query_params = st.experimental_get_query_params()
     selected_invoice = query_params.get("invoice", [None])[0]
