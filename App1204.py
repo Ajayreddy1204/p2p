@@ -5,6 +5,10 @@
 #                     forecast · genie · invoices · app
 # =============================================================================
 
+# ── PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND) ──────────────────────────────
+import streamlit as st
+st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
+
 # ── Standard & third-party imports ───────────────────────────────────────────
 import boto3
 import awswrangler as wr
@@ -17,7 +21,6 @@ import html as html_mod
 import numpy as np
 import pandas as pd
 import altair as alt
-import streamlit as st
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
@@ -56,11 +59,6 @@ UI_KPI_LIME      = ("#ECFCCB", "#D9F99D")
 UI_FONT_FAMILY   = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto"
 UI_RADIUS        = "14px"
 UI_SHADOW_1      = "0 10px 30px rgba(2,8,23,.06)"
-
-# =============================================================================
-# ██  PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
-# =============================================================================
-st.set_page_config(page_title="ProcureIQ", layout="wide", page_icon="📊")
 
 def compute_range_preset(preset: str):
     today = date.today()
