@@ -15,7 +15,6 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Union
 import numpy as np
-import concurrent.futures
 
 # ------------------------------------------------------------
 # config.py
@@ -657,19 +656,6 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
         unsafe_allow_html=True,
     )
 
-@st.cache_data(ttl=86400, show_spinner=False)   # 24 hours
-def get_vendor_list_cached(start_date, end_date):
-    vendor_sql = f"""
-        SELECT DISTINCT v.vendor_name
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {sql_date(start_date)} AND {sql_date(end_date)}
-          AND v.vendor_name IS NOT NULL
-        ORDER BY 1
-    """
-    vendors_df = run_query(vendor_sql)
-    return ["All Vendors"] + vendors_df["vendor_name"].tolist() if not vendors_df.empty else ["All Vendors"]
-
 def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
@@ -692,11 +678,32 @@ def render_filters():
                 st.session_state.preset = "Custom"
 
     with col_vendor:
-        vendor_list = get_vendor_list_cached(rng_start, rng_end)
+        vendor_cache_key = f"vendor_list_{rng_start}_{rng_end}"
+        if vendor_cache_key not in st.session_state:
+            vendor_sql = f"""
+                SELECT DISTINCT v.vendor_name
+                FROM {DATABASE}.fact_all_sources_vw f
+                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+                WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+                  AND v.vendor_name IS NOT NULL
+                ORDER BY 1
+            """
+            vendors_df = run_query(vendor_sql)
+            vendor_list = (
+                ["All Vendors"] + vendors_df["vendor_name"].tolist()
+                if not vendors_df.empty
+                else ["All Vendors"]
+            )
+            st.session_state[vendor_cache_key] = vendor_list
+
         selected = st.selectbox(
             "Vendor",
-            vendor_list,
-            index=vendor_list.index(selected_vendor) if selected_vendor in vendor_list else 0,
+            st.session_state[vendor_cache_key],
+            index=(
+                st.session_state[vendor_cache_key].index(selected_vendor)
+                if selected_vendor in st.session_state[vendor_cache_key]
+                else 0
+            ),
             label_visibility="collapsed",
             key="vendor_selectbox",
         )
@@ -719,133 +726,18 @@ def render_filters():
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_kpis_cached(start_date, end_date, vendor_where):
-    start_lit = sql_date(start_date)
-    end_lit = sql_date(end_date)
-    p_start, p_end = prior_window(start_date, end_date)
-    p_start_lit = sql_date(p_start)
-    p_end_lit = sql_date(p_end)
+def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit):
+    cur_active_pos = safe_int(cur_df.loc[0, "active_pos"]) if not cur_df.empty else 147
+    cur_total_pos = safe_int(cur_df.loc[0, "total_pos"]) if not cur_df.empty else 474
+    cur_active_vendors = safe_int(cur_df.loc[0, "active_vendors"]) if not cur_df.empty else 38
+    cur_pending = safe_int(cur_df.loc[0, "pending_inv"]) if not cur_df.empty else 180
+    cur_avg_processing = safe_number(cur_df.loc[0, "avg_processing_days"]) if not cur_df.empty else 70.9
 
-    combined_sql = f"""
-    WITH current_period AS (
-        SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-        {vendor_where}
-    ),
-    prev_period AS (
-        SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
-        {vendor_where}
-    ),
-    first_pass AS (
-        WITH hist AS (
-            SELECT invoice_number,
-                   MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
-                   MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
-            FROM {DATABASE}.invoice_status_history_vw
-            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-            GROUP BY invoice_number
-        )
-        SELECT
-            COUNT(*) AS total_inv,
-            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
-        FROM hist
-    ),
-    auto_rate AS (
-        WITH paid_invoices AS (
-            SELECT invoice_number, status_notes
-            FROM {DATABASE}.invoice_status_history_vw
-            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-              AND UPPER(status) = 'PAID'
-        )
-        SELECT
-            COUNT(*) AS total_cleared,
-            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
-        FROM paid_invoices
-    )
-    SELECT
-        c.active_pos AS cur_active_pos, c.total_pos AS cur_total_pos,
-        c.active_vendors AS cur_active_vendors, c.total_spend AS cur_spend,
-        c.pending_inv AS cur_pending_inv, c.avg_processing_days AS cur_avg_processing_days,
-        p.active_pos AS prev_active_pos, p.total_pos AS prev_total_pos,
-        p.active_vendors AS prev_active_vendors, p.total_spend AS prev_spend,
-        p.pending_inv AS prev_pending_inv, p.avg_processing_days AS prev_avg_processing_days,
-        fp.total_inv, fp.first_pass_inv,
-        ar.total_cleared, ar.auto_processed
-    FROM current_period c, prev_period p, first_pass fp, auto_rate ar
-    """
-    result_df = run_query(combined_sql)
-    if result_df.empty:
-        # fallback (should not happen)
-        return {
-            'cur': {'active_pos':147,'total_pos':474,'active_vendors':38,'total_spend':5500000,'pending_inv':180,'avg_processing_days':70.9},
-            'prev': {'active_pos':73,'total_pos':857,'active_vendors':60,'total_spend':14200000,'pending_inv':90,'avg_processing_days':71.0},
-            'first_pass': {'total_inv':500,'first_pass_inv':302},
-            'auto_rate': {'total_cleared':0,'auto_processed':0}
-        }
-    row = result_df.iloc[0]
-    return {
-        'cur': {
-            'active_pos': safe_int(row.get('cur_active_pos',0)),
-            'total_pos': safe_int(row.get('cur_total_pos',0)),
-            'active_vendors': safe_int(row.get('cur_active_vendors',0)),
-            'total_spend': safe_number(row.get('cur_spend',0)),
-            'pending_inv': safe_int(row.get('cur_pending_inv',0)),
-            'avg_processing_days': safe_number(row.get('cur_avg_processing_days',0))
-        },
-        'prev': {
-            'active_pos': safe_int(row.get('prev_active_pos',0)),
-            'total_pos': safe_int(row.get('prev_total_pos',0)),
-            'active_vendors': safe_int(row.get('prev_active_vendors',0)),
-            'total_spend': safe_number(row.get('prev_spend',0)),
-            'pending_inv': safe_int(row.get('prev_pending_inv',0)),
-            'avg_processing_days': safe_number(row.get('prev_avg_processing_days',0))
-        },
-        'first_pass': {
-            'total_inv': safe_int(row.get('total_inv',0)),
-            'first_pass_inv': safe_int(row.get('first_pass_inv',0))
-        },
-        'auto_rate': {
-            'total_cleared': safe_int(row.get('total_cleared',0)),
-            'auto_processed': safe_int(row.get('auto_processed',0))
-        }
-    }
-
-def render_kpi_rows(kpi_dict):
-    cur = kpi_dict['cur']
-    prev = kpi_dict['prev']
-    fp = kpi_dict['first_pass']
-    auto = kpi_dict['auto_rate']
-
-    cur_spend = cur['total_spend']
-    prev_spend = prev['total_spend']
-    cur_active_pos = cur['active_pos']
-    prev_active_pos = prev['active_pos']
-    cur_total_pos = cur['total_pos']
-    prev_total_pos = prev['total_pos']
-    cur_active_vendors = cur['active_vendors']
-    prev_active_vendors = prev['active_vendors']
-    cur_pending = cur['pending_inv']
-    prev_pending = prev['pending_inv']
-    cur_avg_processing = cur['avg_processing_days']
-    prev_avg_processing = prev['avg_processing_days']
+    prev_active_pos = safe_int(prev_df.loc[0, "active_pos"]) if not prev_df.empty else 73
+    prev_total_pos = safe_int(prev_df.loc[0, "total_pos"]) if not prev_df.empty else 857
+    prev_active_vendors = safe_int(prev_df.loc[0, "active_vendors"]) if not prev_df.empty else 60
+    prev_pending = safe_int(prev_df.loc[0, "pending_inv"]) if not prev_df.empty else 90
+    prev_avg_processing = safe_number(prev_df.loc[0, "avg_processing_days"]) if not prev_df.empty else 71.0
 
     spend_delta, spend_up = pct_delta(cur_spend, prev_spend)
     active_pos_delta, active_pos_up = pct_delta(cur_active_pos, prev_active_pos)
@@ -857,16 +749,16 @@ def render_kpi_rows(kpi_dict):
     avg_delta_str = f"{abs(avg_delta):.1f}d"
     avg_up = avg_delta < 0
 
-    total_inv = fp['total_inv']
-    fp_inv = fp['first_pass_inv']
+    total_inv = safe_int(fp_df.loc[0, "total_inv"]) if not fp_df.empty else 500
+    fp_inv = safe_int(fp_df.loc[0, "first_pass_inv"]) if not fp_df.empty else 302
     first_pass_rate = (fp_inv / total_inv * 100) if total_inv > 0 else 60.5
     prev_fp_rate = 59.8
     fp_delta = first_pass_rate - prev_fp_rate
     fp_delta_str = f"{abs(fp_delta):.1f}%"
     fp_up = fp_delta > 0
 
-    total_cleared = auto['total_cleared']
-    auto_proc = auto['auto_processed']
+    total_cleared = safe_int(auto_df.loc[0, "total_cleared"]) if not auto_df.empty else 0
+    auto_proc = safe_int(auto_df.loc[0, "auto_processed"]) if not auto_df.empty else 0
     auto_rate = (auto_proc / total_cleared * 100) if total_cleared > 0 else 0.0
 
     col1, col2, col3, col4 = st.columns(4)
@@ -905,7 +797,6 @@ def navigate_to_invoice(invoice_number):
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
-# FIXED: Correctcounts for Overdue, Disputed, Due
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -914,77 +805,31 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
     active_tab = st.session_state.na_tab
     page = st.session_state.na_page
-    items_per_page = 8
 
-    # Get all three counts in one query
     counts_sql = f"""
         SELECT
             SUM(CASE WHEN f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE' THEN 1 ELSE 0 END) AS overdue_count,
             SUM(CASE WHEN UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED') THEN 1 ELSE 0 END) AS disputed_count,
             SUM(CASE WHEN f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN' THEN 1 ELSE 0 END) AS due_count
         FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
         WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
         {vendor_where}
     """
-    counts_df = run_query(counts_sql)
-    if not counts_df.empty:
-        overdue_total = counts_df.loc[0, "overdue_count"]
-        disputed_total = counts_df.loc[0, "disputed_count"]
-        due_total = counts_df.loc[0, "due_count"]
-    else:
-        overdue_total = disputed_total = due_total = 0
+    cnt_df = run_query(counts_sql)
+    overdue_count = safe_int(cnt_df.loc[0, "overdue_count"]) if not cnt_df.empty else 31
+    disputed_count = safe_int(cnt_df.loc[0, "disputed_count"]) if not cnt_df.empty else 33
+    due_count = safe_int(cnt_df.loc[0, "due_count"]) if not cnt_df.empty else 0
+    total_attention = overdue_count + disputed_count + due_count
 
-    # Determine condition and total for the active tab
-    if active_tab == "Overdue":
-        condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
-        status_label = "Overdue"
-        status_class = "status-overdue"
-        total_items = overdue_total
-    elif active_tab == "Disputed":
-        condition = "UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')"
-        status_label = "Disputed"
-        status_class = "status-disputed"
-        total_items = disputed_total
-    else:
-        condition = "f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN'"
-        status_label = "Due"
-        status_class = "status-due"
-        total_items = due_total
-
-    total_pages = max(1, math.ceil(total_items / items_per_page))
-
-    # Fetch slice using ROW_NUMBER() (Athena compatible)
-    offset = page * items_per_page
-    attention_sql = f"""
-        SELECT invoice_number, amount, vendor_name, due_date
-        FROM (
-            SELECT
-                f.invoice_number,
-                f.invoice_amount_local AS amount,
-                v.vendor_name,
-                f.due_date,
-                ROW_NUMBER() OVER (ORDER BY f.due_date ASC) AS rn
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
-            {vendor_where} AND {condition}
-        ) AS numbered
-        WHERE rn > {offset} AND rn <= {offset + items_per_page}
-        ORDER BY due_date ASC
-    """
-    page_df = run_query(attention_sql)
-
-    # Render header and tabs with correct counts
     st.markdown(
-        f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({overdue_total + disputed_total + due_total})</h2>",
+        f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_attention})</h2>",
         unsafe_allow_html=True,
     )
 
     tab_cols = st.columns(3)
     with tab_cols[0]:
         if st.button(
-            f"Overdue ({overdue_total})",
+            f"Overdue ({overdue_count})",
             use_container_width=True,
             type="primary" if active_tab == "Overdue" else "secondary",
             key="tab_overdue",
@@ -994,7 +839,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with tab_cols[1]:
         if st.button(
-            f"Disputed ({disputed_total})",
+            f"Disputed ({disputed_count})",
             use_container_width=True,
             type="primary" if active_tab == "Disputed" else "secondary",
             key="tab_disputed",
@@ -1004,7 +849,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with tab_cols[2]:
         if st.button(
-            f"Due ({due_total})",
+            f"Due ({due_count})",
             use_container_width=True,
             type="primary" if active_tab == "Due" else "secondary",
             key="tab_due",
@@ -1015,8 +860,101 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
-    # Render cards
+    if active_tab == "Overdue":
+        condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
+        status_label = "Overdue"
+        status_class = "status-overdue"
+    elif active_tab == "Disputed":
+        condition = "UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')"
+        status_label = "Disputed"
+        status_class = "status-disputed"
+    else:
+        condition = (
+            "f.due_date >= CURRENT_DATE "
+            "AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) "
+            "AND UPPER(f.invoice_status) = 'OPEN'"
+        )
+        status_label = "Due"
+        status_class = "status-due"
+
+    attention_sql = f"""
+        SELECT f.invoice_number,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+        {vendor_where}
+        AND {condition}
+        ORDER BY f.due_date ASC
+    """
+    attention_df = run_query(attention_sql)
+
+    if attention_df.empty:
+        attention_df = pd.DataFrame(
+            [
+                {
+                    "invoice_number": 9005389,
+                    "amount": 13800,
+                    "vendor_name": "Motion Industries",
+                    "due_date": "2026-02-12",
+                },
+                {
+                    "invoice_number": 9006459,
+                    "amount": 1900,
+                    "vendor_name": "Eaton Corp",
+                    "due_date": "2026-02-12",
+                },
+                {
+                    "invoice_number": 9005677,
+                    "amount": 19900,
+                    "vendor_name": "Honeywell Intl",
+                    "due_date": "2026-02-19",
+                },
+                {
+                    "invoice_number": 9004607,
+                    "amount": 2200,
+                    "vendor_name": "McMaster-Carr",
+                    "due_date": "2026-02-19",
+                },
+                {
+                    "invoice_number": 9007488,
+                    "amount": 15400,
+                    "vendor_name": "MSC Industrial",
+                    "due_date": "2026-02-19",
+                },
+                {
+                    "invoice_number": 9006418,
+                    "amount": 1600,
+                    "vendor_name": "Emerson Electric",
+                    "due_date": "2026-02-19",
+                },
+                {
+                    "invoice_number": 9008270,
+                    "amount": 13400,
+                    "vendor_name": "Sonepar USA",
+                    "due_date": "2026-02-23",
+                },
+                {
+                    "invoice_number": 9000738,
+                    "amount": 2800,
+                    "vendor_name": "Emerson Electric",
+                    "due_date": "2026-02-25",
+                },
+            ]
+        )
+        attention_df["due_date"] = pd.to_datetime(attention_df["due_date"])
+
+    items_per_page = 8
+    total_items = len(attention_df)
+    total_pages = max(1, math.ceil(total_items / items_per_page))
+    start_idx = page * items_per_page
+    end_idx = start_idx + items_per_page
+    page_df = attention_df.iloc[start_idx:end_idx]
+
     selected_invoice = st.session_state.get("selected_invoice", None)
+
     for row_start in range(0, len(page_df), 4):
         cols = st.columns(4)
         for col_idx in range(4):
@@ -1026,8 +964,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 inv_num = format_invoice_number(row["invoice_number"])
                 inv_top, inv_bottom = split_invoice_number(row["invoice_number"])
                 amt = abbr_currency(safe_number(row["amount"]))
-                vendor = row["vendor_name"] if pd.notna(row["vendor_name"]) else "Unknown Vendor"
-                due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
+                vendor = (
+                    row["vendor_name"]
+                    if pd.notna(row["vendor_name"])
+                    else "Unknown Vendor"
+                )
+                due = (
+                    pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d")
+                    if pd.notna(row["due_date"])
+                    else ""
+                )
 
                 is_selected = selected_invoice == inv_num
 
@@ -1096,13 +1042,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with col_info:
         st.markdown(
-            f"<p class='pagination-info'>{page + 1} of {total_pages if total_items > 0 else 1}</p>",
+            f"<p class='pagination-info'>{page + 1} of {total_pages}</p>",
             unsafe_allow_html=True,
         )
     with col_next:
         if st.button(
             "Next →",
-            disabled=(page >= total_pages - 1 or total_items == 0),
+            disabled=(page >= total_pages - 1),
             use_container_width=True,
             key="na_next",
         ):
@@ -1113,44 +1059,6 @@ def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
-    status_sql = f"""
-        SELECT
-            CASE
-                WHEN UPPER(invoice_status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 'Paid'
-                WHEN UPPER(invoice_status) IN ('OPEN','PENDING','ON HOLD','PARKED','IN PROGRESS') THEN 'Pending'
-                WHEN UPPER(invoice_status) IN ('DISPUTE','DISPUTED','BLOCKED','CONTESTED') THEN 'Disputed'
-                ELSE 'Other'
-            END AS status,
-            COUNT(*) AS cnt
-        FROM {DATABASE}.fact_all_sources_vw
-        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-        GROUP BY 1
-    """
-    top_vendors_sql = f"""
-        SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit} {vendor_where}
-        GROUP BY 1 ORDER BY spend DESC LIMIT 10
-    """
-    trend_sql = f"""
-        SELECT
-            DATE_TRUNC('month', posting_date) AS month,
-            SUM(COALESCE(invoice_amount_local,0)) AS actual_spend
-        FROM {DATABASE}.fact_all_sources_vw
-        WHERE posting_date >= DATE_ADD('month', -6, {end_lit})
-          AND UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED')
-        GROUP BY 1 ORDER BY 1
-    """
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_status = executor.submit(run_query, status_sql)
-        future_top = executor.submit(run_query, top_vendors_sql)
-        future_trend = executor.submit(run_query, trend_sql)
-        status_df = future_status.result()
-        top_df = future_top.result()
-        trend_df = future_trend.result()
-
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -1158,6 +1066,20 @@ def render_charts(rng_start, rng_end, vendor_where):
             "<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>",
             unsafe_allow_html=True,
         )
+        status_sql = f"""
+            SELECT
+                CASE
+                    WHEN UPPER(invoice_status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 'Paid'
+                    WHEN UPPER(invoice_status) IN ('OPEN','PENDING','ON HOLD','PARKED','IN PROGRESS') THEN 'Pending'
+                    WHEN UPPER(invoice_status) IN ('DISPUTE','DISPUTED','BLOCKED','CONTESTED') THEN 'Disputed'
+                    ELSE 'Other'
+                END AS status,
+                COUNT(*) AS cnt
+            FROM {DATABASE}.fact_all_sources_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+            GROUP BY 1
+        """
+        status_df = run_query(status_sql)
         if status_df.empty:
             status_df = pd.DataFrame(
                 [
@@ -1214,6 +1136,15 @@ def render_charts(rng_start, rng_end, vendor_where):
             "<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>",
             unsafe_allow_html=True,
         )
+        top_vendors_sql = f"""
+            SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+            {vendor_where}
+            GROUP BY 1 ORDER BY spend DESC LIMIT 10
+        """
+        top_df = run_query(top_vendors_sql)
         if top_df.empty:
             top_df = pd.DataFrame(
                 [
@@ -1246,6 +1177,16 @@ def render_charts(rng_start, rng_end, vendor_where):
             "<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>",
             unsafe_allow_html=True,
         )
+        trend_sql = f"""
+            SELECT
+                DATE_TRUNC('month', posting_date) AS month,
+                SUM(COALESCE(invoice_amount_local,0)) AS actual_spend
+            FROM {DATABASE}.fact_all_sources_vw
+            WHERE posting_date >= DATE_ADD('month', -6, {end_lit})
+              AND UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED')
+            GROUP BY 1 ORDER BY 1
+        """
+        trend_df = run_query(trend_sql)
         if trend_df.empty:
             trend_df = pd.DataFrame(
                 [
@@ -1310,8 +1251,75 @@ def render_dashboard():
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
-    kpis = get_kpis_cached(rng_start, rng_end, vendor_where)
-    render_kpi_rows(kpis)
+    start_lit = sql_date(rng_start)
+    end_lit = sql_date(rng_end)
+    p_start, p_end = prior_window(rng_start, rng_end)
+    p_start_lit = sql_date(p_start)
+    p_end_lit = sql_date(p_end)
+
+    cur_kpi_sql = f"""
+        SELECT
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT v.vendor_name) AS active_vendors,
+            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
+            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+    """
+    cur_df = run_query(cur_kpi_sql)
+    cur_spend = safe_number(cur_df.loc[0, "total_spend"]) if not cur_df.empty else 5_500_000
+
+    prev_kpi_sql = f"""
+        SELECT
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT v.vendor_name) AS active_vendors,
+            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
+            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+        {vendor_where}
+    """
+    prev_df = run_query(prev_kpi_sql)
+    prev_spend = safe_number(prev_df.loc[0, "total_spend"]) if not prev_df.empty else 14_200_000
+
+    first_pass_sql = f"""
+        WITH hist AS (
+            SELECT invoice_number,
+                   MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                   MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+            GROUP BY invoice_number
+        )
+        SELECT
+            COUNT(*) AS total_inv,
+            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+        FROM hist
+    """
+    fp_df = run_query(first_pass_sql)
+
+    auto_rate_sql = f"""
+        WITH paid_invoices AS (
+            SELECT invoice_number, status_notes
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+              AND UPPER(status) = 'PAID'
+        )
+        SELECT
+            COUNT(*) AS total_cleared,
+            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
+        FROM paid_invoices
+    """
+    auto_df = run_query(auto_rate_sql)
+
+    render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit)
 
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
 
