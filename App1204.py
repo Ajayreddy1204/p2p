@@ -302,7 +302,7 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
         return ""
 
 # ------------------------------------------------------------
-# persistence.py (enhanced with session management)
+# persistence.py (full implementation)
 # ------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -378,7 +378,7 @@ def load_session_messages(session_id: str) -> List[Dict]:
     conn.close()
     messages = []
     for r in rows:
-        messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3], "timestamp": r[4]})
+        messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3], "timestamp": datetime.fromisoformat(r[4]) if isinstance(r[4], str) else r[4]})
     return messages
 
 def save_question(query, analysis_type):
@@ -462,7 +462,7 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (modified: default preset = "Last 30 Days")
+# dashboard.py (default Last 30 Days)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown(
@@ -1275,7 +1275,7 @@ def render_charts(rng_start, rng_end, vendor_where):
 def render_dashboard():
     inject_dashboard_css()
 
-    # CHANGED: default preset to "Last 30 Days" instead of "YTD"
+    # Default to Last 30 Days
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
     if "selected_vendor" not in st.session_state:
@@ -1614,7 +1614,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (modified short-term memory: last 2 days only)
+# genie.py (short-term memory: last 2 days, plus caching)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1814,18 +1814,13 @@ SQL:
         """
     return sql
 
-# Helper: build conversation context from messages within last 2 days only
 def build_conversation_context(messages: List[Dict], max_turns: int = 5) -> str:
-    """
-    Extract last N user-assistant pairs from messages that are not older than 2 days.
-    """
+    """Keep only messages from the last 2 days."""
     now = datetime.now()
     two_days_ago = now - timedelta(days=2)
-    # Filter messages within last 2 days and keep only user/assistant roles
     recent_messages = [m for m in messages
                        if m.get("timestamp", datetime.min) >= two_days_ago
                        and m["role"] in ("user", "assistant")]
-    # Take last max_turns*2 messages (or fewer)
     recent_messages = recent_messages[-max_turns*2:] if recent_messages else []
     context_parts = []
     for i in range(0, len(recent_messages), 2):
@@ -2899,6 +2894,7 @@ def render_quick_analysis_response(result: dict):
 
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
+        # Check cache first
         cached = get_cache(user_question)
         if cached:
             st.session_state.current_messages = []
@@ -2910,7 +2906,7 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, source="cache", sql_used=sql_used)
             save_question(user_question, "custom")
         else:
-            # Build short-term memory context from messages within the last 2 days
+            # Build short-term memory context from messages within last 2 days
             history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
             lower_q = user_question.lower()
             if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
@@ -2944,6 +2940,7 @@ def process_user_question(user_question: str):
             if result.get("layout") != "error":
                 assistant_content = result.get('analyst_response', 'Analysis complete.')
                 st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+                # Store in cache
                 set_cache(user_question, result)
                 save_chat_message(st.session_state.genie_session_id, 0, "user", user_question)
                 sql_used = _safe_sql_string(result.get("sql"))
@@ -2954,10 +2951,8 @@ def process_user_question(user_question: str):
     st.rerun()
 
 def load_session(session_id: str):
-    """Load a previous session into the current Genie interface."""
     st.session_state.genie_session_id = session_id
     messages = load_session_messages(session_id)
-    # Reconstruct current_messages from stored messages (only user/assistant)
     reconstructed = []
     for m in messages:
         reconstructed.append({"role": m["role"], "content": m["content"], "timestamp": m["timestamp"]})
@@ -2965,7 +2960,6 @@ def load_session(session_id: str):
     st.rerun()
 
 def start_new_session():
-    """Create a new chat session."""
     st.session_state.genie_session_id = str(uuid.uuid4())
     st.session_state.current_messages = []
     save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
@@ -3036,7 +3030,7 @@ def render_genie():
     if "genie_prefill" not in st.session_state:
         st.session_state.genie_prefill = ""
 
-    # Sidebar for long-term memory: session history
+    # Sidebar: long-term memory (session history)
     with st.sidebar:
         st.markdown("### 💾 Memory")
         if st.button("➕ New Conversation", use_container_width=True):
@@ -3047,7 +3041,6 @@ def render_genie():
         if sessions:
             for s in sessions:
                 label = s['label']
-                # truncate label if too long
                 if len(label) > 40:
                     label = label[:37] + "..."
                 if st.button(f"📄 {label}", key=f"sess_{s['id']}", use_container_width=True):
@@ -3055,12 +3048,11 @@ def render_genie():
         else:
             st.caption("No previous sessions found.")
 
-    # Main Genie UI
+    # Process auto-run queries (from Forecast/Invoices buttons)
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
             lower_q = auto_query.lower()
-            # For one-shot actions, we don't need history (or we can use empty history)
             if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
                 result = process_cash_flow_forecast(auto_query, "")
             elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
