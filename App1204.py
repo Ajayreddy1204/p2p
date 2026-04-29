@@ -13,7 +13,7 @@ import hashlib
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
-from typing import Union, Optional, List, Dict
+from typing import Union
 import numpy as np
 
 # ------------------------------------------------------------
@@ -302,7 +302,7 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
         return ""
 
 # ------------------------------------------------------------
-# persistence.py (enhanced with session management)
+# persistence.py
 # ------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -340,46 +340,6 @@ def save_chat_message(session_id, turn_index, role, content, sql_used="", source
               (session_id, turn_index, role, content, sql_used, source, datetime.now()))
     conn.commit()
     conn.close()
-
-def save_chat_session(session_id: str, label: str = None):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    if label is None:
-        label = f"Session {session_id[:8]}"
-    c.execute('''INSERT OR REPLACE INTO chat_sessions (session_id, session_label, created_at, last_updated)
-                 VALUES (?, ?, COALESCE((SELECT created_at FROM chat_sessions WHERE session_id=?), ?),
-                         COALESCE((SELECT last_updated FROM chat_sessions WHERE session_id=?), ?))''',
-              (session_id, label, session_id, datetime.now(), session_id, datetime.now()))
-    conn.commit()
-    conn.close()
-
-def update_session_timestamp(session_id: str):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('UPDATE chat_sessions SET last_updated = ? WHERE session_id = ?', (datetime.now(), session_id))
-    conn.commit()
-    conn.close()
-
-def get_chat_sessions(limit: int = 20) -> List[Dict]:
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT session_id, session_label, created_at, last_updated
-                 FROM chat_sessions ORDER BY last_updated DESC LIMIT ?''', (limit,))
-    rows = c.fetchall()
-    conn.close()
-    return [{"id": r[0], "label": r[1], "created": r[2], "last_updated": r[3]} for r in rows]
-
-def load_session_messages(session_id: str) -> List[Dict]:
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT role, content, sql_used, source, timestamp
-                 FROM chat_messages WHERE session_id = ? ORDER BY turn_index, timestamp''', (session_id,))
-    rows = c.fetchall()
-    conn.close()
-    messages = []
-    for r in rows:
-        messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3], "timestamp": r[4]})
-    return messages
 
 def save_question(query, analysis_type):
     norm = query.lower().strip()
@@ -462,7 +422,7 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (modified: default preset = "Last 30 Days")
+# dashboard.py
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown(
@@ -866,7 +826,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         unsafe_allow_html=True,
     )
 
-    tab_cols = st.columns(3)
+    tab_cols = st.columns([1, 1, 1, 3])
     with tab_cols[0]:
         if st.button(
             f"Overdue ({overdue_count})",
@@ -1032,45 +992,42 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     card_key = f"card_{page}_{item_idx}_{inv_num}"
                     st.markdown(
                         f"""
-<div style="{bg_style} border-radius: 16px; padding: 1rem; min-height: 150px;">
-<div style="display: flex; justify-content: space-between; align-items: flex-start;">
-<div id="circle_{card_key}" style="
-                                    background: {circle_bg};
-                                    border-radius: 50%;
-                                    width: 70px;
-                                    height: 70px;
-                                    display: flex;
-                                    flex-direction: column;
-                                    justify-content: center;
-                                    align-items: center;
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                ">
-<div style="font-size: 1rem; font-weight: 700; color: {text_color_top}; line-height: 1.2;">{inv_top}</div>
-<div style="font-size: 1.2rem; font-weight: 700; color: {text_color_bottom}; line-height: 1.2;">{inv_bottom}</div>
-</div>
-<div style="text-align: right;">
-<span class="invoice-status {status_class}">{status_label}</span>
-<div class="invoice-amount" style="margin-top: 0.5rem;">{amt}</div>
-</div>
-</div>
-<div style="margin-top: 0.75rem;">
-<div class="invoice-due-date">Due: {due}</div>
-<div class="invoice-vendor">{vendor}</div>
-</div>
+<div style="{bg_style} border-radius: 16px; padding: 1rem; min-height: 160px; display: flex; flex-direction: column; justify-content: space-between;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div style="
+      background: {circle_bg};
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+    ">
+      <div style="font-size: 0.9rem; font-weight: 700; color: {text_color_top}; line-height: 1.2;">{inv_top}</div>
+      <div style="font-size: 1rem; font-weight: 700; color: {text_color_bottom}; line-height: 1.2;">{inv_bottom}</div>
+    </div>
+    <div style="text-align: right; flex: 1; margin-left: 0.5rem;">
+      <span class="invoice-status {status_class}">{status_label}</span>
+      <div class="invoice-amount" style="margin-top: 0.4rem;">{amt}</div>
+    </div>
+  </div>
+  <div style="margin-top: 0.6rem;">
+    <div class="invoice-due-date">Due: {due}</div>
+    <div class="invoice-vendor">{vendor}</div>
+  </div>
 </div>
 """,
                         unsafe_allow_html=True,
                     )
-                    btn_col1, btn_col2 = st.columns([1, 2])
-                    with btn_col1:
-                        if st.button(
-                            "⠀",
-                            key=f"inv_click_{card_key}",
-                            help=f"{inv_num}",
-                            use_container_width=True,
-                        ):
-                            navigate_to_invoice(inv_num)
+                    if st.button(
+                        "⠀",
+                        key=f"inv_click_{card_key}",
+                        help=f"{inv_num}",
+                        use_container_width=True,
+                    ):
+                        navigate_to_invoice(inv_num)
 
         st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
@@ -1082,7 +1039,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.rerun()
     with col_info:
         st.markdown(
-            f"<p class='pagination-info'>{page + 1} of {total_pages}</p>",
+            f"<div style='text-align:center; padding-top:0.4rem;'><p class='pagination-info'>{page + 1} of {total_pages}</p></div>",
             unsafe_allow_html=True,
         )
     with col_next:
@@ -1275,13 +1232,12 @@ def render_charts(rng_start, rng_end, vendor_where):
 def render_dashboard():
     inject_dashboard_css()
 
-    # CHANGED: default preset to "Last 30 Days" instead of "YTD"
     if "date_range" not in st.session_state:
-        st.session_state.date_range = compute_range_preset("Last 30 Days")
+        st.session_state.date_range = compute_range_preset("YTD")
     if "selected_vendor" not in st.session_state:
         st.session_state.selected_vendor = "All Vendors"
     if "preset" not in st.session_state:
-        st.session_state.preset = "Last 30 Days"
+        st.session_state.preset = "YTD"
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
     if "na_page" not in st.session_state:
@@ -1371,7 +1327,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged)
+# forecast.py
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1614,7 +1570,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (enhanced with memory)
+# genie.py (all functions included)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1814,24 +1770,7 @@ SQL:
         """
     return sql
 
-# Helper to build conversation context (short-term memory)
-def build_conversation_context(messages: List[Dict], max_turns: int = 5) -> str:
-    """Extract last N user-assistant pairs to feed as context."""
-    context_parts = []
-    # take only user and assistant messages, ignore system/other
-    filtered = [m for m in messages if m["role"] in ("user", "assistant")]
-    # limit to the most recent max_turns*2 messages (each turn = user + assistant)
-    recent = filtered[-max_turns*2:]
-    for i in range(0, len(recent), 2):
-        if i+1 < len(recent):
-            user_msg = recent[i]["content"]
-            assistant_msg = recent[i+1]["content"]
-            context_parts.append(f"Previous question: {user_msg}\nPrevious answer: {assistant_msg}")
-    if not context_parts:
-        return ""
-    return "Here is the conversation history for context:\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
-
-def process_custom_query(query: str, history: str = "") -> dict:
+def process_custom_query(query: str) -> dict:
     sql = get_sql_for_question(query)
     if not sql or not is_safe_sql(sql):
         return {"layout": "error", "message": "Could not generate safe SQL for this question."}
@@ -1844,7 +1783,6 @@ def process_custom_query(query: str, history: str = "") -> dict:
         return {"layout": "error", "message": "Query returned no data. Try rephrasing your question."}
     data_preview = df.head(10).to_string(index=False, max_colwidth=40)
     prompt = f"""
-{history}
 You are a senior procurement analyst. The user asked: "{query}".
 
 Based on the data from the SQL below, write a response in exactly this structure:
@@ -1876,7 +1814,7 @@ Respond in plain text using markdown for headings and bullet points. Do not incl
         "analyst_response": analyst_text
     }
 
-def process_cash_flow_forecast(question: str, history: str = "") -> dict:
+def process_cash_flow_forecast(question: str) -> dict:
     cf_sql = f"""
         SELECT
             forecast_bucket,
@@ -1957,7 +1895,6 @@ def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     cf_df.columns = [c.lower() for c in cf_df.columns]
     data_preview = cf_df.to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following cash flow forecast data, write a response with two sections:
 
 1. **Descriptive** – What the data shows. Cite exact numbers for each bucket (TOTAL_UNPAID, OVERDUE_NOW, DUE_7_DAYS, DUE_14_DAYS, DUE_30_DAYS, DUE_60_DAYS, DUE_90_DAYS, BEYOND_90_DAYS). Explain the cash outflow expected in each period.
@@ -1980,7 +1917,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_early_payment(question: str, history: str = "") -> dict:
+def process_early_payment(question: str) -> dict:
     ep_sql = f"""
         SELECT
             document_number,
@@ -2025,7 +1962,6 @@ def process_early_payment(question: str, history: str = "") -> dict:
         ep_df = pd.DataFrame()
     if ep_df.empty:
         prompt = f"""
-{history}
 You are a senior procurement analyst. The user asked: "{question}".
 
 However, the query returned no data. Possible reasons: no open invoices with due dates in the next 30 days, or the early_payment_candidates view is empty.
@@ -2044,7 +1980,6 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
     else:
         data_preview = ep_df.head(10).to_string(index=False)
         prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following list of invoices that are candidates for early payment (to capture discounts), write a response with two sections:
 
 1. **Descriptive** – Summarize the total potential savings, the number of high‑priority invoices, and the range of due dates. Highlight the top 2‑3 invoices with the largest savings.
@@ -2068,7 +2003,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "empty": ep_df.empty
     }
 
-def process_payment_timing(question: str, history: str = "") -> dict:
+def process_payment_timing(question: str) -> dict:
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT
@@ -2100,7 +2035,6 @@ def process_payment_timing(question: str, history: str = "") -> dict:
     timing_df.columns = [c.lower() for c in timing_df.columns]
     data_preview = timing_df.to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following payment timing buckets (overdue, due in 0-7 days, 8-14 days, 15-30 days, later), write a response with two sections:
 
 1. **Descriptive** – Summarize the total amounts due in each window, highlighting the most urgent buckets (overdue and 0-7 days). Mention the number of invoices.
@@ -2123,7 +2057,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_late_payment_trend(question: str, history: str = "") -> dict:
+def process_late_payment_trend(question: str) -> dict:
     trend_sql = f"""
         SELECT
             DATE_TRUNC('month', payment_date) AS month,
@@ -2143,7 +2077,6 @@ def process_late_payment_trend(question: str, history: str = "") -> dict:
     trend_df["late_pct"] = (trend_df["late_payments"] / trend_df["total_payments"]) * 100
     data_preview = trend_df.tail(6).to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following monthly payment performance data (last 12 months), write a response with two sections:
 
 1. **Descriptive** – Describe the trend in late payments (percentage and average days late). Identify any months with spikes or improvements. Cite specific numbers.
@@ -2166,7 +2099,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_grir_hotspots(question: str, history: str = "") -> dict:
+def process_grir_hotspots(question: str) -> dict:
     sql = f"""
         SELECT
             year,
@@ -2182,7 +2115,6 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
     df.columns = [c.lower() for c in df.columns]
     data_preview = df.head(12).to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following GR/IR outstanding balance by month, write a response with two sections:
 
 1. **Descriptive** – Highlight the months with the highest GR/IR balances (top 3). Mention the total balance and invoice count for those months.
@@ -2205,7 +2137,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_grir_root_causes(question: str, history: str = "") -> dict:
+def process_grir_root_causes(question: str) -> dict:
     aging_sql = f"""
         SELECT
             year,
@@ -2231,7 +2163,6 @@ def process_grir_root_causes(question: str, history: str = "") -> dict:
         return {"layout": "error", "message": "No GR/IR aging or balance data found."}
     context = "GR/IR aging (last 6 months):\n" + aging_df.to_string(index=False) + "\n\nOutstanding balances:\n" + balance_df.to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following GR/IR data (aging and outstanding balances), write a response with two sections:
 
 1. **Descriptive** – Explain the likely root‑cause buckets for GR/IR discrepancies: missing goods receipt, invoice not posted, price/quantity mismatch, etc. Use the data to infer which buckets are most likely.
@@ -2255,7 +2186,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_grir_working_capital(question: str, history: str = "") -> dict:
+def process_grir_working_capital(question: str) -> dict:
     sql = f"""
         SELECT
             year,
@@ -2276,7 +2207,6 @@ def process_grir_working_capital(question: str, history: str = "") -> dict:
     total_old_90 = df['older_than_90_days'].sum()
     data_preview = df.head(12).to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following GR/IR outstanding balance by month, with estimated amounts older than 60 and 90 days, write a response with two sections:
 
 1. **Descriptive** – State the total working capital that could be released by clearing GR/IR items older than 60 days (${total_old_60:,.2f}) and older than 90 days (${total_old_90:,.2f}). Mention which months contribute most.
@@ -2300,7 +2230,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-def process_grir_vendor_followup(question: str, history: str = "") -> dict:
+def process_grir_vendor_followup(question: str) -> dict:
     sql = f"""
         SELECT
             v.vendor_name,
@@ -2320,7 +2250,6 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
     df.columns = [c.lower() for c in df.columns]
     data_preview = df.to_string(index=False)
     prompt = f"""
-{history}
 You are a senior procurement analyst. Based on the following top vendors with outstanding GR/IR items (count, total amount, average age), draft vendor-facing follow-up templates. Write a response with two sections:
 
 1. **Descriptive** – Summarise the top vendors and the scale of GR/IR items.
@@ -2904,25 +2833,23 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, source="cache", sql_used=sql_used)
             save_question(user_question, "custom")
         else:
-            # Build short-term memory context from current session (max 5 previous exchanges)
-            history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
             lower_q = user_question.lower()
             if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
-                result = process_cash_flow_forecast(user_question, history_context)
+                result = process_cash_flow_forecast(user_question)
             elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
-                result = process_early_payment(user_question, history_context)
+                result = process_early_payment(user_question)
             elif any(kw in lower_q for kw in ["optimal payment timing"]):
-                result = process_payment_timing(user_question, history_context)
+                result = process_payment_timing(user_question)
             elif any(kw in lower_q for kw in ["late payment trend"]):
-                result = process_late_payment_trend(user_question, history_context)
+                result = process_late_payment_trend(user_question)
             elif "gr/ir" in lower_q and "hotspots" in lower_q:
-                result = process_grir_hotspots(user_question, history_context)
+                result = process_grir_hotspots(user_question)
             elif "root-cause" in lower_q:
-                result = process_grir_root_causes(user_question, history_context)
+                result = process_grir_root_causes(user_question)
             elif "working-capital" in lower_q:
-                result = process_grir_working_capital(user_question, history_context)
+                result = process_grir_working_capital(user_question)
             elif "vendor follow-up" in lower_q:
-                result = process_grir_vendor_followup(user_question, history_context)
+                result = process_grir_vendor_followup(user_question)
             elif user_question == "Spending Overview":
                 result = _quick_spending_overview()
             elif user_question == "Vendor Analysis":
@@ -2932,7 +2859,7 @@ def process_user_question(user_question: str):
             elif user_question == "Invoice Aging":
                 result = _quick_invoice_aging()
             else:
-                result = process_custom_query(user_question, history_context)
+                result = process_custom_query(user_question)
             st.session_state.current_messages = []
             st.session_state.current_messages.append({"role": "user", "content": user_question, "timestamp": datetime.now()})
             if result.get("layout") != "error":
@@ -2945,24 +2872,6 @@ def process_user_question(user_question: str):
                 save_question(user_question, "forecast")
             else:
                 st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
-    st.rerun()
-
-def load_session(session_id: str):
-    """Load a previous session into the current Genie interface."""
-    st.session_state.genie_session_id = session_id
-    messages = load_session_messages(session_id)
-    # Reconstruct current_messages from stored messages (only user/assistant)
-    reconstructed = []
-    for m in messages:
-        reconstructed.append({"role": m["role"], "content": m["content"], "timestamp": m["timestamp"]})
-    st.session_state.current_messages = reconstructed
-    st.rerun()
-
-def start_new_session():
-    """Create a new chat session."""
-    st.session_state.genie_session_id = str(uuid.uuid4())
-    st.session_state.current_messages = []
-    save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
 def render_genie():
@@ -3020,57 +2929,32 @@ def render_genie():
     hr { margin: 0.5rem 0; }
 </style>
     """, unsafe_allow_html=True)
-
-    # Initialize session
     if "genie_session_id" not in st.session_state:
         st.session_state.genie_session_id = str(uuid.uuid4())
-        save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     if "current_messages" not in st.session_state:
         st.session_state.current_messages = []
     if "genie_prefill" not in st.session_state:
         st.session_state.genie_prefill = ""
-
-    # Sidebar for long-term memory: session history
-    with st.sidebar:
-        st.markdown("### 💾 Memory")
-        if st.button("➕ New Conversation", use_container_width=True):
-            start_new_session()
-        st.markdown("---")
-        st.markdown("#### Previous Sessions")
-        sessions = get_chat_sessions(limit=15)
-        if sessions:
-            for s in sessions:
-                label = s['label']
-                # truncate label if too long
-                if len(label) > 40:
-                    label = label[:37] + "..."
-                if st.button(f"📄 {label}", key=f"sess_{s['id']}", use_container_width=True):
-                    load_session(s['id'])
-        else:
-            st.caption("No previous sessions found.")
-
-    # Main Genie UI
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
             lower_q = auto_query.lower()
-            # For one-shot actions, we don't need history
             if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
-                result = process_cash_flow_forecast(auto_query, "")
+                result = process_cash_flow_forecast(auto_query)
             elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
-                result = process_early_payment(auto_query, "")
+                result = process_early_payment(auto_query)
             elif any(kw in lower_q for kw in ["optimal payment timing"]):
-                result = process_payment_timing(auto_query, "")
+                result = process_payment_timing(auto_query)
             elif any(kw in lower_q for kw in ["late payment trend"]):
-                result = process_late_payment_trend(auto_query, "")
+                result = process_late_payment_trend(auto_query)
             elif "gr/ir" in lower_q and "hotspots" in lower_q:
-                result = process_grir_hotspots(auto_query, "")
+                result = process_grir_hotspots(auto_query)
             elif "root-cause" in lower_q:
-                result = process_grir_root_causes(auto_query, "")
+                result = process_grir_root_causes(auto_query)
             elif "working-capital" in lower_q:
-                result = process_grir_working_capital(auto_query, "")
+                result = process_grir_working_capital(auto_query)
             elif "vendor follow-up" in lower_q:
-                result = process_grir_vendor_followup(auto_query, "")
+                result = process_grir_vendor_followup(auto_query)
             elif auto_query == "Spending Overview":
                 result = _quick_spending_overview()
             elif auto_query == "Vendor Analysis":
@@ -3080,7 +2964,7 @@ def render_genie():
             elif auto_query == "Invoice Aging":
                 result = _quick_invoice_aging()
             else:
-                result = process_custom_query(auto_query, "")
+                result = process_custom_query(auto_query)
             st.session_state.current_messages = []
             st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
             if result.get("layout") != "error":
@@ -3094,7 +2978,6 @@ def render_genie():
             else:
                 st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
             st.rerun()
-
     st.markdown('<div class="welcome-header"><h1>Welcome to ProcureIQ Genie</h1><p>Let Genie run one of these quick analyses for you</p></div>', unsafe_allow_html=True)
     cards_data = [
         {"icon": "📊", "title": "Spending Overview", "description": "Track total spend, monthly trends and major changes"},
@@ -3218,7 +3101,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py (unchanged)
+# invoices.py
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3566,7 +3449,7 @@ def render_invoices():
         st.info("No invoices found. Try a different search term.")
 
 # ------------------------------------------------------------
-# quick_analysis.py (unused but kept)
+# quick_analysis.py (unused in main flow but included)
 # ------------------------------------------------------------
 def run_quick_analysis(key: str) -> dict:
     base = f"{DATABASE}.fact_all_sources_vw f LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id"
@@ -3716,7 +3599,7 @@ def run_quick_analysis(key: str) -> dict:
     return out
 
 # ------------------------------------------------------------
-# semantic_model.py (placeholder YAML)
+# semantic_model.py (placeholder YAML – not used in main flow)
 # ------------------------------------------------------------
 RAW_SEMANTIC_MODEL_YAML = """
 # Placeholder YAML – replace with actual semantic model if needed.
