@@ -820,7 +820,9 @@ def navigate_to_invoice(invoice_number):
     st.session_state.selected_invoice = inv_str
     st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
-    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
+    # Use new st.query_params API (replaces experimental)
+    st.query_params["tab"] = "Invoices"
+    st.query_params["invoice"] = inv_str
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
@@ -832,11 +834,12 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     active_tab = st.session_state.na_tab
     page = st.session_state.na_page
 
+    # Count queries - Note: For "Due" we include both OPEN and DUE statuses
     counts_sql = f"""
         SELECT
             SUM(CASE WHEN f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE' THEN 1 ELSE 0 END) AS overdue_count,
             SUM(CASE WHEN UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED') THEN 1 ELSE 0 END) AS disputed_count,
-            SUM(CASE WHEN f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN' THEN 1 ELSE 0 END) AS due_count
+            SUM(CASE WHEN f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) IN ('OPEN', 'DUE') THEN 1 ELSE 0 END) AS due_count
         FROM {DATABASE}.fact_all_sources_vw f
         WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
         {vendor_where}
@@ -877,7 +880,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         status_label = "Disputed"
         status_class = "status-disputed"
     else:
-        condition = "f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) = 'OPEN'"
+        # Due tab – include OPEN and DUE statuses
+        condition = "f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) IN ('OPEN', 'DUE')"
         status_label = "Due"
         status_class = "status-due"
 
@@ -3126,8 +3130,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
-    query_params = st.experimental_get_query_params()
-    selected_invoice = query_params.get("invoice", [None])[0]
+    query_params = st.query_params
+    selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
     if selected_invoice:
         inv_sql = f"""
             SELECT
@@ -3158,12 +3162,12 @@ def render_invoices():
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
             if st.button("← Back to Invoices List", use_container_width=True):
-                st.experimental_set_query_params(tab="Invoices")
+                st.query_params.clear()
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
-            st.experimental_set_query_params(tab="Invoices")
+            st.query_params.clear()
             st.rerun()
     if "invoice_search_term" not in st.session_state:
         st.session_state.invoice_search_term = ""
