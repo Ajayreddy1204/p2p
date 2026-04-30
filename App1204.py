@@ -37,7 +37,7 @@ def compute_range_preset(preset: str):
     return today.replace(day=1), today
 
 # ------------------------------------------------------------
-# utils.py (unchanged)
+# utils.py
 # ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
@@ -814,12 +814,19 @@ def navigate_to_invoice(invoice_number):
     st.session_state.selected_invoice = inv_str
     st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
-    st.query_params["tab"] = "Invoices"
-    st.query_params["invoice"] = inv_str
+    # Use experimental API for older Streamlit versions
+    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
-    # Fetch data for all three tabs
+    if "na_tab" not in st.session_state:
+        st.session_state.na_tab = "Overdue"
+    if "na_page" not in st.session_state:
+        st.session_state.na_page = 0
+
+    active_tab = st.session_state.na_tab
+    page = st.session_state.na_page
+
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
@@ -839,7 +846,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     """
     overdue_df = run_query(overdue_sql)
     if overdue_df.empty:
-        # Sample overdue data
         overdue_df = pd.DataFrame([
             {"invoice_number": 9004607, "amount": 2200, "vendor_name": "McMaster-Carr", "due_date": date.today() - timedelta(days=5)},
             {"invoice_number": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date.today() - timedelta(days=8)},
@@ -864,7 +870,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             {"invoice_number": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2)},
         ])
 
-    # Due (next 30 days, OPEN or DUE status)
+    # Due
     due_sql = f"""
         SELECT f.invoice_number,
                f.invoice_amount_local AS amount,
@@ -881,7 +887,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     """
     due_df = run_query(due_sql)
     if due_df.empty:
-        # Generate 8 sample due invoices
         today = date.today()
         sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
         due_df = pd.DataFrame([
@@ -889,7 +894,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             for i in range(8)
         ])
 
-    # Counts
     overdue_count = len(overdue_df)
     disputed_count = len(disputed_df)
     due_count = len(due_df)
@@ -897,8 +901,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
     st.markdown(f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_attention})</h2>", unsafe_allow_html=True)
 
-    # Tabs
-    active_tab = st.session_state.get("na_tab", "Overdue")
     tab_cols = st.columns(3)
     with tab_cols[0]:
         if st.button(f"Overdue ({overdue_count})", use_container_width=True, type="primary" if active_tab == "Overdue" else "secondary", key="tab_overdue"):
@@ -918,7 +920,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
-    # Select the correct DataFrame for the active tab
     if active_tab == "Overdue":
         df = overdue_df
         status_label = "Overdue"
@@ -939,8 +940,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         st.info(f"No {status_label.lower()} invoices found in the selected date range.")
         return
 
-    # Pagination
-    page = st.session_state.get("na_page", 0)
     items_per_page = 8
     total_items = len(df)
     total_pages = max(1, math.ceil(total_items / items_per_page))
@@ -3150,7 +3149,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
-    query_params = st.query_params
+    query_params = st.experimental_get_query_params()
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
     if selected_invoice:
         inv_sql = f"""
@@ -3182,12 +3181,12 @@ def render_invoices():
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
             if st.button("← Back to Invoices List", use_container_width=True):
-                st.query_params.clear()
+                st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
-            st.query_params.clear()
+            st.experimental_set_query_params(tab="Invoices")
             st.rerun()
     if "invoice_search_term" not in st.session_state:
         st.session_state.invoice_search_term = ""
