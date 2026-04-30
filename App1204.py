@@ -607,52 +607,34 @@ def inject_dashboard_css():
         color: #6b7280;
         font-size: 0.9rem;
     }
-    .invoice-circle-btn {
-        background: #d1d5db;
-        border-radius: 50%;
-        width: 70px;
-        height: 70px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
+    /* Make invisible button overlay for clickable cards */
+    .clickable-card-container {
+        position: relative;
+    }
+    .clickable-card-container .stButton {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        opacity: 0;
+        margin: 0;
+        padding: 0;
+    }
+    .clickable-card-container .stButton button {
+        width: 100%;
+        height: 100%;
+        background: transparent;
         border: none;
-        transition: all 0.2s ease;
-        text-decoration: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
     }
-    .invoice-circle-btn:hover {
-        background: #9ca3af;
-        transform: scale(1.05);
-    }
-    .invoice-circle-btn-selected {
-        background: #3b82f6;
-    }
-    .invoice-circle-btn-selected:hover {
-        background: #2563eb;
-    }
-    .invoice-circle-btn-selected .inv-top,
-    .invoice-circle-btn-selected .inv-bottom {
-        color: white;
-    }
-    .inv-top {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #111827;
-        line-height: 1.2;
-    }
-    .inv-bottom {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #6b7280;
-        line-height: 1.2;
-    }
-    .stButton > button[data-testid="baseButton-secondary"].circle-btn {
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-shadow: none !important;
+    .clickable-card-container > div:not(.stButton) {
+        position: relative;
+        z-index: 0;
+        pointer-events: none;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -818,8 +800,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention with fully clickable cards
-# (no separate hidden boxes, all invoices are clickable)
+# UPDATED render_needs_attention with fully clickable cards (no visible extra box)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -950,9 +931,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
 
                 with cols[col_idx]:
+                    # Container for clickable card
+                    st.markdown('<div class="clickable-card-container">', unsafe_allow_html=True)
+                    # Invisible button that triggers navigation
+                    clicked = st.button(" ", key=f"card_click_{full_invoice}", help=f"Invoice {full_invoice}", use_container_width=True)
+                    # Card HTML (visible)
                     card_html = f"""
-<button style="all:unset;width:100%;" id="btn_{full_invoice}">
-<div style="{bg_style}border-radius:16px;padding:1rem;min-height:150px;cursor:pointer;transition:all .2s;">
+<div style="{bg_style}border-radius:16px;padding:1rem;min-height:150px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div style="background:#3b82f6;border-radius:50%;width:70px;height:70px;display:flex;flex-direction:column;justify-content:center;align-items:center;">
       <div style="font-size:1rem;font-weight:700;color:white;line-height:1.2;">{inv_top}</div>
@@ -968,10 +953,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     <div class="invoice-vendor">{vendor}</div>
   </div>
 </div>
-</button>
 """
-                    clicked = st.button(" ", key=f"card_click_{full_invoice}", help=f"Invoice {full_invoice}", use_container_width=True)
                     st.markdown(card_html, unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
                     if clicked:
                         navigate_to_invoice(full_invoice)
 
