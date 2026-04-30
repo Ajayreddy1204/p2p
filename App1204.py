@@ -37,7 +37,7 @@ def compute_range_preset(preset: str):
     return today.replace(day=1), today
 
 # ------------------------------------------------------------
-# utils.py
+# utils.py (unchanged)
 # ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
@@ -1394,7 +1394,6 @@ def render_forecast():
         st.markdown("---")
         st.markdown("### GR/IR Clearing Playbook")
         st.markdown("Each step opens Genie with a pre-built prompt that uses the `gr_ir_outstanding` and related verified queries so you get context on chase receipts, and how much working capital you can release.")
-        # These exact strings will be matched in process_user_question
         clearing_actions = [
             ("1. Identify top GR/IR hotspots to clear first", "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."),
             ("2. Explain likely GR/IR root causes", "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."),
@@ -1408,7 +1407,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, with GR/IR fixes and exact string matching)
+# genie.py (all functions, with GR/IR fixes)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1872,7 +1871,6 @@ Respond in plain text, using markdown for headings and bullet points.
         "question": question
     }
 
-# ----- FIXED GR/IR FUNCTIONS (with sample data fallback) -----
 def process_grir_hotspots(question: str, history: str = "") -> dict:
     sql = f"""
         SELECT
@@ -1885,7 +1883,6 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
     """
     df = run_query(sql)
     if df.empty:
-        # Provide sample data for demonstration when no data exists
         sample_df = pd.DataFrame([
             {"year": 2025, "month": 12, "invoice_count": 145, "total_grir_balance": 1250000},
             {"year": 2025, "month": 11, "invoice_count": 132, "total_grir_balance": 1180000},
@@ -1943,7 +1940,6 @@ def process_grir_root_causes(question: str, history: str = "") -> dict:
     """
     balance_df = run_query(balance_sql)
     if aging_df.empty and balance_df.empty:
-        # Provide sample data for demonstration
         aging_df = pd.DataFrame([
             {"year": 2025, "month": 12, "pct_grir_over_60": 28.5, "cnt_grir_over_60": 41},
             {"year": 2025, "month": 11, "pct_grir_over_60": 32.0, "cnt_grir_over_60": 42},
@@ -2081,7 +2077,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-# Quick analysis functions (unchanged, but included for completeness)
+# Quick analysis functions (unchanged)
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT
@@ -2628,7 +2624,7 @@ def process_user_question(user_question: str):
             history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
             lower_q = user_question.lower()
             
-            # Exact match for GR/IR clearing actions (highest priority)
+            # Exact match for GR/IR clearing actions
             if user_question == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(user_question, history_context)
             elif user_question == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
@@ -2637,7 +2633,6 @@ def process_user_question(user_question: str):
                 result = process_grir_working_capital(user_question, history_context)
             elif user_question == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
                 result = process_grir_vendor_followup(user_question, history_context)
-            # Other forecast actions
             elif any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
                 result = process_cash_flow_forecast(user_question, history_context)
             elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
@@ -2646,7 +2641,6 @@ def process_user_question(user_question: str):
                 result = process_payment_timing(user_question, history_context)
             elif any(kw in lower_q for kw in ["late payment trend"]):
                 result = process_late_payment_trend(user_question, history_context)
-            # Quick analysis buttons
             elif user_question == "Spending Overview":
                 result = _quick_spending_overview()
             elif user_question == "Vendor Analysis":
@@ -2751,6 +2745,7 @@ def render_genie():
     if "genie_prefill" not in st.session_state:
         st.session_state.genie_prefill = ""
 
+    # Sidebar only appears on Genie page (as requested – hidden on Dashboard)
     with st.sidebar:
         st.markdown("### 💾 Memory")
         if st.button("➕ New Conversation", use_container_width=True):
@@ -2771,10 +2766,7 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            # Reuse the same logic as process_user_question but without history
-            # For simplicity, call process_user_question which already handles all cases
-            # But to avoid recursion, we directly set messages after processing
-            # We'll just call the same mapping logic here
+            # Same mapping as in process_user_question
             if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(auto_query, "")
             elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
@@ -3354,6 +3346,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
