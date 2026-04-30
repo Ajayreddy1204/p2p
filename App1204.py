@@ -37,7 +37,7 @@ def compute_range_preset(preset: str):
     return today.replace(day=1), today
 
 # ------------------------------------------------------------
-# utils.py (unchanged)
+# utils.py
 # ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
@@ -1394,6 +1394,7 @@ def render_forecast():
         st.markdown("---")
         st.markdown("### GR/IR Clearing Playbook")
         st.markdown("Each step opens Genie with a pre-built prompt that uses the `gr_ir_outstanding` and related verified queries so you get context on chase receipts, and how much working capital you can release.")
+        # These exact strings will be matched in process_user_question
         clearing_actions = [
             ("1. Identify top GR/IR hotspots to clear first", "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."),
             ("2. Explain likely GR/IR root causes", "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."),
@@ -1407,7 +1408,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, with GR/IR fixes)
+# genie.py (all functions, with GR/IR fixes and exact string matching)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1871,7 +1872,7 @@ Respond in plain text, using markdown for headings and bullet points.
         "question": question
     }
 
-# ----- FIXED GR/IR FUNCTIONS -----
+# ----- FIXED GR/IR FUNCTIONS (with sample data fallback) -----
 def process_grir_hotspots(question: str, history: str = "") -> dict:
     sql = f"""
         SELECT
@@ -2626,7 +2627,18 @@ def process_user_question(user_question: str):
         else:
             history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
             lower_q = user_question.lower()
-            if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
+            
+            # Exact match for GR/IR clearing actions (highest priority)
+            if user_question == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
+                result = process_grir_hotspots(user_question, history_context)
+            elif user_question == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
+                result = process_grir_root_causes(user_question, history_context)
+            elif user_question == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
+                result = process_grir_working_capital(user_question, history_context)
+            elif user_question == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
+                result = process_grir_vendor_followup(user_question, history_context)
+            # Other forecast actions
+            elif any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
                 result = process_cash_flow_forecast(user_question, history_context)
             elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
                 result = process_early_payment(user_question, history_context)
@@ -2634,14 +2646,7 @@ def process_user_question(user_question: str):
                 result = process_payment_timing(user_question, history_context)
             elif any(kw in lower_q for kw in ["late payment trend"]):
                 result = process_late_payment_trend(user_question, history_context)
-            elif "gr/ir" in lower_q and "hotspots" in lower_q:
-                result = process_grir_hotspots(user_question, history_context)
-            elif "root-cause" in lower_q:
-                result = process_grir_root_causes(user_question, history_context)
-            elif "working-capital" in lower_q:
-                result = process_grir_working_capital(user_question, history_context)
-            elif "vendor follow-up" in lower_q:
-                result = process_grir_vendor_followup(user_question, history_context)
+            # Quick analysis buttons
             elif user_question == "Spending Overview":
                 result = _quick_spending_overview()
             elif user_question == "Vendor Analysis":
@@ -2652,6 +2657,7 @@ def process_user_question(user_question: str):
                 result = _quick_invoice_aging()
             else:
                 result = process_custom_query(user_question, history_context)
+            
             st.session_state.current_messages = []
             st.session_state.current_messages.append({"role": "user", "content": user_question, "timestamp": datetime.now()})
             if result.get("layout") != "error":
@@ -2765,23 +2771,26 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            lower_q = auto_query.lower()
-            if any(kw in lower_q for kw in ["forecast cash outflow", "cash flow forecast"]):
-                result = process_cash_flow_forecast(auto_query, "")
-            elif any(kw in lower_q for kw in ["pay early", "capture discounts"]):
-                result = process_early_payment(auto_query, "")
-            elif any(kw in lower_q for kw in ["optimal payment timing"]):
-                result = process_payment_timing(auto_query, "")
-            elif any(kw in lower_q for kw in ["late payment trend"]):
-                result = process_late_payment_trend(auto_query, "")
-            elif "gr/ir" in lower_q and "hotspots" in lower_q:
+            # Reuse the same logic as process_user_question but without history
+            # For simplicity, call process_user_question which already handles all cases
+            # But to avoid recursion, we directly set messages after processing
+            # We'll just call the same mapping logic here
+            if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(auto_query, "")
-            elif "root-cause" in lower_q:
+            elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
                 result = process_grir_root_causes(auto_query, "")
-            elif "working-capital" in lower_q:
+            elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
                 result = process_grir_working_capital(auto_query, "")
-            elif "vendor follow-up" in lower_q:
+            elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
                 result = process_grir_vendor_followup(auto_query, "")
+            elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
+                result = process_cash_flow_forecast(auto_query, "")
+            elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
+                result = process_early_payment(auto_query, "")
+            elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
+                result = process_payment_timing(auto_query, "")
+            elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
+                result = process_late_payment_trend(auto_query, "")
             elif auto_query == "Spending Overview":
                 result = _quick_spending_overview()
             elif auto_query == "Vendor Analysis":
