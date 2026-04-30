@@ -1407,7 +1407,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, including missing ones)
+# genie.py (all functions, with early payment fix)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1611,9 +1611,6 @@ Respond in plain text using markdown for headings and bullet points. Do not incl
         "analyst_response": analyst_text
     }
 
-# ------------------------------------------------------------
-# Missing process_* functions
-# ------------------------------------------------------------
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     cf_sql = f"""
         SELECT
@@ -1718,44 +1715,28 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_early_payment(question: str, history: str = "") -> dict:
-    ep_sql = f"""
+    # Directly use fallback query – skip the problematic view
+    ep_sql_fallback = f"""
         SELECT
-            document_number,
-            vendor_name,
-            invoice_amount,
-            due_date,
-            days_until_due,
-            savings_if_2pct_discount,
-            vendor_tier,
-            early_pay_priority
-        FROM {DATABASE}.early_payment_candidates_vw
+            CAST(f.invoice_number AS VARCHAR) AS document_number,
+            v.vendor_name,
+            f.invoice_amount_local AS invoice_amount,
+            f.due_date,
+            DATE_DIFF('day', CURRENT_DATE, f.due_date) AS days_until_due,
+            ROUND(f.invoice_amount_local * 0.02, 2) AS savings_if_2pct_discount,
+            CASE WHEN DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 7 THEN 'High'
+                 WHEN DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 14 THEN 'Medium'
+                 ELSE 'Low' END AS early_pay_priority
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE UPPER(f.invoice_status) IN ('OPEN', 'DUE')
+          AND f.due_date > CURRENT_DATE
+          AND DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 30
         ORDER BY early_pay_priority ASC, savings_if_2pct_discount DESC
         LIMIT 20
     """
-    ep_df = run_query(ep_sql)
-    used_sql = ep_sql
-    if ep_df.empty:
-        ep_sql_fallback = f"""
-            SELECT
-                CAST(f.invoice_number AS VARCHAR) AS document_number,
-                v.vendor_name,
-                f.invoice_amount_local AS invoice_amount,
-                f.due_date,
-                DATE_DIFF('day', CURRENT_DATE, f.due_date) AS days_until_due,
-                ROUND(f.invoice_amount_local * 0.02, 2) AS savings_if_2pct_discount,
-                CASE WHEN DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 7 THEN 'High'
-                     WHEN DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 14 THEN 'Medium'
-                     ELSE 'Low' END AS early_pay_priority
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE UPPER(f.invoice_status) IN ('OPEN', 'DUE')
-              AND f.due_date > CURRENT_DATE
-              AND DATE_DIFF('day', CURRENT_DATE, f.due_date) <= 30
-            ORDER BY early_pay_priority ASC, savings_if_2pct_discount DESC
-            LIMIT 20
-        """
-        ep_df = run_query(ep_sql_fallback)
-        used_sql = ep_sql_fallback
+    ep_df = run_query(ep_sql_fallback)
+    used_sql = ep_sql_fallback
     if not ep_df.empty:
         ep_df.columns = [c.lower() for c in ep_df.columns]
     else:
@@ -2064,7 +2045,7 @@ Respond in plain text, using markdown for headings and bullet points.
         "question": question
     }
 
-# Quick analysis functions (identical to earlier version - kept for brevity)
+# Quick analysis functions (unchanged)
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT
@@ -2309,7 +2290,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (all needed)
+# Response renderers (unchanged)
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
