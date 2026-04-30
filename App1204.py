@@ -462,7 +462,7 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (default Last 30 Days)
+# dashboard.py (default Last 30 Days) WITH FIXED PRESET HIGHLIGHTING
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -704,9 +704,16 @@ def render_filters():
         )
         if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
             new_start, new_end = date_range
+            # Only change preset to Custom if the user actually changed the date picker manually
+            # and not when we just updated from a preset button (flag)
             if (new_start, new_end) != (rng_start, rng_end):
-                st.session_state.date_range = (new_start, new_end)
-                st.session_state.preset = "Custom"
+                # Check if we just clicked a preset button
+                if not st.session_state.get("_preset_clicked", False):
+                    st.session_state.date_range = (new_start, new_end)
+                    st.session_state.preset = "Custom"
+                else:
+                    # Reset flag
+                    st.session_state._preset_clicked = False
 
     with col_vendor:
         vendor_cache_key = f"vendor_list_{rng_start}_{rng_end}"
@@ -738,12 +745,16 @@ def render_filters():
             with p_cols[idx]:
                 btn_type = "primary" if p == current_preset else "secondary"
                 if st.button(p, key=f"preset_{p}", use_container_width=True, type=btn_type):
+                    # Set flag to prevent date picker from switching to Custom
+                    st.session_state._preset_clicked = True
                     if p == "Custom":
                         st.session_state.preset = p
                     else:
                         new_start, new_end = compute_range_preset(p)
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
+                    # Force rerun to apply changes immediately
+                    st.rerun()
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
@@ -1091,6 +1102,8 @@ def render_dashboard():
         st.session_state.na_tab = "Overdue"
     if "na_page" not in st.session_state:
         st.session_state.na_page = 0
+    if "_preset_clicked" not in st.session_state:
+        st.session_state._preset_clicked = False
 
     rng_start, rng_end, selected_vendor = render_filters()
     vendor_where = build_vendor_where(selected_vendor)
@@ -1172,7 +1185,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py
+# forecast.py (unchanged)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1715,6 +1728,7 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_early_payment(question: str, history: str = "") -> dict:
+    # Directly use fallback query – skip the problematic view
     ep_sql_fallback = f"""
         SELECT
             CAST(f.invoice_number AS VARCHAR) AS document_number,
