@@ -37,7 +37,7 @@ def compute_range_preset(preset: str):
     return today.replace(day=1), today
 
 # ------------------------------------------------------------
-# utils.py (unchanged)
+# utils.py
 # ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
@@ -1407,7 +1407,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, with GR/IR fixes)
+# genie.py (all functions, with GR/IR fixes, and NO sidebar)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2606,7 +2606,7 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI
+# User question processing and Genie UI (NO SIDEBAR)
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2624,7 +2624,6 @@ def process_user_question(user_question: str):
             history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
             lower_q = user_question.lower()
             
-            # Exact match for GR/IR clearing actions
             if user_question == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(user_question, history_context)
             elif user_question == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
@@ -2745,28 +2744,11 @@ def render_genie():
     if "genie_prefill" not in st.session_state:
         st.session_state.genie_prefill = ""
 
-    # Sidebar only appears on Genie page (as requested – hidden on Dashboard)
-    with st.sidebar:
-        st.markdown("### 💾 Memory")
-        if st.button("➕ New Conversation", use_container_width=True):
-            start_new_session()
-        st.markdown("---")
-        st.markdown("#### Previous Sessions")
-        sessions = get_chat_sessions(limit=15)
-        if sessions:
-            for s in sessions:
-                label = s['label']
-                if len(label) > 40:
-                    label = label[:37] + "..."
-                if st.button(f"📄 {label}", key=f"sess_{s['id']}", use_container_width=True):
-                    load_session(s['id'])
-        else:
-            st.caption("No previous sessions found.")
+    # NO SIDEBAR HERE – removed completely
 
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            # Same mapping as in process_user_question
             if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(auto_query, "")
             elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
