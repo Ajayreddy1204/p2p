@@ -818,6 +818,9 @@ def navigate_to_invoice(invoice_number):
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
+# ------------------------------------------------------------
+# UPDATED render_needs_attention with clickable cards and no hidden box
+# ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -899,113 +902,95 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     due_count = len(due_df)
     total_attention = overdue_count + disputed_count + due_count
 
-    st.markdown(f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_attention})</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='font-weight:700;margin-bottom:1rem;'>Needs Attention ({total_attention})</h2>", unsafe_allow_html=True)
 
     tab_cols = st.columns(3)
     with tab_cols[0]:
-        if st.button(f"Overdue ({overdue_count})", use_container_width=True, type="primary" if active_tab == "Overdue" else "secondary", key="tab_overdue"):
-            st.session_state.na_tab = "Overdue"
-            st.session_state.na_page = 0
-            st.rerun()
+        if st.button(f"Overdue ({overdue_count})", use_container_width=True, type="primary" if active_tab == "Overdue" else "secondary"):
+            st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
     with tab_cols[1]:
-        if st.button(f"Disputed ({disputed_count})", use_container_width=True, type="primary" if active_tab == "Disputed" else "secondary", key="tab_disputed"):
-            st.session_state.na_tab = "Disputed"
-            st.session_state.na_page = 0
-            st.rerun()
+        if st.button(f"Disputed ({disputed_count})", use_container_width=True, type="primary" if active_tab == "Disputed" else "secondary"):
+            st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
     with tab_cols[2]:
-        if st.button(f"Due ({due_count})", use_container_width=True, type="primary" if active_tab == "Due" else "secondary", key="tab_due"):
-            st.session_state.na_tab = "Due"
-            st.session_state.na_page = 0
-            st.rerun()
+        if st.button(f"Due ({due_count})", use_container_width=True, type="primary" if active_tab == "Due" else "secondary"):
+            st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
 
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
 
     if active_tab == "Overdue":
-        df = overdue_df
-        status_label = "Overdue"
-        status_class = "status-overdue"
-        bg_style = "background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca;"
+        df, status_label, status_class = overdue_df, "Overdue", "status-overdue"
+        bg_style = "background:linear-gradient(135deg,#fef2f2 0%,#fee2e2 100%);border:1px solid #fecaca;"
     elif active_tab == "Disputed":
-        df = disputed_df
-        status_label = "Disputed"
-        status_class = "status-disputed"
-        bg_style = "background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a;"
+        df, status_label, status_class = disputed_df, "Disputed", "status-disputed"
+        bg_style = "background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #fde68a;"
     else:
-        df = due_df
-        status_label = "Due"
-        status_class = "status-due"
-        bg_style = "background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe;"
+        df, status_label, status_class = due_df, "Due", "status-due"
+        bg_style = "background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #bfdbfe;"
 
     if df.empty:
-        st.info(f"No {status_label.lower()} invoices found in the selected date range.")
+        st.info(f"No {status_label.lower()} invoices found.")
         return
 
     items_per_page = 8
-    total_items = len(df)
-    total_pages = max(1, math.ceil(total_items / items_per_page))
+    total_pages = max(1, math.ceil(len(df) / items_per_page))
     start_idx = page * items_per_page
     end_idx = start_idx + items_per_page
     page_df = df.iloc[start_idx:end_idx]
 
-    selected_invoice = st.session_state.get("selected_invoice", None)
-
     for row_start in range(0, len(page_df), 4):
         cols = st.columns(4)
         for col_idx in range(4):
-            item_idx = row_start + col_idx
-            if item_idx < len(page_df):
-                row = page_df.iloc[item_idx]
-                inv_num = format_invoice_number(row["invoice_number"])
-                inv_top, inv_bottom = split_invoice_number(row["invoice_number"])
+            if row_start + col_idx < len(page_df):
+                row = page_df.iloc[row_start + col_idx]
+                inv_num_str = format_invoice_number(row["invoice_number"])
+                inv_top, inv_bottom = split_invoice_number(inv_num_str)
+                full_invoice = f"{inv_top}{inv_bottom}"  # combine 90017 + 67 = 9001767
                 amt = abbr_currency(safe_number(row["amount"]))
-                vendor = row["vendor_name"] if pd.notna(row["vendor_name"]) else "Unknown Vendor"
+                vendor = row.get("vendor_name", "Unknown Vendor")
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
 
-                is_selected = (selected_invoice == inv_num)
-                circle_bg = "#3b82f6" if is_selected else "#d1d5db"
-                text_color_top = "white" if is_selected else "#111827"
-                text_color_bottom = "white" if is_selected else "#6b7280"
-
                 with cols[col_idx]:
-                    card_key = f"card_{page}_{item_idx}_{inv_num}"
-                    st.markdown(f"""
-<div style="{bg_style} border-radius: 16px; padding: 1rem; min-height: 150px;">
-<div style="display: flex; justify-content: space-between; align-items: flex-start;">
-<div id="circle_{card_key}" style="background: {circle_bg}; border-radius: 50%; width: 70px; height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease;">
-<div style="font-size: 1rem; font-weight: 700; color: {text_color_top}; line-height: 1.2;">{inv_top}</div>
-<div style="font-size: 1.2rem; font-weight: 700; color: {text_color_bottom}; line-height: 1.2;">{inv_bottom}</div>
+                    card_html = f"""
+<button style="all:unset;width:100%;" id="btn_{full_invoice}">
+<div style="{bg_style}border-radius:16px;padding:1rem;min-height:150px;cursor:pointer;transition:all .2s;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div style="background:#3b82f6;border-radius:50%;width:70px;height:70px;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+      <div style="font-size:1rem;font-weight:700;color:white;line-height:1.2;">{inv_top}</div>
+      <div style="font-size:1.2rem;font-weight:700;color:white;line-height:1.2;">{inv_bottom}</div>
+    </div>
+    <div style="text-align:right;">
+      <span class="invoice-status {status_class}">{status_label}</span>
+      <div class="invoice-amount" style="margin-top:.5rem;">{amt}</div>
+    </div>
+  </div>
+  <div style="margin-top:.75rem;">
+    <div class="invoice-due-date">Due: {due}</div>
+    <div class="invoice-vendor">{vendor}</div>
+  </div>
 </div>
-<div style="text-align: right;">
-<span class="invoice-status {status_class}">{status_label}</span>
-<div class="invoice-amount" style="margin-top: 0.5rem;">{amt}</div>
-</div>
-</div>
-<div style="margin-top: 0.75rem;">
-<div class="invoice-due-date">Due: {due}</div>
-<div class="invoice-vendor">{vendor}</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-                    btn_col1, btn_col2 = st.columns([1, 2])
-                    with btn_col1:
-                        if st.button("⠀", key=f"inv_click_{card_key}", help=f"{inv_num}", use_container_width=True):
-                            navigate_to_invoice(inv_num)
+</button>
+"""
+                    clicked = st.button(" ", key=f"card_click_{full_invoice}", help=f"Invoice {full_invoice}", use_container_width=True)
+                    st.markdown(card_html, unsafe_allow_html=True)
+                    if clicked:
+                        navigate_to_invoice(full_invoice)
 
-        st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
     col_prev, col_info, col_next = st.columns([1, 2, 1])
     with col_prev:
-        if st.button("← Prev", disabled=(page == 0), use_container_width=True, key="na_prev"):
-            st.session_state.na_page -= 1
-            st.rerun()
+        if st.button("← Prev", disabled=(page == 0), use_container_width=True):
+            st.session_state.na_page -= 1; st.rerun()
     with col_info:
-        st.markdown(f"<p class='pagination-info'>{page + 1} of {total_pages}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p class='pagination-info'>{page+1} of {total_pages}</p>", unsafe_allow_html=True)
     with col_next:
-        if st.button("Next →", disabled=(page >= total_pages - 1), use_container_width=True, key="na_next"):
-            st.session_state.na_page += 1
-            st.rerun()
+        if st.button("Next →", disabled=(page >= total_pages-1), use_container_width=True):
+            st.session_state.na_page += 1; st.rerun()
 
+# ------------------------------------------------------------
+# Charts and other dashboard functions unchanged
+# ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
