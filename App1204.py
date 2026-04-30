@@ -37,7 +37,7 @@ def compute_range_preset(preset: str):
     return today.replace(day=1), today
 
 # ------------------------------------------------------------
-# utils.py
+# utils.py (unchanged)
 # ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
@@ -704,15 +704,11 @@ def render_filters():
         )
         if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
             new_start, new_end = date_range
-            # Only change preset to Custom if the user actually changed the date picker manually
-            # and not when we just updated from a preset button (flag)
             if (new_start, new_end) != (rng_start, rng_end):
-                # Check if we just clicked a preset button
                 if not st.session_state.get("_preset_clicked", False):
                     st.session_state.date_range = (new_start, new_end)
                     st.session_state.preset = "Custom"
                 else:
-                    # Reset flag
                     st.session_state._preset_clicked = False
 
     with col_vendor:
@@ -745,7 +741,6 @@ def render_filters():
             with p_cols[idx]:
                 btn_type = "primary" if p == current_preset else "secondary"
                 if st.button(p, key=f"preset_{p}", use_container_width=True, type=btn_type):
-                    # Set flag to prevent date picker from switching to Custom
                     st.session_state._preset_clicked = True
                     if p == "Custom":
                         st.session_state.preset = p
@@ -753,7 +748,6 @@ def render_filters():
                         new_start, new_end = compute_range_preset(p)
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
-                    # Force rerun to apply changes immediately
                     st.rerun()
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
@@ -825,80 +819,86 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
-    if "na_tab" not in st.session_state:
-        st.session_state.na_tab = "Overdue"
-    if "na_page" not in st.session_state:
-        st.session_state.na_page = 0
+    # Fetch data for all three tabs
+    start_lit = sql_date(rng_start)
+    end_lit = sql_date(rng_end)
 
-    active_tab = st.session_state.na_tab
-    page = st.session_state.na_page
-
-    # First, fetch the full data for the selected tab (to get accurate count and items)
-    if active_tab == "Overdue":
-        condition = "f.due_date < CURRENT_DATE AND UPPER(f.invoice_status) = 'OVERDUE'"
-        status_label = "Overdue"
-        status_class = "status-overdue"
-    elif active_tab == "Disputed":
-        condition = "UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')"
-        status_label = "Disputed"
-        status_class = "status-disputed"
-    else:  # Due
-        condition = "f.due_date >= CURRENT_DATE AND f.due_date <= DATE_ADD('day', 30, CURRENT_DATE) AND UPPER(f.invoice_status) IN ('OPEN', 'DUE')"
-        status_label = "Due"
-        status_class = "status-due"
-
-    data_sql = f"""
+    # Overdue
+    overdue_sql = f"""
         SELECT f.invoice_number,
                f.invoice_amount_local AS amount,
                v.vendor_name,
                f.due_date
         FROM {DATABASE}.fact_all_sources_vw f
         LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
         {vendor_where}
-        AND {condition}
+        AND f.due_date < CURRENT_DATE
+        AND UPPER(f.invoice_status) = 'OVERDUE'
         ORDER BY f.due_date ASC
     """
-    data_df = run_query(data_sql)
-
-    # If no data and active_tab is "Due", we generate sample due invoices
-    if data_df.empty and active_tab == "Due":
-        today = date.today()
-        sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
-        data_df = pd.DataFrame([
-            {"invoice_number": 9005389 + i, "amount": 13800 + i*100, "vendor_name": f"Vendor {i}", "due_date": sample_due_dates[i % len(sample_due_dates)]}
-            for i in range(8)
-        ])
-    elif data_df.empty and active_tab == "Overdue":
-        # Sample overdue invoices (for demonstration when real data empty)
-        data_df = pd.DataFrame([
+    overdue_df = run_query(overdue_sql)
+    if overdue_df.empty:
+        # Sample overdue data
+        overdue_df = pd.DataFrame([
             {"invoice_number": 9004607, "amount": 2200, "vendor_name": "McMaster-Carr", "due_date": date.today() - timedelta(days=5)},
             {"invoice_number": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date.today() - timedelta(days=8)},
         ])
-    elif data_df.empty and active_tab == "Disputed":
-        data_df = pd.DataFrame([
+
+    # Disputed
+    disputed_sql = f"""
+        SELECT f.invoice_number,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        AND UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')
+        ORDER BY f.due_date ASC
+    """
+    disputed_df = run_query(disputed_sql)
+    if disputed_df.empty:
+        disputed_df = pd.DataFrame([
             {"invoice_number": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2)},
         ])
 
-    # Compute counts from the data we have (after potential fallback)
-    total_items = len(data_df)
-    
-    # Display tab buttons with correct counts
-    overdue_count = len(data_df) if active_tab == "Overdue" else (31 if data_df.empty else safe_int(run_query(f"SELECT COUNT(*) FROM ({data_sql})").iloc[0,0]) )
-    disputed_count = len(data_df) if active_tab == "Disputed" else (33 if data_df.empty else 0)
-    due_count = len(data_df) if active_tab == "Due" else (8 if data_df.empty else 0)
-    
-    # For simplicity, we recalc all counts based on actual data or fallback
-    # But to avoid extra queries, we set based on the data we have
-    if active_tab == "Overdue":
-        overdue_count = total_items
-    elif active_tab == "Disputed":
-        disputed_count = total_items
-    else:
-        due_count = total_items
-    
-    st.markdown(f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({overdue_count + disputed_count + due_count})</h2>", unsafe_allow_html=True)
+    # Due (next 30 days, OPEN or DUE status)
+    due_sql = f"""
+        SELECT f.invoice_number,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        AND f.due_date >= CURRENT_DATE
+        AND f.due_date <= CURRENT_DATE + INTERVAL '30' DAY
+        AND UPPER(f.invoice_status) IN ('OPEN', 'DUE')
+        ORDER BY f.due_date ASC
+    """
+    due_df = run_query(due_sql)
+    if due_df.empty:
+        # Generate 8 sample due invoices
+        today = date.today()
+        sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
+        due_df = pd.DataFrame([
+            {"invoice_number": 9005389 + i, "amount": 13800 + i*100, "vendor_name": f"Vendor {i+1}", "due_date": sample_due_dates[i % len(sample_due_dates)]}
+            for i in range(8)
+        ])
 
+    # Counts
+    overdue_count = len(overdue_df)
+    disputed_count = len(disputed_df)
+    due_count = len(due_df)
+    total_attention = overdue_count + disputed_count + due_count
+
+    st.markdown(f"<h2 style='font-weight: 700; margin-bottom: 1rem;'>Needs Attention ({total_attention})</h2>", unsafe_allow_html=True)
+
+    # Tabs
+    active_tab = st.session_state.get("na_tab", "Overdue")
     tab_cols = st.columns(3)
     with tab_cols[0]:
         if st.button(f"Overdue ({overdue_count})", use_container_width=True, type="primary" if active_tab == "Overdue" else "secondary", key="tab_overdue"):
@@ -918,17 +918,35 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
-    # If no items for this tab, show a message
-    if total_items == 0:
+    # Select the correct DataFrame for the active tab
+    if active_tab == "Overdue":
+        df = overdue_df
+        status_label = "Overdue"
+        status_class = "status-overdue"
+        bg_style = "background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca;"
+    elif active_tab == "Disputed":
+        df = disputed_df
+        status_label = "Disputed"
+        status_class = "status-disputed"
+        bg_style = "background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a;"
+    else:
+        df = due_df
+        status_label = "Due"
+        status_class = "status-due"
+        bg_style = "background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe;"
+
+    if df.empty:
         st.info(f"No {status_label.lower()} invoices found in the selected date range.")
         return
 
     # Pagination
+    page = st.session_state.get("na_page", 0)
     items_per_page = 8
+    total_items = len(df)
     total_pages = max(1, math.ceil(total_items / items_per_page))
     start_idx = page * items_per_page
     end_idx = start_idx + items_per_page
-    page_df = data_df.iloc[start_idx:end_idx]
+    page_df = df.iloc[start_idx:end_idx]
 
     selected_invoice = st.session_state.get("selected_invoice", None)
 
@@ -945,14 +963,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
 
                 is_selected = (selected_invoice == inv_num)
-
-                if status_label == "Overdue":
-                    bg_style = "background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca;"
-                elif status_label == "Disputed":
-                    bg_style = "background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a;"
-                else:
-                    bg_style = "background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe;"
-
                 circle_bg = "#3b82f6" if is_selected else "#d1d5db"
                 text_color_top = "white" if is_selected else "#111827"
                 text_color_bottom = "white" if is_selected else "#6b7280"
@@ -1743,7 +1753,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_early_payment(question: str, history: str = "") -> dict:
-    # Directly use fallback query – skip the problematic view
     ep_sql_fallback = f"""
         SELECT
             CAST(f.invoice_number AS VARCHAR) AS document_number,
@@ -2106,7 +2115,7 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-# Quick analysis functions
+# Quick analysis functions (unchanged)
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT
