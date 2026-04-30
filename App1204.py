@@ -814,12 +814,12 @@ def navigate_to_invoice(invoice_number):
     st.session_state.selected_invoice = inv_str
     st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
-    # Use experimental API for older Streamlit versions
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention with clickable cards and no hidden box
+# UPDATED render_needs_attention with fully clickable cards
+# (no separate hidden boxes, all invoices are clickable)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -944,7 +944,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 row = page_df.iloc[row_start + col_idx]
                 inv_num_str = format_invoice_number(row["invoice_number"])
                 inv_top, inv_bottom = split_invoice_number(inv_num_str)
-                full_invoice = f"{inv_top}{inv_bottom}"  # combine 90017 + 67 = 9001767
+                full_invoice = f"{inv_top}{inv_bottom}"
                 amt = abbr_currency(safe_number(row["amount"]))
                 vendor = row.get("vendor_name", "Unknown Vendor")
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
@@ -989,7 +989,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.session_state.na_page += 1; st.rerun()
 
 # ------------------------------------------------------------
-# Charts and other dashboard functions unchanged
+# render_charts (unchanged)
 # ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
@@ -1429,7 +1429,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, with GR/IR fixes, and NO sidebar)
+# genie.py (all functions, unchanged from original)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
