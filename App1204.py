@@ -607,34 +607,19 @@ def inject_dashboard_css():
         color: #6b7280;
         font-size: 0.9rem;
     }
-    /* Make invisible button overlay for clickable cards */
-    .clickable-card-container {
-        position: relative;
-    }
-    .clickable-card-container .stButton {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1;
-        opacity: 0;
-        margin: 0;
-        padding: 0;
-    }
-    .clickable-card-container .stButton button {
-        width: 100%;
-        height: 100%;
+    /* Style for clickable card button */
+    .clickable-card-button {
         background: transparent;
         border: none;
         padding: 0;
-        margin: 0;
+        width: 100%;
+        text-align: left;
         cursor: pointer;
     }
-    .clickable-card-container > div:not(.stButton) {
-        position: relative;
-        z-index: 0;
-        pointer-events: none;
+    .clickable-card-button:hover > div {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -800,7 +785,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention with fully clickable cards (no visible extra box)
+# UPDATED render_needs_attention: cards are clickable buttons (no extra box)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -931,13 +916,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 due = pd.to_datetime(row["due_date"]).strftime("%Y-%m-%d") if pd.notna(row["due_date"]) else ""
 
                 with cols[col_idx]:
-                    # Container for clickable card
-                    st.markdown('<div class="clickable-card-container">', unsafe_allow_html=True)
-                    # Invisible button that triggers navigation
-                    clicked = st.button(" ", key=f"card_click_{full_invoice}", help=f"Invoice {full_invoice}", use_container_width=True)
-                    # Card HTML (visible)
+                    # Create a button that looks like a card
+                    card_button = st.button(
+                        label="",  # empty label because we use HTML inside
+                        key=f"card_btn_{full_invoice}",
+                        use_container_width=True,
+                        help=f"Invoice {full_invoice}",
+                    )
+                    # Custom HTML for the card content
                     card_html = f"""
-<div style="{bg_style}border-radius:16px;padding:1rem;min-height:150px;">
+<div style="{bg_style}border-radius:16px;padding:1rem;min-height:150px;cursor:pointer;transition:all .2s;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div style="background:#3b82f6;border-radius:50%;width:70px;height:70px;display:flex;flex-direction:column;justify-content:center;align-items:center;">
       <div style="font-size:1rem;font-weight:700;color:white;line-height:1.2;">{inv_top}</div>
@@ -955,8 +943,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 </div>
 """
                     st.markdown(card_html, unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    if clicked:
+                    # If the invisible button was clicked, navigate
+                    if card_button:
                         navigate_to_invoice(full_invoice)
 
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
