@@ -462,11 +462,33 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (default Last 30 Days) WITH FIXED PRESET HIGHLIGHTING
+# dashboard.py (with blue primary buttons and fixed container)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
 <style>
+    /* Global button styling - enforce blue for primary buttons */
+    .stButton > button[data-testid="baseButton-primary"] {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        color: white !important;
+    }
+    .stButton > button[data-testid="baseButton-primary"]:hover {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+    }
+    .stButton > button[data-testid="baseButton-primary"]:active,
+    .stButton > button[data-testid="baseButton-primary"]:focus {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 0.2rem rgba(59,130,246,0.5) !important;
+    }
+    .stButton > button[data-testid="baseButton-secondary"] {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+        color: #374151;
+    }
+    /* KPI Cards */
     .kpi-card {
         border-radius: 16px;
         padding: 1.2rem 1.5rem;
@@ -525,7 +547,7 @@ def inject_dashboard_css():
         color: #111827;
         margin-bottom: 1rem;
     }
-    /* NA Card Backgrounds (from corrected first code) */
+    /* NA Card Backgrounds (replaces key-based styling) */
     .na-card-due {
         background: #eff6ff !important;
         border: 1px solid #bfdbfe !important;
@@ -736,7 +758,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention (from corrected first code)
+# UPDATED: Needs Attention Section (fixed container key error)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -831,39 +853,23 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         </div>
         """, unsafe_allow_html=True)
 
-        # Tab buttons
+        # Tab buttons (blue when active)
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type="primary" if current_tab == 'Overdue' else "secondary"):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[1]:
-            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True):
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True, type="primary" if current_tab == 'Disputed' else "secondary"):
                 st.session_state.na_tab = 'Disputed'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[2]:
-            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True):
+            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True, type="primary" if current_tab == 'Due' else "secondary"):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
-
-        # Active tab styling
-        st.markdown(f"""
-        <style>
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
-        button[data-testid^="baseButton-na_card_"] {{
-            font-weight: 800 !important;
-            background-color: transparent !important;
-            border: none !important;
-            color: #1d4ed8 !important;
-            box-shadow: none !important;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
@@ -906,7 +912,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate_raw = r.get("due_date")
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
-                        # Use container with border and inner div for colored background
+                        # Fixed: no key argument, use inner div for styling
                         with st.container(border=True):
                             st.markdown(f'<div class="na-card-{tab_class}" style="padding: 0.5rem 0.75rem; border-radius: 12px;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
@@ -952,9 +958,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# render_charts (unchanged)
-# ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1158,7 +1161,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged)
+# forecast.py (unchanged, but buttons will be blue via global CSS)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
