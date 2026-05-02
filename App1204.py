@@ -462,33 +462,11 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# Global CSS (injected once in main)
+# dashboard.py (default Last 30 Days) WITH FIXED PRESET HIGHLIGHTING
 # ------------------------------------------------------------
-def inject_global_css():
+def inject_dashboard_css():
     st.markdown("""
 <style>
-    /* Force all primary buttons to be blue */
-    .stButton > button[data-testid="baseButton-primary"] {
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-        color: white !important;
-    }
-    .stButton > button[data-testid="baseButton-primary"]:hover {
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-    }
-    .stButton > button[data-testid="baseButton-primary"]:active,
-    .stButton > button[data-testid="baseButton-primary"]:focus {
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        box-shadow: 0 0 0 0.2rem rgba(59,130,246,0.5) !important;
-    }
-    .stButton > button[data-testid="baseButton-secondary"] {
-        background-color: #f3f4f6;
-        border-color: #d1d5db;
-        color: #374151;
-    }
-    /* KPI Cards */
     .kpi-card {
         border-radius: 16px;
         padding: 1.2rem 1.5rem;
@@ -541,21 +519,27 @@ def inject_global_css():
         font-size: 1.2rem;
         margin-left: 0.25rem;
     }
-    /* NA Card Backgrounds - light brown */
+    .attention-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1rem;
+    }
+    /* NA Card Backgrounds (from corrected first code) */
     .na-card-due {
-        background: #f5e6d3 !important;
+        background: #eff6ff !important;
         border: 1px solid #bfdbfe !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
     .na-card-overdue {
-        background: #f5e6d3 !important;
+        background: #fef2f2 !important;
         border: 1px solid #fecaca !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
     .na-card-disputed {
-        background: #f5e6d3 !important;
+        background: #fffbeb !important;
         border: 1px solid #fde68a !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
@@ -588,33 +572,9 @@ def inject_global_css():
         color: #6b7280;
         font-size: 0.9rem;
     }
-    /* Forecast KPI cards */
-    .forecast-kpi-card {
-        border-radius: 16px;
-        padding: 1.2rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        text-align: left;
-        background-color: var(--bg);
-        border: 1px solid rgba(0,0,0,0.05);
-    }
-    .forecast-kpi-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #475569;
-        margin-bottom: 0.5rem;
-    }
-    .forecast-kpi-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# dashboard.py (with light brown card backgrounds)
-# ------------------------------------------------------------
 def format_invoice_number(invoice_num):
     if invoice_num is None:
         return ""
@@ -769,12 +729,14 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
 
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
-    st.session_state.invoice_to_view = inv_str
+    st.session_state.selected_invoice = inv_str
+    st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
+    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED: Needs Attention Section (fixed container key error, light brown backgrounds, fixed navigation)
+# UPDATED render_needs_attention (from corrected first code)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -869,23 +831,39 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         </div>
         """, unsafe_allow_html=True)
 
-        # Tab buttons (blue when active)
+        # Tab buttons
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type="primary" if current_tab == 'Overdue' else "secondary"):
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[1]:
-            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True, type="primary" if current_tab == 'Disputed' else "secondary"):
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True):
                 st.session_state.na_tab = 'Disputed'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[2]:
-            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True, type="primary" if current_tab == 'Due' else "secondary"):
+            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
+
+        # Active tab styling
+        st.markdown(f"""
+        <style>
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
+        button[data-testid^="baseButton-na_card_"] {{
+            font-weight: 800 !important;
+            background-color: transparent !important;
+            border: none !important;
+            color: #1d4ed8 !important;
+            box-shadow: none !important;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
@@ -928,16 +906,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate_raw = r.get("due_date")
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
-                        # Fixed: no key argument, use inner div for styling
+                        # Use container with border and inner div for colored background
                         with st.container(border=True):
                             st.markdown(f'<div class="na-card-{tab_class}" style="padding: 0.5rem 0.75rem; border-radius: 12px;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
-                                    # Fixed navigation: use session state instead of query params
-                                    st.session_state.invoice_to_view = ref
-                                    st.session_state.page = "Invoices"
+                                    st.session_state["invoice_search_from_card"] = ref
+                                    st.session_state["page"] = "Invoices"
+                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
                                     st.rerun()
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
@@ -974,6 +952,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
+# ------------------------------------------------------------
+# render_charts (unchanged)
+# ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1082,6 +1063,8 @@ def render_charts(rng_start, rng_end, vendor_where):
         st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
+    inject_dashboard_css()
+
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
     if "selected_vendor" not in st.session_state:
@@ -1175,7 +1158,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged, but buttons will be blue via global CSS)
+# forecast.py (unchanged)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1268,6 +1251,31 @@ def render_forecast():
         kpi_colors = ["#fff7e0", "#ffe6ef", "#e6f3ff", "#e0f7fa"]
         kpi_titles = ["TOTAL UNPAID", "OVERDUE NOW", "DUE NEXT 30 DAYS", "% DUE ≤ 30 DAYS"]
         kpi_values = [abbr_currency(total_unpaid), abbr_currency(overdue_now), abbr_currency(due_30), f"{pct_due_30:.1f}%"]
+
+        st.markdown("""
+        <style>
+        .forecast-kpi-card {
+            border-radius: 16px;
+            padding: 1.2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: left;
+            background-color: var(--bg);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .forecast-kpi-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+        .forecast-kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
         cols = st.columns(4)
         for i, col in enumerate(cols):
@@ -2885,7 +2893,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py (with blue Proceed to Pay and Back to Invoices List buttons, and invoice navigation fix)
+# invoices.py (unchanged)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3090,14 +3098,9 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
-
-    # Check for invoice to view from Needs Attention or other navigation
-    invoice_to_view = st.session_state.pop("invoice_to_view", None)
-    if invoice_to_view:
-        st.session_state.selected_invoice = invoice_to_view
-        # Clear any leftover query params that might interfere
-        st.experimental_set_query_params()
-        # Directly fetch and display the invoice detail
+    query_params = st.experimental_get_query_params()
+    selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
+    if selected_invoice:
         inv_sql = f"""
             SELECT
                 f.invoice_number,
@@ -3120,23 +3123,20 @@ def render_invoices():
                 f.currency
             FROM {DATABASE}.fact_all_sources_vw f
             LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE CAST(f.invoice_number AS VARCHAR) = '{invoice_to_view}'
+            WHERE CAST(f.invoice_number AS VARCHAR) = '{selected_invoice}'
             LIMIT 1
         """
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
-            render_invoice_detail(inv_df.iloc[0].to_dict(), invoice_to_view)
-            if st.button("← Back to Invoices List", type="primary", use_container_width=True):
-                # Clear any session state and rerun to show list
-                st.session_state.pop("selected_invoice", None)
+            render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
+            if st.button("← Back to Invoices List", use_container_width=True):
+                st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
             return
         else:
-            st.warning(f"Invoice {invoice_to_view} not found. Showing invoice list.")
-            # Fall through to list
-
-    # Normal invoice list view (no specific invoice selected)
-    # (Keep the existing search/filter logic unchanged)
+            st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
+            st.experimental_set_query_params(tab="Invoices")
+            st.rerun()
     if "invoice_search_term" not in st.session_state:
         st.session_state.invoice_search_term = ""
     prefill = st.session_state.pop("invoice_search_term", None)
@@ -3217,10 +3217,6 @@ def render_invoices():
 def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
-    
-    # Inject global CSS once to ensure all primary buttons are blue
-    inject_global_css()
-    
     st.markdown("""
 <style>
 .block-container {
