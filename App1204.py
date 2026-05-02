@@ -462,7 +462,7 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (with blue primary buttons and fixed container)
+# dashboard.py (with blue primary buttons and light brown card backgrounds)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -547,21 +547,21 @@ def inject_dashboard_css():
         color: #111827;
         margin-bottom: 1rem;
     }
-    /* NA Card Backgrounds (replaces key-based styling) */
+    /* NA Card Backgrounds - light brown */
     .na-card-due {
-        background: #eff6ff !important;
+        background: #f5e6d3 !important;
         border: 1px solid #bfdbfe !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
     .na-card-overdue {
-        background: #fef2f2 !important;
+        background: #f5e6d3 !important;
         border: 1px solid #fecaca !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
     .na-card-disputed {
-        background: #fffbeb !important;
+        background: #f5e6d3 !important;
         border: 1px solid #fde68a !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
@@ -758,7 +758,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED: Needs Attention Section (fixed container key error)
+# UPDATED: Needs Attention Section (fixed container key error, light brown backgrounds)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
