@@ -769,14 +769,12 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
 
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
-    st.session_state.selected_invoice = inv_str
-    st.session_state.inv_search_q = ""
+    st.session_state.invoice_to_view = inv_str
     st.session_state.page = "Invoices"
-    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED: Needs Attention Section (fixed container key error, light brown backgrounds)
+# UPDATED: Needs Attention Section (fixed container key error, light brown backgrounds, fixed navigation)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -937,9 +935,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                             with left:
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
-                                    st.session_state["invoice_search_from_card"] = ref
-                                    st.session_state["page"] = "Invoices"
-                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                    # Fixed navigation: use session state instead of query params
+                                    st.session_state.invoice_to_view = ref
+                                    st.session_state.page = "Invoices"
                                     st.rerun()
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
@@ -2887,7 +2885,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py (with blue Proceed to Pay and Back to Invoices List buttons)
+# invoices.py (with blue Proceed to Pay and Back to Invoices List buttons, and invoice navigation fix)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3085,7 +3083,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if current_status == "PAID":
             st.info("ℹ️ This invoice is already marked as PAID.")
         else:
-            # Proceed to Pay button - primary for blue
             if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
@@ -3093,9 +3090,14 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
-    query_params = st.experimental_get_query_params()
-    selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
-    if selected_invoice:
+
+    # Check for invoice to view from Needs Attention or other navigation
+    invoice_to_view = st.session_state.pop("invoice_to_view", None)
+    if invoice_to_view:
+        st.session_state.selected_invoice = invoice_to_view
+        # Clear any leftover query params that might interfere
+        st.experimental_set_query_params()
+        # Directly fetch and display the invoice detail
         inv_sql = f"""
             SELECT
                 f.invoice_number,
@@ -3118,21 +3120,23 @@ def render_invoices():
                 f.currency
             FROM {DATABASE}.fact_all_sources_vw f
             LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE CAST(f.invoice_number AS VARCHAR) = '{selected_invoice}'
+            WHERE CAST(f.invoice_number AS VARCHAR) = '{invoice_to_view}'
             LIMIT 1
         """
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
-            render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
-            # Back to Invoices List button - primary for blue
+            render_invoice_detail(inv_df.iloc[0].to_dict(), invoice_to_view)
             if st.button("← Back to Invoices List", type="primary", use_container_width=True):
-                st.experimental_set_query_params(tab="Invoices")
+                # Clear any session state and rerun to show list
+                st.session_state.pop("selected_invoice", None)
                 st.rerun()
             return
         else:
-            st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
-            st.experimental_set_query_params(tab="Invoices")
-            st.rerun()
+            st.warning(f"Invoice {invoice_to_view} not found. Showing invoice list.")
+            # Fall through to list
+
+    # Normal invoice list view (no specific invoice selected)
+    # (Keep the existing search/filter logic unchanged)
     if "invoice_search_term" not in st.session_state:
         st.session_state.invoice_search_term = ""
     prefill = st.session_state.pop("invoice_search_term", None)
