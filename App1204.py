@@ -462,28 +462,12 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py (with blue primary buttons and light brown card backgrounds)
+# Global CSS (injected once in main)
 # ------------------------------------------------------------
-def inject_dashboard_css():
+def inject_global_css():
     st.markdown("""
 <style>
-    /* Global button styling - enforce blue for all primary buttons */
-    button[kind="primary"] {
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-        color: white !important;
-    }
-    button[kind="primary"]:hover {
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-    }
-    button[kind="primary"]:active,
-    button[kind="primary"]:focus {
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        box-shadow: 0 0 0 0.2rem rgba(59,130,246,0.5) !important;
-    }
-    /* Override for any button with data-testid containing "baseButton-primary" */
+    /* Force all primary buttons to be blue */
     .stButton > button[data-testid="baseButton-primary"] {
         background-color: #3b82f6 !important;
         border-color: #3b82f6 !important;
@@ -557,12 +541,6 @@ def inject_dashboard_css():
         font-size: 1.2rem;
         margin-left: 0.25rem;
     }
-    .attention-header {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 1rem;
-    }
     /* NA Card Backgrounds - light brown */
     .na-card-due {
         background: #f5e6d3 !important;
@@ -610,9 +588,33 @@ def inject_dashboard_css():
         color: #6b7280;
         font-size: 0.9rem;
     }
+    /* Forecast KPI cards */
+    .forecast-kpi-card {
+        border-radius: 16px;
+        padding: 1.2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        text-align: left;
+        background-color: var(--bg);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .forecast-kpi-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+    .forecast-kpi-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }
 </style>
 """, unsafe_allow_html=True)
 
+# ------------------------------------------------------------
+# dashboard.py (with light brown card backgrounds)
+# ------------------------------------------------------------
 def format_invoice_number(invoice_num):
     if invoice_num is None:
         return ""
@@ -1082,8 +1084,6 @@ def render_charts(rng_start, rng_end, vendor_where):
         st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
-    inject_dashboard_css()
-
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
     if "selected_vendor" not in st.session_state:
@@ -1270,31 +1270,6 @@ def render_forecast():
         kpi_colors = ["#fff7e0", "#ffe6ef", "#e6f3ff", "#e0f7fa"]
         kpi_titles = ["TOTAL UNPAID", "OVERDUE NOW", "DUE NEXT 30 DAYS", "% DUE ≤ 30 DAYS"]
         kpi_values = [abbr_currency(total_unpaid), abbr_currency(overdue_now), abbr_currency(due_30), f"{pct_due_30:.1f}%"]
-
-        st.markdown("""
-        <style>
-        .forecast-kpi-card {
-            border-radius: 16px;
-            padding: 1.2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: left;
-            background-color: var(--bg);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .forecast-kpi-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 0.5rem;
-        }
-        .forecast-kpi-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #0f172a;
-            line-height: 1.2;
-        }
-        </style>
-        """, unsafe_allow_html=True)
 
         cols = st.columns(4)
         for i, col in enumerate(cols):
@@ -2912,7 +2887,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py (with blue Proceed to Pay button)
+# invoices.py (with blue Proceed to Pay and Back to Invoices List buttons)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3110,7 +3085,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if current_status == "PAID":
             st.info("ℹ️ This invoice is already marked as PAID.")
         else:
-            # Changed to primary type for blue button
+            # Proceed to Pay button - blue when primary
             if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
@@ -3149,7 +3124,7 @@ def render_invoices():
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
-            # Changed back button to primary for blue color
+            # Back to Invoices List button - now primary for blue
             if st.button("← Back to Invoices List", type="primary", use_container_width=True):
                 st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
@@ -3238,6 +3213,10 @@ def render_invoices():
 def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
+    
+    # Inject global CSS first (this ensures all buttons are styled correctly)
+    inject_global_css()
+    
     st.markdown("""
 <style>
 .block-container {
