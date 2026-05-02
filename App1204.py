@@ -15,6 +15,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Union, Optional, List, Dict
 import numpy as np
+
 # ------------------------------------------------------------
 # config.py
 # ------------------------------------------------------------
@@ -22,7 +23,8 @@ DATABASE = "procure2pay"
 ATHENA_REGION = "us-east-1"
 BEDROCK_MODEL_ID = "amazon.nova-micro-v1:0"
 DB_PATH = "procureiq.db"
-LOGO_URL = "[th.bing.com](https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3)"
+LOGO_URL = "https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3"
+
 def compute_range_preset(preset: str):
     today = date.today()
     if preset == "Last 30 Days":
@@ -33,6 +35,7 @@ def compute_range_preset(preset: str):
     if preset == "YTD":
         return date(today.year, 1, 1), today
     return today.replace(day=1), today
+
 # ------------------------------------------------------------
 # utils.py
 # ------------------------------------------------------------
@@ -43,6 +46,7 @@ def safe_number(val, default=0.0):
         return float(val)
     except Exception:
         return default
+
 def safe_int(val, default=0):
     try:
         if pd.isna(val):
@@ -50,6 +54,7 @@ def safe_int(val, default=0):
         return int(float(val))
     except Exception:
         return default
+
 def abbr_currency(v: float, currency_symbol: str = "$") -> str:
     n = abs(v)
     sign = "-" if v < 0 else ""
@@ -60,8 +65,10 @@ def abbr_currency(v: float, currency_symbol: str = "$") -> str:
     if n >= 1_000:
         return f"{sign}{currency_symbol}{n/1_000:.1f}K"
     return f"{sign}{currency_symbol}{n:.0f}"
+
 def sql_date(d: date) -> str:
     return f"DATE '{d.strftime('%Y-%m-%d')}'"
+
 def clean_invoice_number(inv_num):
     try:
         if isinstance(inv_num, (float, Decimal)):
@@ -72,6 +79,7 @@ def clean_invoice_number(inv_num):
         return s
     except:
         return str(inv_num)
+
 def pct_delta(cur, prev):
     if prev == 0:
         if cur == 0:
@@ -82,11 +90,13 @@ def pct_delta(cur, prev):
         return "0%", True
     sign = "↑" if change >= 0 else "↓"
     return f"{sign} {abs(change):.1f}%".replace("+", "+"), change >= 0
+
 def prior_window(start: date, end: date):
     days = (end - start).days + 1
     prev_end = start - timedelta(days=1)
     prev_start = prev_end - timedelta(days=days - 1)
     return prev_start, prev_end
+
 def make_json_serializable(obj):
     if isinstance(obj, (str, int, float, bool, type(None))):
         return obj
@@ -109,6 +119,7 @@ def make_json_serializable(obj):
     if isinstance(obj, (list, tuple)):
         return [make_json_serializable(i) for i in obj]
     return str(obj)
+
 def kpi_tile(title: str, value: str, delta_text: str = None, is_positive: bool = True):
     if delta_text and delta_text != "0%":
         if "↑" in delta_text:
@@ -127,6 +138,7 @@ def kpi_tile(title: str, value: str, delta_text: str = None, is_positive: bool =
             {delta_html}
         </div>
     """, unsafe_allow_html=True)
+
 def alt_bar(df, x, y, title=None, horizontal=False, color="#1459d2", height=320):
     if df.empty:
         st.info("No data for this chart.")
@@ -147,6 +159,7 @@ def alt_bar(df, x, y, title=None, horizontal=False, color="#1459d2", height=320)
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def alt_line_monthly(df, month_col='month', value_col='value', height=140, title=None):
     if df.empty:
         st.info("No data for this chart.")
@@ -166,6 +179,7 @@ def alt_line_monthly(df, month_col='month', value_col='value', height=140, title
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def alt_donut_status(df, label_col="status", value_col="cnt", title=None, height=340):
     if df.empty or df[value_col].sum() == 0:
         st.info("No data for donut chart.")
@@ -188,11 +202,13 @@ def alt_donut_status(df, label_col="status", value_col="cnt", title=None, height
     if title:
         chart = chart.properties(title=title)
     st.altair_chart(chart, use_container_width=True)
+
 def build_vendor_where(selected_vendor: str) -> str:
     if selected_vendor == "All Vendors":
         return ""
     safe_vendor = selected_vendor.replace("'", "''")
     return f"AND UPPER(v.vendor_name) = UPPER('{safe_vendor}')"
+
 def is_safe_sql(sql: str) -> bool:
     sql_lower = sql.lower().strip()
     if not sql_lower.startswith("select"):
@@ -202,6 +218,7 @@ def is_safe_sql(sql: str) -> bool:
         if re.search(r'\b' + word + r'\b', sql_lower):
             return False
     return True
+
 def ensure_limit(sql: str, default_limit: int = 100) -> str:
     sql_lower = sql.lower()
     if "limit" in sql_lower:
@@ -209,6 +226,7 @@ def ensure_limit(sql: str, default_limit: int = 100) -> str:
     if re.search(r'\b(count|sum|avg|min|max)\b', sql_lower) and "group by" not in sql_lower:
         return sql
     return f"{sql.rstrip(';')} LIMIT {default_limit}"
+
 def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
     if df.empty or len(df) > 200:
         return None
@@ -234,12 +252,14 @@ def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
             )
         return chart.interactive()
     return None
+
 # ------------------------------------------------------------
 # athena_client.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_aws_session():
     return boto3.Session()
+
 @st.cache_data(ttl=300, show_spinner=False)
 def run_query(sql: str) -> pd.DataFrame:
     try:
@@ -252,12 +272,14 @@ def run_query(sql: str) -> pd.DataFrame:
     except Exception as e:
         st.error(f"Athena query failed: {e}\nSQL: {sql[:500]}")
         return pd.DataFrame()
+
 # ------------------------------------------------------------
 # bedrock_client.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_bedrock_runtime():
     return boto3.client("bedrock-runtime", region_name=ATHENA_REGION)
+
 @lru_cache(maxsize=100)
 def ask_bedrock(prompt: str, system_prompt: str) -> str:
     try:
@@ -278,6 +300,7 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
     except Exception as e:
         st.error(f"Bedrock invocation failed: {e}")
         return ""
+
 # ------------------------------------------------------------
 # persistence.py
 # ------------------------------------------------------------
@@ -305,8 +328,10 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+
 def get_current_user():
     return "user1"
+
 def save_chat_message(session_id, turn_index, role, content, sql_used="", source=""):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -315,6 +340,7 @@ def save_chat_message(session_id, turn_index, role, content, sql_used="", source
               (session_id, turn_index, role, content, sql_used, source, datetime.now()))
     conn.commit()
     conn.close()
+
 def save_chat_session(session_id: str, label: str = None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -326,12 +352,14 @@ def save_chat_session(session_id: str, label: str = None):
               (session_id, label, session_id, datetime.now(), session_id, datetime.now()))
     conn.commit()
     conn.close()
+
 def update_session_timestamp(session_id: str):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('UPDATE chat_sessions SET last_updated = ? WHERE session_id = ?', (datetime.now(), session_id))
     conn.commit()
     conn.close()
+
 def get_chat_sessions(limit: int = 20) -> List[Dict]:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -340,6 +368,7 @@ def get_chat_sessions(limit: int = 20) -> List[Dict]:
     rows = c.fetchall()
     conn.close()
     return [{"id": r[0], "label": r[1], "created": r[2], "last_updated": r[3]} for r in rows]
+
 def load_session_messages(session_id: str) -> List[Dict]:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -351,6 +380,7 @@ def load_session_messages(session_id: str) -> List[Dict]:
     for r in rows:
         messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3], "timestamp": datetime.fromisoformat(r[4]) if isinstance(r[4], str) else r[4]})
     return messages
+
 def save_question(query, analysis_type):
     norm = query.lower().strip()
     user = get_current_user()
@@ -360,6 +390,7 @@ def save_question(query, analysis_type):
               (norm, query, user, analysis_type, datetime.now()))
     conn.commit()
     conn.close()
+
 def save_insight(question, title, analysis_type="custom", page="genie"):
     insight_id = str(uuid.uuid4())
     user = get_current_user()
@@ -370,6 +401,7 @@ def save_insight(question, title, analysis_type="custom", page="genie"):
               (insight_id, user, page, title, question, analysis_type, datetime.now()))
     conn.commit()
     conn.close()
+
 def get_cache(question):
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH)
@@ -380,6 +412,7 @@ def get_cache(question):
     if row:
         return json.loads(row[0])
     return None
+
 def set_cache(question, response):
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     serializable_response = make_json_serializable(response)
@@ -395,6 +428,7 @@ def set_cache(question, response):
               (q_hash, question, response_json, datetime.now(), datetime.now(), q_hash))
     conn.commit()
     conn.close()
+
 @st.cache_data(ttl=300)
 def get_saved_insights_cached(page="genie", limit=20):
     user = get_current_user()
@@ -405,6 +439,7 @@ def get_saved_insights_cached(page="genie", limit=20):
     rows = c.fetchall()
     conn.close()
     return [{"id": row[0], "title": row[1], "question": row[2], "type": row[3], "created_at": row[4]} for row in rows]
+
 @st.cache_data(ttl=300)
 def get_frequent_questions_by_user_cached(limit=10):
     user = get_current_user()
@@ -415,6 +450,7 @@ def get_frequent_questions_by_user_cached(limit=10):
     rows = c.fetchall()
     conn.close()
     return [{"query": row[0], "count": row[1]} for row in rows]
+
 @st.cache_data(ttl=300)
 def get_frequent_questions_all_cached(limit=10):
     conn = sqlite3.connect(DB_PATH)
@@ -424,6 +460,7 @@ def get_frequent_questions_all_cached(limit=10):
     rows = c.fetchall()
     conn.close()
     return [{"query": row[0], "count": row[1]} for row in rows]
+
 # ------------------------------------------------------------
 # dashboard.py - CSS Styles
 # ------------------------------------------------------------
@@ -478,24 +515,24 @@ def inject_dashboard_css():
         margin-bottom: 1rem;
     }
     
-    /* NA Card Backgrounds */
-    [class*="st-key-na_bg_due"] { 
-        background: #eff6ff !important; 
-        border: 1px solid #bfdbfe !important; 
-        border-radius: 12px !important; 
-        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; 
+    /* NA Card Backgrounds (replaces key-based styling) */
+    .na-card-due {
+        background: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
-    [class*="st-key-na_bg_overdue"] { 
-        background: #fef2f2 !important; 
-        border: 1px solid #fecaca !important; 
-        border-radius: 12px !important; 
-        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; 
+    .na-card-overdue {
+        background: #fef2f2 !important;
+        border: 1px solid #fecaca !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
-    [class*="st-key-na_bg_disputed"] { 
-        background: #fffbeb !important; 
-        border: 1px solid #fde68a !important; 
-        border-radius: 12px !important; 
-        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; 
+    .na-card-disputed {
+        background: #fffbeb !important;
+        border: 1px solid #fde68a !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,.05) !important;
     }
     
     /* NA List and Items */
@@ -567,6 +604,7 @@ def inject_dashboard_css():
     }
 </style>
 """, unsafe_allow_html=True)
+
 def format_invoice_number(invoice_num):
     if invoice_num is None:
         return ""
@@ -578,6 +616,7 @@ def format_invoice_number(invoice_num):
     except (ValueError, TypeError):
         pass
     return inv_str
+
 def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yellow"):
     delta_html = ""
     if delta is not None:
@@ -591,6 +630,7 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
     {delta_html}
 </div>
 """, unsafe_allow_html=True)
+
 def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
@@ -646,6 +686,7 @@ def render_filters():
                         st.session_state.preset = p
                     st.rerun()
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
+
 def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit):
     cur_active_pos = safe_int(cur_df.loc[0, "active_pos"]) if not cur_df.empty else 147
     cur_total_pos = safe_int(cur_df.loc[0, "total_pos"]) if not cur_df.empty else 474
@@ -694,6 +735,7 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
         render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
     with col4:
         render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", None, True, "green")
+
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
     st.session_state.selected_invoice = inv_str
@@ -701,8 +743,9 @@ def navigate_to_invoice(invoice_number):
     st.session_state.page = "Invoices"
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
+
 # ------------------------------------------------------------
-# UPDATED: Needs Attention Section (matching Snowflake version)
+# UPDATED: Needs Attention Section (fixed container key error)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -861,7 +904,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
                         aging = safe_number(r.get("aging_days"), 0)
-                        with st.container(border=True, key=f"na_bg_{tab_class}_{card_global_idx}"):
+                        # Remove the `key` argument from st.container and use a div for styling
+                        with st.container(border=True):
+                            # Wrap content in a div with dynamic class for background
+                            st.markdown(f'<div class="na-card-{tab_class}" style="padding: 0.5rem 0.75rem; border-radius: 12px;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
@@ -880,6 +926,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
+                            st.markdown('</div>', unsafe_allow_html=True)
                         card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
             st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
@@ -902,6 +949,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         st.rerun()
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
+
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1002,6 +1050,7 @@ def render_charts(rng_start, rng_end, vendor_where):
             tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
         ).properties(height=280)
         st.altair_chart(bar_chart, use_container_width=True)
+
 def render_dashboard():
     inject_dashboard_css()
     if "date_range" not in st.session_state:
@@ -1087,6 +1136,7 @@ def render_dashboard():
     render_needs_attention(rng_start, rng_end, vendor_where)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
+
 # ------------------------------------------------------------
 # forecast.py
 # ------------------------------------------------------------
@@ -1307,6 +1357,7 @@ def render_forecast():
                 st.session_state.auto_run_query = question
                 st.session_state.page = "Genie"
                 st.rerun()
+
 # ------------------------------------------------------------
 # genie.py - Simplified version for brevity
 # ------------------------------------------------------------
@@ -1316,6 +1367,7 @@ def _safe_sql_string(sql_val):
     if isinstance(sql_val, (dict, list)):
         return json.dumps(sql_val)
     return str(sql_val)
+
 SEMANTIC_MODEL_YAML = f"""
 database: {DATABASE}
 tables:
@@ -1330,6 +1382,7 @@ tables:
   invoice_status_history_vw:
     description: "Status change history for invoices"
 """
+
 SYSTEM_PROMPT_SEMANTIC = f"""
 You are a senior procurement analyst and Athena SQL expert. Your task is to convert the user's natural language question into a valid Athena SQL query.
 Always use {DATABASE} as the database prefix.
@@ -1337,6 +1390,7 @@ Output only the SQL statement, no explanations.
 Semantic model:
 {SEMANTIC_MODEL_YAML}
 """
+
 def generate_sql_from_semantic(question: str) -> str:
     prompt = f"User question: {question}\n\nGenerate SQL."
     sql = ask_bedrock(prompt, SYSTEM_PROMPT_SEMANTIC)
@@ -1355,6 +1409,7 @@ def generate_sql_from_semantic(question: str) -> str:
             WHERE invoice_status NOT IN ('Cancelled', 'Rejected')
         """
     return sql
+
 def process_custom_query(user_question: str, history: str = "") -> dict:
     sql = generate_sql_from_semantic(user_question)
     if not sql or not is_safe_sql(sql):
@@ -1388,6 +1443,7 @@ SQL:
         "question": user_question,
         "analyst_response": analyst_text
     }
+
 def render_genie():
     st.markdown("""
 <style>
@@ -1499,6 +1555,7 @@ def render_genie():
         if submitted and user_question:
             st.session_state.auto_run_query = user_question
             st.rerun()
+
 # ------------------------------------------------------------
 # invoices.py
 # ------------------------------------------------------------
@@ -1554,6 +1611,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         """, unsafe_allow_html=True)
     with col4:
         st.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
+
 def render_invoices():
     st.subheader("📑 Invoices")
     st.markdown("Search, track and manage all invoices in one place")
@@ -1649,6 +1707,7 @@ def render_invoices():
         st.dataframe(df_display, use_container_width=True, height=400)
     else:
         st.info("No invoices found. Try a different search term.")
+
 # ------------------------------------------------------------
 # main app
 # ------------------------------------------------------------
@@ -1709,5 +1768,6 @@ def main():
         render_forecast()
     else:
         render_invoices()
+
 if __name__ == "__main__":
     main()
