@@ -467,7 +467,23 @@ def get_frequent_questions_all_cached(limit=10):
 def inject_dashboard_css():
     st.markdown("""
 <style>
-    /* Global button styling - enforce blue for primary buttons */
+    /* Global button styling - enforce blue for all primary buttons */
+    button[kind="primary"] {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        color: white !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+    }
+    button[kind="primary"]:active,
+    button[kind="primary"]:focus {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 0.2rem rgba(59,130,246,0.5) !important;
+    }
+    /* Override for any button with data-testid containing "baseButton-primary" */
     .stButton > button[data-testid="baseButton-primary"] {
         background-color: #3b82f6 !important;
         border-color: #3b82f6 !important;
@@ -2896,7 +2912,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py (unchanged)
+# invoices.py (with blue Proceed to Pay button)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3094,6 +3110,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if current_status == "PAID":
             st.info("ℹ️ This invoice is already marked as PAID.")
         else:
+            # Changed to primary type for blue button
             if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
@@ -3132,7 +3149,8 @@ def render_invoices():
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
-            if st.button("← Back to Invoices List", use_container_width=True):
+            # Changed back button to primary for blue color
+            if st.button("← Back to Invoices List", type="primary", use_container_width=True):
                 st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
             return
