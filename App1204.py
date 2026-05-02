@@ -3085,7 +3085,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if current_status == "PAID":
             st.info("ℹ️ This invoice is already marked as PAID.")
         else:
-            # Proceed to Pay button - blue when primary
+            # Proceed to Pay button - primary for blue
             if st.button("✅ Proceed to Pay", type="primary", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
@@ -3124,7 +3124,7 @@ def render_invoices():
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
-            # Back to Invoices List button - now primary for blue
+            # Back to Invoices List button - primary for blue
             if st.button("← Back to Invoices List", type="primary", use_container_width=True):
                 st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
@@ -3214,7 +3214,7 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
     
-    # Inject global CSS first (this ensures all buttons are styled correctly)
+    # Inject global CSS once to ensure all primary buttons are blue
     inject_global_css()
     
     st.markdown("""
