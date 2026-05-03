@@ -23,7 +23,7 @@ DATABASE = "procure2pay"
 ATHENA_REGION = "us-east-1"
 BEDROCK_MODEL_ID = "amazon.nova-micro-v1:0"
 DB_PATH = "procureiq.db"
-LOGO_URL = "[th.bing.com](https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3)"
+LOGO_URL = "https://th.bing.com/th/id/OIP.Vy1yFQtg8-D1SsAxcqqtSgHaE6?w=235&h=180&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3"
 
 def compute_range_preset(preset: str):
     today = date.today()
@@ -308,8 +308,13 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS chat_sessions (
-        session_id TEXT PRIMARY KEY, session_label TEXT, created_at TIMESTAMP, last_updated TIMESTAMP
+        session_id TEXT PRIMARY KEY, session_label TEXT, created_at TIMESTAMP, last_updated TIMESTAMP, user_name TEXT
     )''')
+    # Add user_name column if not exists (for backward compatibility)
+    try:
+        c.execute("ALTER TABLE chat_sessions ADD COLUMN user_name TEXT")
+    except sqlite3.OperationalError:
+        pass
     c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, turn_index INTEGER, role TEXT, content TEXT,
         sql_used TEXT, source TEXT, timestamp TIMESTAMP, FOREIGN KEY(session_id) REFERENCES chat_sessions(session_id)
@@ -344,12 +349,13 @@ def save_chat_message(session_id, turn_index, role, content, sql_used="", source
 def save_chat_session(session_id: str, label: str = None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    user = get_current_user()
     if label is None:
         label = f"Session {session_id[:8]}"
-    c.execute('''INSERT OR REPLACE INTO chat_sessions (session_id, session_label, created_at, last_updated)
+    c.execute('''INSERT OR REPLACE INTO chat_sessions (session_id, session_label, created_at, last_updated, user_name)
                  VALUES (?, ?, COALESCE((SELECT created_at FROM chat_sessions WHERE session_id=?), ?),
-                         COALESCE((SELECT last_updated FROM chat_sessions WHERE session_id=?), ?))''',
-              (session_id, label, session_id, datetime.now(), session_id, datetime.now()))
+                         COALESCE((SELECT last_updated FROM chat_sessions WHERE session_id=?), ?), ?)''',
+              (session_id, label, session_id, datetime.now(), session_id, datetime.now(), user))
     conn.commit()
     conn.close()
 
@@ -462,7 +468,42 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BLUE BUTTONS AND LIGHT BROWN CARDS
+# GLOBAL MEMORY: last 20 messages from last 2 days
+# ------------------------------------------------------------
+def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> str:
+    """
+    Fetch the most recent limit messages (user and assistant) from the last max_age_days days,
+    ordered by timestamp ascending. Returns a formatted string for LLM context.
+    """
+    user = get_current_user()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    cutoff = datetime.now() - timedelta(days=max_age_days)
+    # Join with chat_sessions to filter by user
+    c.execute('''
+        SELECT m.role, m.content, m.timestamp
+        FROM chat_messages m
+        JOIN chat_sessions s ON m.session_id = s.session_id
+        WHERE s.user_name = ? AND m.timestamp >= ?
+        ORDER BY m.timestamp DESC
+        LIMIT ?
+    ''', (user, cutoff, limit))
+    rows = c.fetchall()
+    conn.close()
+    if not rows:
+        return ""
+    # Reverse to chronological order
+    rows.reverse()
+    context_parts = []
+    for role, content, ts in rows:
+        if role == "user":
+            context_parts.append(f"User: {content}")
+        else:
+            context_parts.append(f"Assistant: {content}")
+    return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
+
+# ------------------------------------------------------------
+# dashboard.py - WITH BLUE BUTTONS AND UPDATED CARD STYLE (INVISIBLE)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -527,12 +568,12 @@ def inject_dashboard_css():
         margin-bottom: 1rem;
     }
     
-    /* Light Brown NA Cards */
+    /* Updated NA Cards: invisible colour (white background, light border) */
     .na-card-light-brown {
-        background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%) !important;
-        border: 1px solid #d4b896 !important;
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
-        box-shadow: 0 2px 8px rgba(139, 90, 43, 0.1) !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
     }
     
     /* NA Card Click Button - Blue */
@@ -799,7 +840,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - LIGHT BROWN CARDS
+# UPDATED render_needs_attention - INVISIBLE COLOUR CARDS (white background)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -969,10 +1010,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
                         
-                        # Light Brown Card Container
-                        with st.container(border=True):
+                        # Updated Card Container: white background, light border
+                        with st.container(border=False):
                             st.markdown(f'''
-                            <div class="na-card-light-brown" style="padding: 0.75rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%); border: 1px solid #d4b896;">
+                            <div class="na-card-light-brown" style="padding: 0.75rem 1rem; border-radius: 12px; background: white; border: 1px solid #e2e8f0;">
                             ''', unsafe_allow_html=True)
                             
                             left, right = st.columns([2, 1], gap="small")
@@ -983,13 +1024,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     st.session_state["page"] = "Invoices"
                                     st.experimental_set_query_params(tab="Invoices", invoice=ref)
                                     st.rerun()
-                                st.markdown(f"<div style='color:#8b7355;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='color:#475569;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
                                 st.markdown(
                                     f"<div style='text-align:right;'>"
                                     f"<span style='background:{tag_bg};color:{tag_color};font-size:11px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;font-weight:600;'>{status_label}</span>"
-                                    f"<div style='font-weight:700;font-size:14px;color:#5d4e37;'>{abbr_currency(amt)}</div>"
-                                    f"<div style='color:#8b7355;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
+                                    f"<div style='font-weight:700;font-size:14px;color:#1e293b;'>{abbr_currency(amt)}</div>"
+                                    f"<div style='color:#64748b;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
@@ -1459,7 +1500,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, unchanged from original)
+# genie.py (all functions, with updated memory context)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1605,18 +1646,7 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
-def build_conversation_context(messages: List[Dict], max_turns: int = 5) -> str:
-    now = datetime.now()
-    two_days_ago = now - timedelta(days=2)
-    recent_messages = [m for m in messages if m.get("timestamp", datetime.min) >= two_days_ago and m["role"] in ("user", "assistant")]
-    recent_messages = recent_messages[-max_turns*2:] if recent_messages else []
-    context_parts = []
-    for i in range(0, len(recent_messages), 2):
-        if i+1 < len(recent_messages):
-            context_parts.append(f"Previous question: {recent_messages[i]['content']}\nPrevious answer: {recent_messages[i+1]['content']}")
-    if not context_parts:
-        return ""
-    return "Here is the conversation history from the last 2 days:\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
+# Replaced build_conversation_context with global memory function
 
 def process_custom_query(query: str, history: str = "") -> dict:
     sql = generate_sql_from_semantic(query)
@@ -2371,7 +2401,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (all needed)
+# Response renderers (all unchanged)
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -2658,7 +2688,7 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI (NO SIDEBAR)
+# User question processing and Genie UI (NO SIDEBAR, updated with global memory)
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2673,7 +2703,8 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, source="cache", sql_used=sql_used)
             save_question(user_question, "custom")
         else:
-            history_context = build_conversation_context(st.session_state.current_messages, max_turns=5)
+            # Use global conversation memory (last 20 messages, last 2 days)
+            history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             lower_q = user_question.lower()
             
             if user_question == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
@@ -2799,22 +2830,24 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
+            # Use global memory for auto-run queries as well
+            history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
-                result = process_grir_hotspots(auto_query, "")
+                result = process_grir_hotspots(auto_query, history_context)
             elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
-                result = process_grir_root_causes(auto_query, "")
+                result = process_grir_root_causes(auto_query, history_context)
             elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
-                result = process_grir_working_capital(auto_query, "")
+                result = process_grir_working_capital(auto_query, history_context)
             elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
-                result = process_grir_vendor_followup(auto_query, "")
+                result = process_grir_vendor_followup(auto_query, history_context)
             elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
-                result = process_cash_flow_forecast(auto_query, "")
+                result = process_cash_flow_forecast(auto_query, history_context)
             elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
-                result = process_early_payment(auto_query, "")
+                result = process_early_payment(auto_query, history_context)
             elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
-                result = process_payment_timing(auto_query, "")
+                result = process_payment_timing(auto_query, history_context)
             elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
-                result = process_late_payment_trend(auto_query, "")
+                result = process_late_payment_trend(auto_query, history_context)
             elif auto_query == "Spending Overview":
                 result = _quick_spending_overview()
             elif auto_query == "Vendor Analysis":
@@ -2824,7 +2857,7 @@ def render_genie():
             elif auto_query == "Invoice Aging":
                 result = _quick_invoice_aging()
             else:
-                result = process_custom_query(auto_query, "")
+                result = process_custom_query(auto_query, history_context)
             st.session_state.current_messages = []
             st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
             if result.get("layout") != "error":
@@ -2957,7 +2990,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - BLUE BUTTONS
+# invoices.py - BLUE BUTTONS (unchanged)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3155,7 +3188,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if current_status == "PAID":
             st.info("ℹ️ This invoice is already marked as PAID.")
         else:
-            # Blue Proceed to Pay button
             if st.button("✅ Proceed to Pay", key="proceed_pay_btn", use_container_width=True):
                 st.session_state[paid_key] = True
                 st.rerun()
@@ -3194,7 +3226,6 @@ def render_invoices():
         inv_df = run_query(inv_sql)
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
-            # Blue Back to Invoices button
             if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
                 st.experimental_set_query_params(tab="Invoices")
                 st.rerun()
