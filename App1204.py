@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BLUE BUTTONS AND UPDATED CARD STYLE (INVISIBLE)
+# dashboard.py - WITH BLUE BUTTONS AND LIGHT BROWN CARDS + BORDER
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -568,12 +568,12 @@ def inject_dashboard_css():
         margin-bottom: 1rem;
     }
     
-    /* Updated NA Cards: invisible colour (white background, light border) */
+    /* Light Brown NA Cards with border */
     .na-card-light-brown {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
+        background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%) !important;
+        border: 2px solid #d4b896 !important;
         border-radius: 12px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        box-shadow: 0 2px 8px rgba(139, 90, 43, 0.1) !important;
     }
     
     /* NA Card Click Button - Blue */
@@ -840,7 +840,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - INVISIBLE COLOUR CARDS (white background)
+# UPDATED render_needs_attention - LIGHT BROWN CARDS WITH BORDER
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -1010,10 +1010,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
                         
-                        # Updated Card Container: white background, light border
+                        # Light Brown Card Container with border
                         with st.container(border=False):
                             st.markdown(f'''
-                            <div class="na-card-light-brown" style="padding: 0.75rem 1rem; border-radius: 12px; background: white; border: 1px solid #e2e8f0;">
+                            <div class="na-card-light-brown" style="padding: 0.75rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%); border: 2px solid #d4b896;">
                             ''', unsafe_allow_html=True)
                             
                             left, right = st.columns([2, 1], gap="small")
@@ -1024,13 +1024,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     st.session_state["page"] = "Invoices"
                                     st.experimental_set_query_params(tab="Invoices", invoice=ref)
                                     st.rerun()
-                                st.markdown(f"<div style='color:#475569;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='color:#8b7355;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
                                 st.markdown(
                                     f"<div style='text-align:right;'>"
                                     f"<span style='background:{tag_bg};color:{tag_color};font-size:11px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;font-weight:600;'>{status_label}</span>"
-                                    f"<div style='font-weight:700;font-size:14px;color:#1e293b;'>{abbr_currency(amt)}</div>"
-                                    f"<div style='color:#64748b;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
+                                    f"<div style='font-weight:700;font-size:14px;color:#5d4e37;'>{abbr_currency(amt)}</div>"
+                                    f"<div style='color:#8b7355;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
@@ -1265,7 +1265,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged)
+# forecast.py (UPDATED: GR/IR tabular format instead of line chart)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1466,7 +1466,8 @@ def render_forecast():
 
             trend_sql = f"""
                 SELECT
-                    DATE_PARSE(CAST(year AS VARCHAR) || '-' || LPAD(CAST(month AS VARCHAR), 2, '0') || '-01', '%Y-%m-%d') AS month_date,
+                    year,
+                    month,
                     invoice_count,
                     total_grir_blnc
                 FROM {DATABASE}.gr_ir_outstanding_balance_vw
@@ -1475,12 +1476,9 @@ def render_forecast():
             """
             trend_df = run_query(trend_sql)
             if not trend_df.empty:
-                trend_df = trend_df.sort_values("month_date")
                 st.markdown("**GR/IR outstanding trend (last 24 months)**")
-                try:
-                    alt_line_monthly(trend_df.rename(columns={"month_date": "MONTH", "total_grir_blnc": "VALUE"}), month_col="MONTH", value_col="VALUE", height=250, title="Total GR/IR balance over time")
-                except Exception:
-                    st.dataframe(trend_df, use_container_width=True)
+                # Display as table instead of line chart
+                st.dataframe(trend_df, use_container_width=True, hide_index=True)
         else:
             st.info("No GR/IR data found.")
 
@@ -1645,8 +1643,6 @@ def generate_sql_from_semantic(question: str) -> str:
             WHERE invoice_status NOT IN ('Cancelled', 'Rejected')
         """
     return sql
-
-# Replaced build_conversation_context with global memory function
 
 def process_custom_query(query: str, history: str = "") -> dict:
     sql = generate_sql_from_semantic(query)
