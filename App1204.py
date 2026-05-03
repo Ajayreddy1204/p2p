@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BLUE BUTTONS AND UPDATED NEEDS ATTENTION (coloured cards)
+# dashboard.py - WITH BLUE BUTTONS AND COLOURED NEEDS ATTENTION CARDS
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -588,10 +588,9 @@ def inject_dashboard_css():
     }
 
     /* Needs Attention card backgrounds - coloured by tab */
-    [class*="st-key-na_bg_due"] { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
-    [class*="st-key-na_bg_overdue"] { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
-    [class*="st-key-na_bg_disputed"] { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
-    [class*="st-key-na_bg_other"] { background: #f9fafb !important; border: 1px solid #e5e7eb !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    .na-card-overdue { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    .na-card-disputed { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    .na-card-due { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
 
     /* NA Card Click Button - Blue */
     button[data-testid^="baseButton-na_card_"] {
@@ -857,7 +856,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - COLOURED CARDS (based on tab)
+# CORRECTED render_needs_attention - COLOURED CARDS (no key error)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -952,7 +951,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         </div>
         """, unsafe_allow_html=True)
 
-        # Tab buttons with blue active state - updated styling
+        # Tab buttons with blue active state
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
             if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
@@ -986,17 +985,17 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             df = overdue_df
             status_label = "Overdue"
             tag_bg, tag_color = "#fde7e9", "#b42318"
-            tab_class = "overdue"
+            card_class = "na-card-overdue"
         elif current_tab == 'Disputed':
             df = disputed_df
             status_label = "Disputed"
             tag_bg, tag_color = "#fff4e5", "#b54708"
-            tab_class = "disputed"
+            card_class = "na-card-disputed"
         else:
             df = due_df
             status_label = "Due soon"
             tag_bg, tag_color = "#DBEAFE", "#0284C7"
-            tab_class = "due"
+            card_class = "na-card-due"
 
         if df.empty:
             st.markdown('<div class="na-empty">No items in this category</div>', unsafe_allow_html=True)
@@ -1014,25 +1013,25 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
-                        ref = str(r.get("ref_no", "")).strip() or "—"
-                        ref = format_invoice_number(ref)
-                        amt = safe_number(r.get("amount"))
-                        ddate_raw = r.get("due_date")
-                        ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
-                        vendor_nm = str(r.get("vendor_name", "—"))
-                        
-                        # Coloured card container
-                        with st.container(border=True, key=f"na_bg_{tab_class}_{card_global_idx}"):
+                        # Use st.container without key, inner div for background colour
+                        with st.container(border=True):
+                            st.markdown(f'<div class="{card_class}" style="padding: 0.75rem 1rem; border-radius: 12px;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
+                                ref = str(r.get("ref_no", "")).strip() or "—"
+                                ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
                                     st.experimental_set_query_params(tab="Invoices", invoice=ref)
                                     st.rerun()
+                                vendor_nm = str(r.get("vendor_name", "—"))
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
+                                amt = safe_number(r.get("amount"))
+                                ddate_raw = r.get("due_date")
+                                ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                                 st.markdown(
                                     f"<div style='text-align:right;'>"
                                     f"<span style='background:{tag_bg};color:{tag_color};font-size:12px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;'>{status_label}</span>"
@@ -1041,7 +1040,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
-                        card_global_idx += 1
+                            st.markdown('</div>', unsafe_allow_html=True)
+                    card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
             st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
