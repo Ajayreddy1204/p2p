@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BLUE BUTTONS AND NEUTRAL CARDS (no brown)
+# dashboard.py - WITH BLUE BUTTONS AND UPDATED NEEDS ATTENTION (coloured cards)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -568,21 +568,38 @@ def inject_dashboard_css():
         margin-bottom: 1rem;
     }
     
-    /* Neutral NA Cards (no brown) - simple white background, light border */
-    .na-card-neutral {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    /* NA Tab Buttons - Blue active */
+    button[data-testid^="baseButton-na_btn_"] {
+        border-radius: 999px !important;
+        font-weight: 600 !important;
+        transition: all 0.18s ease !important;
     }
-    
+    button[data-testid="baseButton-na_btn_overdue"],
+    button[data-testid="baseButton-na_btn_disputed"],
+    button[data-testid="baseButton-na_btn_due30d"] {
+        background: #e5e7eb !important;
+        color: #111827 !important;
+    }
+    button[data-testid="baseButton-na_btn_overdue"]:hover,
+    button[data-testid="baseButton-na_btn_disputed"]:hover,
+    button[data-testid="baseButton-na_btn_due30d"]:hover {
+        background: #2563eb !important;
+        color: white !important;
+    }
+
+    /* Needs Attention card backgrounds - coloured by tab */
+    [class*="st-key-na_bg_due"] { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    [class*="st-key-na_bg_overdue"] { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    [class*="st-key-na_bg_disputed"] { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    [class*="st-key-na_bg_other"] { background: #f9fafb !important; border: 1px solid #e5e7eb !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+
     /* NA Card Click Button - Blue */
     button[data-testid^="baseButton-na_card_"] {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         color: #2563eb !important;
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         font-size: 13px !important;
         padding: 4px 0 0 0 !important;
         margin-top: 2px !important;
@@ -840,7 +857,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - NEUTRAL CARDS (no brown)
+# UPDATED render_needs_attention - COLOURED CARDS (based on tab)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -935,39 +952,30 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         </div>
         """, unsafe_allow_html=True)
 
-        # Tab buttons with blue active state
+        # Tab buttons with blue active state - updated styling
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            btn_type = "primary" if current_tab == 'Overdue' else "secondary"
-            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type=btn_type):
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[1]:
-            btn_type = "primary" if current_tab == 'Disputed' else "secondary"
-            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True, type=btn_type):
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True):
                 st.session_state.na_tab = 'Disputed'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[2]:
-            btn_type = "primary" if current_tab == 'Due' else "secondary"
-            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True, type=btn_type):
+            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
 
-        # Blue tab button CSS
+        # Force active tab button to blue + white text
         st.markdown(f"""
         <style>
-        button[data-testid="baseButton-na_btn_overdue"],
-        button[data-testid="baseButton-na_btn_disputed"],
-        button[data-testid="baseButton-na_btn_due30d"] {{
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-        }}
-        {"button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; }" if current_tab == 'Overdue' else ""}
-        {"button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; }" if current_tab == 'Disputed' else ""}
-        {"button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; }" if current_tab == 'Due' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
         </style>
         """, unsafe_allow_html=True)
 
@@ -978,14 +986,17 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             df = overdue_df
             status_label = "Overdue"
             tag_bg, tag_color = "#fde7e9", "#b42318"
+            tab_class = "overdue"
         elif current_tab == 'Disputed':
             df = disputed_df
             status_label = "Disputed"
             tag_bg, tag_color = "#fff4e5", "#b54708"
+            tab_class = "disputed"
         else:
             df = due_df
             status_label = "Due soon"
             tag_bg, tag_color = "#DBEAFE", "#0284C7"
+            tab_class = "due"
 
         if df.empty:
             st.markdown('<div class="na-empty">No items in this category</div>', unsafe_allow_html=True)
@@ -1010,12 +1021,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
                         
-                        # Neutral Card Container - white background, light border, no brown
-                        with st.container(border=False):
-                            st.markdown(f'''
-                            <div class="na-card-neutral" style="padding: 0.75rem 1rem; border-radius: 12px; background: white; border: 1px solid #e2e8f0;">
-                            ''', unsafe_allow_html=True)
-                            
+                        # Coloured card container
+                        with st.container(border=True, key=f"na_bg_{tab_class}_{card_global_idx}"):
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
@@ -1024,17 +1031,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     st.session_state["page"] = "Invoices"
                                     st.experimental_set_query_params(tab="Invoices", invoice=ref)
                                     st.rerun()
-                                st.markdown(f"<div style='color:#475569;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
                                 st.markdown(
                                     f"<div style='text-align:right;'>"
-                                    f"<span style='background:{tag_bg};color:{tag_color};font-size:11px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;font-weight:600;'>{status_label}</span>"
-                                    f"<div style='font-weight:700;font-size:14px;color:#1e293b;'>{abbr_currency(amt)}</div>"
-                                    f"<div style='color:#64748b;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
+                                    f"<span style='background:{tag_bg};color:{tag_color};font-size:12px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;'>{status_label}</span>"
+                                    f"<div style='font-weight:600;font-size:13px;'>{abbr_currency(amt)}</div>"
+                                    f"<div style='color:#888;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
-                            st.markdown('</div>', unsafe_allow_html=True)
                         card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
@@ -1265,7 +1271,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (UPDATED: GR/IR tabular format instead of line chart)
+# forecast.py (unchanged)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
