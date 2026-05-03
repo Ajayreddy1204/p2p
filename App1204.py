@@ -254,13 +254,13 @@ def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
     return None
 
 # ------------------------------------------------------------
-# athena_client.py - OPTIMIZED WITH BETTER CACHING
+# athena_client.py
 # ------------------------------------------------------------
 @st.cache_resource
 def get_aws_session():
     return boto3.Session()
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def run_query(sql: str) -> pd.DataFrame:
     try:
         session = get_aws_session()
@@ -302,7 +302,7 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
         return ""
 
 # ------------------------------------------------------------
-# persistence.py (full) - WITH MEMORY MANAGEMENT
+# persistence.py (full)
 # ------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -326,85 +326,11 @@ def init_db():
         query_hash TEXT PRIMARY KEY, question TEXT, response_json TEXT, created_at TIMESTAMP,
         last_hit_at TIMESTAMP, hit_count INTEGER
     )''')
-    # Long-term memory table
-    c.execute('''CREATE TABLE IF NOT EXISTS long_term_memory (
-        memory_id TEXT PRIMARY KEY, user_id TEXT, memory_type TEXT, content TEXT,
-        relevance_score REAL, created_at TIMESTAMP, last_accessed TIMESTAMP, access_count INTEGER
-    )''')
-    # Short-term memory table  
-    c.execute('''CREATE TABLE IF NOT EXISTS short_term_memory (
-        memory_id TEXT PRIMARY KEY, session_id TEXT, content TEXT, 
-        created_at TIMESTAMP, expires_at TIMESTAMP
-    )''')
     conn.commit()
     conn.close()
 
 def get_current_user():
     return "user1"
-
-# Short-term memory functions
-def save_short_term_memory(session_id: str, content: str, ttl_minutes: int = 30):
-    memory_id = str(uuid.uuid4())
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    now = datetime.now()
-    expires = now + timedelta(minutes=ttl_minutes)
-    c.execute('''INSERT INTO short_term_memory (memory_id, session_id, content, created_at, expires_at)
-                 VALUES (?, ?, ?, ?, ?)''', (memory_id, session_id, content, now, expires))
-    conn.commit()
-    conn.close()
-
-def get_short_term_memory(session_id: str) -> List[str]:
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    now = datetime.now()
-    c.execute('''SELECT content FROM short_term_memory 
-                 WHERE session_id = ? AND expires_at > ? 
-                 ORDER BY created_at DESC LIMIT 10''', (session_id, now))
-    rows = c.fetchall()
-    conn.close()
-    return [r[0] for r in rows]
-
-def cleanup_expired_short_term_memory():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('DELETE FROM short_term_memory WHERE expires_at < ?', (datetime.now(),))
-    conn.commit()
-    conn.close()
-
-# Long-term memory functions
-def save_long_term_memory(user_id: str, memory_type: str, content: str, relevance_score: float = 1.0):
-    memory_id = str(uuid.uuid4())
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    now = datetime.now()
-    c.execute('''INSERT INTO long_term_memory (memory_id, user_id, memory_type, content, relevance_score, created_at, last_accessed, access_count)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (memory_id, user_id, memory_type, content, relevance_score, now, now, 1))
-    conn.commit()
-    conn.close()
-
-def get_long_term_memory(user_id: str, memory_type: str = None, limit: int = 10) -> List[Dict]:
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    if memory_type:
-        c.execute('''SELECT memory_id, content, relevance_score, access_count FROM long_term_memory 
-                     WHERE user_id = ? AND memory_type = ? 
-                     ORDER BY relevance_score DESC, access_count DESC LIMIT ?''', (user_id, memory_type, limit))
-    else:
-        c.execute('''SELECT memory_id, content, relevance_score, access_count FROM long_term_memory 
-                     WHERE user_id = ? 
-                     ORDER BY relevance_score DESC, access_count DESC LIMIT ?''', (user_id, limit))
-    rows = c.fetchall()
-    conn.close()
-    return [{"id": r[0], "content": r[1], "relevance": r[2], "access_count": r[3]} for r in rows]
-
-def update_memory_access(memory_id: str):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''UPDATE long_term_memory SET last_accessed = ?, access_count = access_count + 1 
-                 WHERE memory_id = ?''', (datetime.now(), memory_id))
-    conn.commit()
-    conn.close()
 
 def save_chat_message(session_id, turn_index, role, content, sql_used="", source=""):
     conn = sqlite3.connect(DB_PATH)
@@ -482,11 +408,6 @@ def get_cache(question):
     c = conn.cursor()
     c.execute('SELECT response_json FROM query_cache WHERE query_hash = ?', (q_hash,))
     row = c.fetchone()
-    if row:
-        # Update hit count
-        c.execute('UPDATE query_cache SET hit_count = hit_count + 1, last_hit_at = ? WHERE query_hash = ?', 
-                  (datetime.now(), q_hash))
-        conn.commit()
     conn.close()
     if row:
         return json.loads(row[0])
@@ -505,15 +426,6 @@ def set_cache(question, response):
     c.execute('''INSERT OR REPLACE INTO query_cache (query_hash, question, response_json, created_at, last_hit_at, hit_count)
                  VALUES (?, ?, ?, ?, ?, COALESCE((SELECT hit_count+1 FROM query_cache WHERE query_hash=?), 1))''',
               (q_hash, question, response_json, datetime.now(), datetime.now(), q_hash))
-    conn.commit()
-    conn.close()
-
-def cleanup_old_cache(days: int = 7):
-    """Remove cache entries older than specified days"""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    cutoff = datetime.now() - timedelta(days=days)
-    c.execute('DELETE FROM query_cache WHERE last_hit_at < ? AND hit_count < 3', (cutoff,))
     conn.commit()
     conn.close()
 
@@ -550,7 +462,7 @@ def get_frequent_questions_all_cached(limit=10):
     return [{"query": row[0], "count": row[1]} for row in rows]
 
 # ------------------------------------------------------------
-# dashboard.py - WITH FULL BROWN CARDS FOR NEEDS ATTENTION
+# dashboard.py - WITH BLUE BUTTONS AND LIGHT BROWN CARDS
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -615,35 +527,28 @@ def inject_dashboard_css():
         margin-bottom: 1rem;
     }
     
-    /* Full Brown NA Cards - Matching the screenshot */
-    .na-card-brown {
-        background: linear-gradient(145deg, #f5e6d3 0%, #e8d4be 50%, #dcc5a9 100%) !important;
-        border: 1px solid #c9a87c !important;
+    /* Light Brown NA Cards */
+    .na-card-light-brown {
+        background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%) !important;
+        border: 1px solid #d4b896 !important;
         border-radius: 12px !important;
-        box-shadow: 0 2px 8px rgba(139, 90, 43, 0.12) !important;
-        padding: 1rem !important;
-        min-height: 100px !important;
-        position: relative !important;
-    }
-    
-    .na-card-brown:hover {
-        box-shadow: 0 4px 12px rgba(139, 90, 43, 0.2) !important;
-        transform: translateY(-1px);
-        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(139, 90, 43, 0.1) !important;
     }
     
     /* NA Card Click Button - Blue */
-    .na-invoice-link {
+    button[data-testid^="baseButton-na_card_"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         color: #2563eb !important;
-        font-weight: 700 !important;
-        font-size: 15px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 4px 0 0 0 !important;
+        margin-top: 2px !important;
         text-decoration: none !important;
         cursor: pointer !important;
-        background: none !important;
-        border: none !important;
-        padding: 0 !important;
     }
-    .na-invoice-link:hover {
+    button[data-testid^="baseButton-na_card_"]:hover {
         color: #1d4ed8 !important;
         text-decoration: underline !important;
     }
@@ -689,6 +594,13 @@ def inject_dashboard_css():
         border-color: #cbd5e1 !important;
     }
     
+    /* BLUE PRESET BUTTONS */
+    button[data-testid^="baseButton-preset_"] {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }
+    
     /* Blue Invoice buttons */
     button[data-testid="baseButton-proceed_pay_btn"],
     button[data-testid="baseButton-back_invoices_btn"] {
@@ -704,13 +616,6 @@ def inject_dashboard_css():
         background-color: #1d4ed8 !important;
         background: #1d4ed8 !important;
         border-color: #1d4ed8 !important;
-    }
-    
-    /* Hide default streamlit container border for NA cards */
-    .na-card-container > div[data-testid="stVerticalBlock"] > div {
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -894,7 +799,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - FULL BROWN CARDS
+# UPDATED render_needs_attention - LIGHT BROWN CARDS
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -908,93 +813,72 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
-    # Use cached data if available
-    cache_key = f"na_data_{rng_start}_{rng_end}_{vendor_where}"
-    
-    if cache_key not in st.session_state:
-        # Fetch Overdue invoices
-        overdue_sql = f"""
-            SELECT f.invoice_number AS ref_no,
-                   f.invoice_amount_local AS amount,
-                   v.vendor_name,
-                   f.due_date,
-                   f.aging_days
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-            {vendor_where}
-            AND f.due_date < CURRENT_DATE
-            AND UPPER(f.invoice_status) = 'OVERDUE'
-            ORDER BY f.due_date ASC
-        """
-        overdue_df = run_query(overdue_sql)
-        if overdue_df.empty:
-            overdue_df = pd.DataFrame([
-                {"ref_no": 9001767, "amount": 3300, "vendor_name": "McMaster-Carr", "due_date": date(2026, 2, 1), "aging_days": 5},
-                {"ref_no": 9004607, "amount": 2200, "vendor_name": "McMaster-Carr", "due_date": date(2026, 2, 19), "aging_days": 5},
-                {"ref_no": 9005389, "amount": 13800, "vendor_name": "Motion Industries", "due_date": date(2026, 2, 12), "aging_days": 8},
-                {"ref_no": 9006459, "amount": 1900, "vendor_name": "Eaton Corp", "due_date": date(2026, 2, 12), "aging_days": 8},
-                {"ref_no": 9007488, "amount": 15400, "vendor_name": "MSC Industrial", "due_date": date(2026, 2, 19), "aging_days": 10},
-                {"ref_no": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date(2026, 2, 19), "aging_days": 8},
-                {"ref_no": 9004648, "amount": 2600, "vendor_name": "MSC Industrial", "due_date": date(2026, 2, 12), "aging_days": 6},
-                {"ref_no": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date(2026, 2, 19), "aging_days": 2},
-            ])
+    # Fetch Overdue invoices
+    overdue_sql = f"""
+        SELECT f.invoice_number AS ref_no,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date,
+               f.aging_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        AND f.due_date < CURRENT_DATE
+        AND UPPER(f.invoice_status) = 'OVERDUE'
+        ORDER BY f.due_date ASC
+    """
+    overdue_df = run_query(overdue_sql)
+    if overdue_df.empty:
+        overdue_df = pd.DataFrame([
+            {"ref_no": 9004607, "amount": 2200, "vendor_name": "McMaster-Carr", "due_date": date.today() - timedelta(days=5), "aging_days": 5},
+            {"ref_no": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date.today() - timedelta(days=8), "aging_days": 8},
+        ])
 
-        # Fetch Disputed invoices
-        disputed_sql = f"""
-            SELECT f.invoice_number AS ref_no,
-                   f.invoice_amount_local AS amount,
-                   v.vendor_name,
-                   f.due_date,
-                   f.aging_days
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-            {vendor_where}
-            AND UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')
-            ORDER BY f.due_date ASC
-        """
-        disputed_df = run_query(disputed_sql)
-        if disputed_df.empty:
-            disputed_df = pd.DataFrame([
-                {"ref_no": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2), "aging_days": 2},
-            ])
+    # Fetch Disputed invoices
+    disputed_sql = f"""
+        SELECT f.invoice_number AS ref_no,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date,
+               f.aging_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        AND UPPER(f.invoice_status) IN ('DISPUTE','DISPUTED')
+        ORDER BY f.due_date ASC
+    """
+    disputed_df = run_query(disputed_sql)
+    if disputed_df.empty:
+        disputed_df = pd.DataFrame([
+            {"ref_no": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2), "aging_days": 2},
+        ])
 
-        # Fetch Due (next 30 days) invoices
-        due_sql = f"""
-            SELECT f.invoice_number AS ref_no,
-                   f.invoice_amount_local AS amount,
-                   v.vendor_name,
-                   f.due_date,
-                   f.aging_days
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-            {vendor_where}
-            AND f.due_date >= CURRENT_DATE
-            AND f.due_date <= CURRENT_DATE + INTERVAL '30' DAY
-            AND UPPER(f.invoice_status) IN ('OPEN')
-            ORDER BY f.due_date ASC
-        """
-        due_df = run_query(due_sql)
-        if due_df.empty:
-            today = date.today()
-            sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
-            due_df = pd.DataFrame([
-                {"ref_no": 9005389 + i, "amount": 13800 + i*100, "vendor_name": f"Vendor {i+1}", "due_date": sample_due_dates[i % len(sample_due_dates)], "aging_days": 0}
-                for i in range(8)
-            ])
-        
-        st.session_state[cache_key] = {
-            "overdue": overdue_df,
-            "disputed": disputed_df,
-            "due": due_df
-        }
-    
-    cached_data = st.session_state[cache_key]
-    overdue_df = cached_data["overdue"]
-    disputed_df = cached_data["disputed"]
-    due_df = cached_data["due"]
+    # Fetch Due (next 30 days) invoices
+    due_sql = f"""
+        SELECT f.invoice_number AS ref_no,
+               f.invoice_amount_local AS amount,
+               v.vendor_name,
+               f.due_date,
+               f.aging_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        AND f.due_date >= CURRENT_DATE
+        AND f.due_date <= CURRENT_DATE + INTERVAL '30' DAY
+        AND UPPER(f.invoice_status) IN ('OPEN')
+        ORDER BY f.due_date ASC
+    """
+    due_df = run_query(due_sql)
+    if due_df.empty:
+        today = date.today()
+        sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
+        due_df = pd.DataFrame([
+            {"ref_no": 9005389 + i, "amount": 13800 + i*100, "vendor_name": f"Vendor {i+1}", "due_date": sample_due_dates[i % len(sample_due_dates)], "aging_days": 0}
+            for i in range(8)
+        ])
 
     overdue_count = len(overdue_df)
     disputed_count = len(disputed_df)
@@ -1063,7 +947,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             tag_bg, tag_color = "#DBEAFE", "#0284C7"
 
         if df.empty:
-            st.markdown('<div style="text-align:center;padding:2rem;color:#6b7280;">No items in this category</div>', unsafe_allow_html=True)
+            st.markdown('<div class="na-empty">No items in this category</div>', unsafe_allow_html=True)
         else:
             items_per_page = 8
             total_items = len(df)
@@ -1085,57 +969,35 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
                         vendor_nm = str(r.get("vendor_name", "—"))
                         
-                        # Full Brown Card - Pure HTML/CSS approach
-                        btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                        
-                        st.markdown(f'''
-                        <div class="na-card-brown">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                                <div style="flex:1;">
-                                    <div style="height:8px;background:linear-gradient(90deg,#d4a574,#c9976a);border-radius:4px;margin-bottom:10px;width:80%;"></div>
-                                </div>
-                                <span style='background:{tag_bg};color:{tag_color};font-size:11px;padding:4px 10px;border-radius:999px;font-weight:600;white-space:nowrap;'>{status_label}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-                                <div>
-                                    <div style='font-weight:700;font-size:15px;color:#2563eb;margin-bottom:4px;cursor:pointer;' id="inv_{btn_key}">{ref}</div>
-                                    <div style='color:#6b5b4d;font-size:12px;font-weight:500;'>{html.escape(vendor_nm[:25])}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style='font-weight:700;font-size:16px;color:#3d3428;'>{abbr_currency(amt)}</div>
-                                    <div style='color:#7a6b5a;font-size:11px;'>Due: {ddate}</div>
-                                </div>
-                            </div>
-                        </div>
-                        ''', unsafe_allow_html=True)
-                        
-                        # Invisible button for click handling
-                        if st.button("", key=btn_key, help=f"View invoice {ref}"):
-                            st.session_state["invoice_search_from_card"] = ref
-                            st.session_state["page"] = "Invoices"
-                            st.experimental_set_query_params(tab="Invoices", invoice=ref)
-                            st.rerun()
-                        
-                        # Hide the button visually
-                        st.markdown(f"""
-                        <style>
-                        button[data-testid="baseButton-{btn_key}"] {{
-                            position: absolute !important;
-                            top: 0 !important;
-                            left: 0 !important;
-                            width: 100% !important;
-                            height: 100% !important;
-                            opacity: 0 !important;
-                            cursor: pointer !important;
-                        }}
-                        </style>
-                        """, unsafe_allow_html=True)
-                        
+                        # Light Brown Card Container
+                        with st.container(border=True):
+                            st.markdown(f'''
+                            <div class="na-card-light-brown" style="padding: 0.75rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #fdf6e3 0%, #f5e6d3 100%); border: 1px solid #d4b896;">
+                            ''', unsafe_allow_html=True)
+                            
+                            left, right = st.columns([2, 1], gap="small")
+                            with left:
+                                btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
+                                if st.button(ref, key=btn_key):
+                                    st.session_state["invoice_search_from_card"] = ref
+                                    st.session_state["page"] = "Invoices"
+                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                    st.rerun()
+                                st.markdown(f"<div style='color:#8b7355;font-size:12px;overflow:hidden;text-overflow:ellipsis;font-weight:500;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
+                            with right:
+                                st.markdown(
+                                    f"<div style='text-align:right;'>"
+                                    f"<span style='background:{tag_bg};color:{tag_color};font-size:11px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;font-weight:600;'>{status_label}</span>"
+                                    f"<div style='font-weight:700;font-size:14px;color:#5d4e37;'>{abbr_currency(amt)}</div>"
+                                    f"<div style='color:#8b7355;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
+                                    f"</div>",
+                                    unsafe_allow_html=True
+                                )
+                            st.markdown('</div>', unsafe_allow_html=True)
                         card_global_idx += 1
-                        
-                st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
-            st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
 
             # Pagination
             pag_cols = st.columns([1, 1, 1], gap="small")
@@ -1293,84 +1155,67 @@ def render_dashboard():
     p_start_lit = sql_date(p_start)
     p_end_lit = sql_date(p_end)
 
-    # Cache KPI data
-    kpi_cache_key = f"kpi_data_{rng_start}_{rng_end}_{vendor_where}"
-    if kpi_cache_key not in st.session_state:
-        cur_kpi_sql = f"""
-            SELECT
-                COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-                COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-                COUNT(DISTINCT v.vendor_name) AS active_vendors,
-                SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-                COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-                AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-            {vendor_where}
-        """
-        cur_df = run_query(cur_kpi_sql)
-        
-        prev_kpi_sql = f"""
-            SELECT
-                COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-                COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-                COUNT(DISTINCT v.vendor_name) AS active_vendors,
-                SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-                COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-                AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
-            {vendor_where}
-        """
-        prev_df = run_query(prev_kpi_sql)
-
-        first_pass_sql = f"""
-            WITH hist AS (
-                SELECT invoice_number,
-                       MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
-                       MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
-                FROM {DATABASE}.invoice_status_history_vw
-                WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-                GROUP BY invoice_number
-            )
-            SELECT
-                COUNT(*) AS total_inv,
-                SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
-            FROM hist
-        """
-        fp_df = run_query(first_pass_sql)
-
-        auto_rate_sql = f"""
-            WITH paid_invoices AS (
-                SELECT invoice_number, status_notes
-                FROM {DATABASE}.invoice_status_history_vw
-                WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-                  AND UPPER(status) = 'PAID'
-            )
-            SELECT
-                COUNT(*) AS total_cleared,
-                SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
-            FROM paid_invoices
-        """
-        auto_df = run_query(auto_rate_sql)
-        
-        st.session_state[kpi_cache_key] = {
-            "cur_df": cur_df,
-            "prev_df": prev_df,
-            "fp_df": fp_df,
-            "auto_df": auto_df
-        }
-    
-    cached_kpi = st.session_state[kpi_cache_key]
-    cur_df = cached_kpi["cur_df"]
-    prev_df = cached_kpi["prev_df"]
-    fp_df = cached_kpi["fp_df"]
-    auto_df = cached_kpi["auto_df"]
-    
+    cur_kpi_sql = f"""
+        SELECT
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT v.vendor_name) AS active_vendors,
+            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
+            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+    """
+    cur_df = run_query(cur_kpi_sql)
     cur_spend = safe_number(cur_df.loc[0, "total_spend"]) if not cur_df.empty else 5_500_000
+
+    prev_kpi_sql = f"""
+        SELECT
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT v.vendor_name) AS active_vendors,
+            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
+            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+        {vendor_where}
+    """
+    prev_df = run_query(prev_kpi_sql)
     prev_spend = safe_number(prev_df.loc[0, "total_spend"]) if not prev_df.empty else 14_200_000
+
+    first_pass_sql = f"""
+        WITH hist AS (
+            SELECT invoice_number,
+                   MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                   MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+            GROUP BY invoice_number
+        )
+        SELECT
+            COUNT(*) AS total_inv,
+            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+        FROM hist
+    """
+    fp_df = run_query(first_pass_sql)
+
+    auto_rate_sql = f"""
+        WITH paid_invoices AS (
+            SELECT invoice_number, status_notes
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+              AND UPPER(status) = 'PAID'
+        )
+        SELECT
+            COUNT(*) AS total_cleared,
+            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
+        FROM paid_invoices
+    """
+    auto_df = run_query(auto_rate_sql)
 
     render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
@@ -3437,9 +3282,6 @@ def render_invoices():
 # ------------------------------------------------------------
 def main():
     init_db()
-    # Cleanup expired memory on startup
-    cleanup_expired_short_term_memory()
-    
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
     
     # Global CSS for blue buttons
