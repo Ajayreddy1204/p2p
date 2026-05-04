@@ -2942,7 +2942,7 @@ def render_genie():
                 if msg["role"] == "user":
                     st.markdown(f'<div class="message-user"><strong>You</strong><br/>{html.escape(msg["content"])}</div>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="message-assistant"><strong>🧞 Genie</strong></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="message-assistant"><strong>Genie</strong></div>', unsafe_allow_html=True)
                     if "response" in msg and msg["response"]:
                         resp = msg["response"]
                         layout = resp.get("layout")
@@ -2992,7 +2992,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - BLUE BUTTONS (unchanged)
+# invoices.py - BLUE BUTTONS (with emojis removed)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3020,7 +3020,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("### 📄 Invoice Summary")
+    st.markdown("### Invoice Summary")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Invoice Number", inv_num)
@@ -3047,7 +3047,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     with col4:
         st.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
     st.markdown("---")
-    st.markdown("### 📜 Status History")
+    st.markdown("### Status History")
     hist_sql = f"""
         SELECT
             invoice_number,
@@ -3079,8 +3079,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         "status_notes": st.column_config.TextColumn("Status Notes", width="large"),
     })
     st.markdown("---")
-    st.markdown("### 🏢 Party Information")
-    tab1, tab2 = st.tabs(["🏷️ Vendor Info", "🏭 Company Info"])
+    st.markdown("### Party Information")
+    tab1, tab2 = st.tabs(["Vendor Info", "Company Info"])
     with tab1:
         vendor_sql = f"""
             SELECT DISTINCT
@@ -3101,38 +3101,38 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             row = vendor_df.iloc[0]
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🆔 Vendor ID**")
+                st.markdown("**Vendor ID**")
                 st.info(row.get("vendor_id", ""))
-                st.markdown("**📛 Vendor Name**")
+                st.markdown("**Vendor Name**")
                 st.info(row.get("vendor_name", ""))
-                st.markdown("**📝 Alias/Name 2**")
+                st.markdown("**Alias/Name 2**")
                 st.info(row.get("vendor_name_2", ""))
             with col2:
-                st.markdown("**🌍 Country**")
+                st.markdown("**Country**")
                 st.info(row.get("country_code", ""))
-                st.markdown("**🏙️ City**")
+                st.markdown("**City**")
                 st.info(row.get("city", ""))
-                st.markdown("**📮 Postal Code**")
+                st.markdown("**Postal Code**")
                 st.info(row.get("postal_code", ""))
-                st.markdown("**🏢 Street**")
+                st.markdown("**Street**")
                 st.info(row.get("street", ""))
         else:
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🆔 Vendor ID**")
+                st.markdown("**Vendor ID**")
                 st.info("0001000007")
-                st.markdown("**📛 Vendor Name**")
+                st.markdown("**Vendor Name**")
                 st.info("McMaster-Carr")
-                st.markdown("**📝 Alias/Name 2**")
+                st.markdown("**Alias/Name 2**")
                 st.info("VN-03608")
             with col2:
-                st.markdown("**🌍 Country**")
+                st.markdown("**Country**")
                 st.info("NL")
-                st.markdown("**🏙️ City**")
+                st.markdown("**City**")
                 st.info("Bangalore")
-                st.markdown("**📮 Postal Code**")
+                st.markdown("**Postal Code**")
                 st.info("13607")
-                st.markdown("**🏢 Street**")
+                st.markdown("**Street**")
                 st.info("Tech Center 611")
     with tab2:
         company_sql = f"""
@@ -3155,32 +3155,32 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             row = company_df.iloc[0]
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🏢 Company Code**")
+                st.markdown("**Company Code**")
                 st.info(row.get("company_code", ""))
-                st.markdown("**📛 Company Name**")
+                st.markdown("**Company Name**")
                 st.info(row.get("company_name", ""))
-                st.markdown("**🏭 Plant Code**")
+                st.markdown("**Plant Code**")
                 st.info(row.get("plant_code", ""))
             with col2:
-                st.markdown("**🌿 Plant Name**")
+                st.markdown("**Plant Name**")
                 st.info(row.get("plant_name", ""))
                 addr_parts = [row.get("street", ""), row.get("city", ""), row.get("postal_code", "")]
                 addr = ", ".join([p for p in addr_parts if p])
-                st.markdown("**📍 Company Address**")
+                st.markdown("**Company Address**")
                 st.info(addr)
         else:
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**🏢 Company Code**")
+                st.markdown("**Company Code**")
                 st.info("1000")
-                st.markdown("**📛 Company Name**")
+                st.markdown("**Company Name**")
                 st.info("Alpha Manufacturing Inc.")
-                st.markdown("**🏭 Plant Code**")
+                st.markdown("**Plant Code**")
                 st.info("1000")
             with col2:
-                st.markdown("**🌿 Plant Name**")
+                st.markdown("**Plant Name**")
                 st.info("Main Production Plant")
-                st.markdown("**📍 Company Address**")
+                st.markdown("**Company Address**")
                 st.info("350 Fifth Avenue, New York 10001")
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
@@ -3195,7 +3195,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 st.rerun()
 
 def render_invoices():
-    st.subheader("📑 Invoices")
+    st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
     query_params = st.experimental_get_query_params()
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
