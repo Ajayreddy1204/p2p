@@ -310,6 +310,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS chat_sessions (
         session_id TEXT PRIMARY KEY, session_label TEXT, created_at TIMESTAMP, last_updated TIMESTAMP, user_name TEXT
     )''')
+    # Add user_name column if not exists (for backward compatibility)
     try:
         c.execute("ALTER TABLE chat_sessions ADD COLUMN user_name TEXT")
     except sqlite3.OperationalError:
@@ -470,10 +471,15 @@ def get_frequent_questions_all_cached(limit=10):
 # GLOBAL MEMORY: last 20 messages from last 2 days
 # ------------------------------------------------------------
 def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> str:
+    """
+    Fetch the most recent limit messages (user and assistant) from the last max_age_days days,
+    ordered by timestamp ascending. Returns a formatted string for LLM context.
+    """
     user = get_current_user()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     cutoff = datetime.now() - timedelta(days=max_age_days)
+    # Join with chat_sessions to filter by user
     c.execute('''
         SELECT m.role, m.content, m.timestamp
         FROM chat_messages m
@@ -486,6 +492,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     conn.close()
     if not rows:
         return ""
+    # Reverse to chronological order
     rows.reverse()
     context_parts = []
     for role, content, ts in rows:
@@ -510,54 +517,82 @@ def inject_dashboard_css():
         flex-direction: column;
         justify-content: center;
     }
-    .kpi-card-yellow { background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }
-    .kpi-card-cyan { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }
-    .kpi-card-pink { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
-    .kpi-card-purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
-    .kpi-card-green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
-    .kpi-title { font-size: 0.75rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
-    .kpi-value { font-size: 2.5rem; font-weight: 800; color: #111827; line-height: 1.1; }
-    .kpi-delta { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
-    .kpi-delta-negative { color: #dc2626; }
-    .kpi-delta-positive { color: #16a34a; }
-    .kpi-arrow { font-size: 1.2rem; margin-left: 0.25rem; }
+    .kpi-card-yellow {
+        background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+    }
+    .kpi-card-cyan {
+        background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+    }
+    .kpi-card-pink {
+        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+    }
+    .kpi-card-purple {
+        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    }
+    .kpi-card-green {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    }
+    .kpi-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.1;
+    }
+    .kpi-delta {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 0.25rem;
+    }
+    .kpi-delta-negative {
+        color: #dc2626;
+    }
+    .kpi-delta-positive {
+        color: #16a34a;
+    }
+    .kpi-arrow {
+        font-size: 1.2rem;
+        margin-left: 0.25rem;
+    }
+    .attention-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1rem;
+    }
     
-    /* Needs Attention Buttons - Blue when active */
+    /* NA Tab Buttons - Blue active */
     button[data-testid^="baseButton-na_btn_"] {
         border-radius: 999px !important;
         font-weight: 600 !important;
         transition: all 0.18s ease !important;
     }
-    /* Inactive buttons */
     button[data-testid="baseButton-na_btn_overdue"],
     button[data-testid="baseButton-na_btn_disputed"],
     button[data-testid="baseButton-na_btn_due30d"] {
         background: #e5e7eb !important;
         color: #111827 !important;
-        border: 1px solid #cbd5e1 !important;
     }
     button[data-testid="baseButton-na_btn_overdue"]:hover,
     button[data-testid="baseButton-na_btn_disputed"]:hover,
     button[data-testid="baseButton-na_btn_due30d"]:hover {
         background: #2563eb !important;
         color: white !important;
-        border-color: #2563eb !important;
-    }
-    /* Active button overrides (applied dynamically via inline style) */
-    .na-active-btn {
-        background: #2563eb !important;
-        background-color: #2563eb !important;
-        color: white !important;
-        border-color: #2563eb !important;
-        font-weight: 800 !important;
     }
 
-    /* Needs Attention card backgrounds */
-    .na-card-overdue { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; }
-    .na-card-disputed { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; }
-    .na-card-due { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; }
+    /* Needs Attention card backgrounds - coloured by tab */
+    .na-card-overdue { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    .na-card-disputed { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    .na-card-due { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
 
-    /* NA Card Invoice Button */
+    /* NA Card Click Button - Blue */
     button[data-testid^="baseButton-na_card_"] {
         background: transparent !important;
         border: none !important;
@@ -567,6 +602,7 @@ def inject_dashboard_css():
         font-size: 13px !important;
         padding: 4px 0 0 0 !important;
         margin-top: 2px !important;
+        text-decoration: none !important;
         cursor: pointer !important;
     }
     button[data-testid^="baseButton-na_card_"]:hover {
@@ -574,36 +610,59 @@ def inject_dashboard_css():
         text-decoration: underline !important;
     }
     
-    /* Navigation Buttons */
+    .chart-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1rem;
+    }
+    .pagination-info {
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+    
+    /* BLUE NAVIGATION BUTTONS */
     div[data-testid="stHorizontalBlock"] button[kind="primary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
         border-radius: 8px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
     }
+    
+    /* Active navigation button - Blue */
     div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background-color: #2563eb !important;
+        background: #2563eb !important;
         color: white !important;
         border: 2px solid #2563eb !important;
     }
+    
+    /* Inactive navigation button */
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
         background-color: #f1f5f9 !important;
+        background: #f1f5f9 !important;
         color: #475569 !important;
         border: 1px solid #e2e8f0 !important;
     }
     div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
         background-color: #e2e8f0 !important;
+        background: #e2e8f0 !important;
+        border-color: #cbd5e1 !important;
     }
     
-    /* Preset buttons */
+    /* BLUE PRESET BUTTONS */
     button[data-testid^="baseButton-preset_"] {
         border-radius: 8px !important;
         font-weight: 600 !important;
+        transition: all 0.2s ease !important;
     }
-    /* Invoice page buttons */
+    
+    /* Blue Invoice buttons */
     button[data-testid="baseButton-proceed_pay_btn"],
     button[data-testid="baseButton-back_invoices_btn"] {
         background-color: #2563eb !important;
+        background: #2563eb !important;
         color: white !important;
         border: 2px solid #2563eb !important;
         border-radius: 8px !important;
@@ -612,6 +671,7 @@ def inject_dashboard_css():
     button[data-testid="baseButton-proceed_pay_btn"]:hover,
     button[data-testid="baseButton-back_invoices_btn"]:hover {
         background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
         border-color: #1d4ed8 !important;
     }
 </style>
@@ -654,13 +714,6 @@ def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
     current_preset = st.session_state.preset
-
-    # Add logo above the preset buttons (Custom box)
-    st.markdown(f"""
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-        <img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" />
-    </div>
-    """, unsafe_allow_html=True)
 
     col_date, col_vendor, col_preset = st.columns([1.4, 1.4, 2.2])
 
@@ -718,13 +771,19 @@ def render_filters():
                         st.session_state.preset = p
                     st.rerun()
 
-    # Dynamic CSS for active preset button (blue)
+    # Inject dynamic CSS for blue preset buttons
     st.markdown(f"""
     <style>
+    /* Blue active preset button */
     button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
         background-color: #2563eb !important;
+        background: #2563eb !important;
         color: white !important;
         border: 2px solid #2563eb !important;
+    }}
+    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"]:hover {{
+        background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -797,7 +856,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# render_needs_attention - COLOURED CARDS WITH BLUE ACTIVE BUTTONS
+# CORRECTED render_needs_attention - COLOURED CARDS (no key error)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -883,6 +942,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     due_count = len(due_df)
     urgent_count = overdue_count + disputed_count + due_count
 
+    # Section container with border
     with st.container(border=True):
         st.markdown(f"""
         <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; padding-left: 1.5rem; padding-right: 1.5rem;'>
@@ -909,12 +969,12 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_page = 0
                 st.rerun()
 
-        # Force active button to blue
+        # Force active tab button to blue + white text
         st.markdown(f"""
         <style>
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; }" if current_tab == 'Overdue' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; }" if current_tab == 'Disputed' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; }" if current_tab == 'Due' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
         </style>
         """, unsafe_allow_html=True)
 
@@ -953,6 +1013,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
+                        # Use st.container without key, inner div for background colour
                         with st.container(border=True):
                             st.markdown(f'<div class="{card_class}" style="padding: 0.75rem 1rem; border-radius: 12px;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
@@ -1314,8 +1375,18 @@ def render_forecast():
             background-color: var(--bg);
             border: 1px solid rgba(0,0,0,0.05);
         }
-        .forecast-kpi-title { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
-        .forecast-kpi-value { font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+        .forecast-kpi-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+        .forecast-kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
         </style>
         """, unsafe_allow_html=True)
 
@@ -1412,6 +1483,7 @@ def render_forecast():
             trend_df = run_query(trend_sql)
             if not trend_df.empty:
                 st.markdown("**GR/IR outstanding trend (last 24 months)**")
+                # Display as table instead of line chart
                 st.dataframe(trend_df, use_container_width=True, hide_index=True)
         else:
             st.info("No GR/IR data found.")
@@ -2633,6 +2705,7 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, source="cache", sql_used=sql_used)
             save_question(user_question, "custom")
         else:
+            # Use global conversation memory (last 20 messages, last 2 days)
             history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             lower_q = user_question.lower()
             
@@ -2759,6 +2832,7 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
+            # Use global memory for auto-run queries as well
             history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(auto_query, history_context)
@@ -3243,7 +3317,7 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
     
-    # Global CSS for blue buttons and layout adjustments
+    # Global CSS for blue buttons
     st.markdown("""
 <style>
 .block-container {
@@ -3269,19 +3343,19 @@ def main():
 }
 .title-section {
     text-align: left;
-    margin-top: -0.5rem;
-    margin-bottom: 0.5rem;
+    margin-top: -1rem;
+    margin-bottom: 0rem;
     padding-left: 0rem;
 }
 .nav-section {
-    margin-top: 0.8rem;
-    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0rem;
     text-align: center;
 }
 .logo-container {
     display: flex;
     justify-content: flex-end;
-    align-items: center;
+    align-items: flex-start;
     height: 100%;
 }
 .stColumn:first-child {
@@ -3292,6 +3366,7 @@ def main():
 /* BLUE PRIMARY BUTTONS */
 button[kind="primary"] {
     background-color: #2563eb !important;
+    background: #2563eb !important;
     color: white !important;
     border: 2px solid #2563eb !important;
     border-radius: 8px !important;
@@ -3299,6 +3374,7 @@ button[kind="primary"] {
 }
 button[kind="primary"]:hover {
     background-color: #1d4ed8 !important;
+    background: #1d4ed8 !important;
     border-color: #1d4ed8 !important;
 }
 
@@ -3306,6 +3382,7 @@ button[kind="primary"]:hover {
 button[data-testid="baseButton-proceed_pay_btn"],
 button[data-testid="baseButton-back_invoices_btn"] {
     background-color: #2563eb !important;
+    background: #2563eb !important;
     color: white !important;
     border: 2px solid #2563eb !important;
     border-radius: 8px !important;
@@ -3314,6 +3391,7 @@ button[data-testid="baseButton-back_invoices_btn"] {
 button[data-testid="baseButton-proceed_pay_btn"]:hover,
 button[data-testid="baseButton-back_invoices_btn"]:hover {
     background-color: #1d4ed8 !important;
+    background: #1d4ed8 !important;
     border-color: #1d4ed8 !important;
 }
 </style>
@@ -3322,49 +3400,49 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
 
-    # Top row: Title only (logo moved to filter section)
-    col_title, col_empty, col_empty2 = st.columns([1.6, 2.4, 1])
+    col_title, col_nav, col_logo = st.columns([1.6, 2.4, 1])
+
     with col_title:
         st.markdown('<div class="title-section">', unsafe_allow_html=True)
         st.markdown("<h1 style='font-weight: bold; margin-bottom: 0;'>ProcureIQ</h1>", unsafe_allow_html=True)
         st.markdown("<p style='font-size: 0.8rem; color: gray; margin-top: -0.2rem;'>P2P Analytics</p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Navigation row (moved down)
-    st.markdown('<div class="nav-section">', unsafe_allow_html=True)
-    nav_cols = st.columns(4)
-    current_page = st.session_state.page
+    with col_nav:
+        st.markdown('<div class="nav-section">', unsafe_allow_html=True)
+        nav_cols = st.columns(4)
+        current_page = st.session_state.page
 
-    def set_page(page_name):
-        st.session_state.page = page_name
-        st.rerun()
+        def set_page(page_name):
+            st.session_state.page = page_name
+            st.rerun()
 
-    with nav_cols[0]:
-        btn_type = "primary" if current_page == "Dashboard" else "secondary"
-        if st.button("Dashboard", use_container_width=True, type=btn_type, key="nav_dashboard"):
-            set_page("Dashboard")
-    with nav_cols[1]:
-        btn_type = "primary" if current_page == "Genie" else "secondary"
-        if st.button("Genie", use_container_width=True, type=btn_type, key="nav_genie"):
-            set_page("Genie")
-    with nav_cols[2]:
-        btn_type = "primary" if current_page == "Forecast" else "secondary"
-        if st.button("Forecast", use_container_width=True, type=btn_type, key="nav_forecast"):
-            set_page("Forecast")
-    with nav_cols[3]:
-        btn_type = "primary" if current_page == "Invoices" else "secondary"
-        if st.button("Invoices", use_container_width=True, type=btn_type, key="nav_invoices"):
-            set_page("Invoices")
-    st.markdown('</div>', unsafe_allow_html=True)
+        with nav_cols[0]:
+            btn_type = "primary" if current_page == "Dashboard" else "secondary"
+            if st.button("Dashboard", use_container_width=True, type=btn_type, key="nav_dashboard"):
+                set_page("Dashboard")
+        with nav_cols[1]:
+            btn_type = "primary" if current_page == "Genie" else "secondary"
+            if st.button("Genie", use_container_width=True, type=btn_type, key="nav_genie"):
+                set_page("Genie")
+        with nav_cols[2]:
+            btn_type = "primary" if current_page == "Forecast" else "secondary"
+            if st.button("Forecast", use_container_width=True, type=btn_type, key="nav_forecast"):
+                set_page("Forecast")
+        with nav_cols[3]:
+            btn_type = "primary" if current_page == "Invoices" else "secondary"
+            if st.button("Invoices", use_container_width=True, type=btn_type, key="nav_invoices"):
+                set_page("Invoices")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_logo:
+        st.markdown(f'<div class="logo-container"><img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" /></div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
     if st.session_state.page == "Dashboard":
         render_dashboard()
     elif st.session_state.page == "Genie":
-        # On Genie page, show logo in top-right (fallback) for consistency
-        # but it's already not needed because logo is only in Dashboard filters.
-        # We can add a small logo if desired, but the user only requested for Dashboard.
         render_genie()
     elif st.session_state.page == "Forecast":
         render_forecast()
