@@ -1,0 +1,1528 @@
+oue requriment is to create silver layer(data vault maintained) and gold layer(information mart) and consumption layer glue jobs  from the architure diagram we need 3 glue jobs 
+we need to create glue jobs for both layers(gloder and sliver) we have bronze layer ready with these tables we are using nova lyte llm model i am attaching sliver layer glue job for your refernce we need to modify prompt in the sliver glue job 
+these are tables in bronze layer by using these and consumption layer tables we need to create sliver and glod layer tables 
+s3://yignite-procurespendiq-miniature/bronze/sap/BKP_LFA1/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/BKPF/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/BSAK/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/BSEG/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/EKET/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/EKKO/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/EKPO/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/INVOICE_STATUS_LOG/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/LFA1/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/LFB1/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/MKPF/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/MSEG/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/RBKP/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/RSEG/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/T001/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/T001W/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/T005U/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+s3://yignite-procurespendiq-miniature/bronze/sap/T052/year=2026/month=05/day=07/data_0_0_0.snappy.parquet
+
+below are the views we want  in consuption layer 
+View Name,Column Name,Data Type
+accounts_payable_balance_vw,year,decimal(4,0)
+accounts_payable_balance_vw,month,decimal(2,0)
+accounts_payable_balance_vw,ap_balance,decimal(9,2)
+accounts_payable_balance_vw,invoice_count,decimal(3,0)
+cash_flow_forecast_vw,forecast_bucket,string
+cash_flow_forecast_vw,invoice_count,decimal(10,6)
+cash_flow_forecast_vw,total_amount,decimal(10,2)
+cash_flow_forecast_vw,earliest_due,date
+cash_flow_forecast_vw,latest_due,date
+cash_flow_unpaid_obligations_vw,document_number,decimal(7,0)
+cash_flow_unpaid_obligations_vw,vendor_id,string
+cash_flow_unpaid_obligations_vw,invoice_amount_local,decimal(7,2)
+cash_flow_unpaid_obligations_vw,due_date,date
+cash_flow_unpaid_obligations_vw,invoice_status,string
+cash_flow_unpaid_obligations_vw,days_until_due,decimal(3,0)
+days_payable_outstanding_vw,invoice_number,decimal(7,0)
+days_payable_outstanding_vw,year,decimal(4,0)
+days_payable_outstanding_vw,month,decimal(2,0)
+days_payable_outstanding_vw,avg_trade_payables,decimal(7,2)
+days_payable_outstanding_vw,cogs_amount,decimal(15,10)
+days_payable_outstanding_vw,dpo,decimal(10,8)
+dim_company_code_vw,company_code,decimal(4,0)
+dim_company_code_vw,company_name,string
+dim_company_code_vw,city,string
+dim_company_code_vw,country_code,string
+dim_company_code_vw,currency,string
+dim_company_code_vw,postal_code,string
+dim_company_code_vw,street,string
+dim_company_code_vw,region_code,string
+dim_company_code_vw,vat_reg_number,string
+dim_company_code_vw,chart_of_accounts,string
+dim_company_code_vw,system,string
+dim_plant_vw,plant_code,string
+dim_plant_vw,plant_name,string
+dim_plant_vw,plant_name_2,string
+dim_plant_vw,company_code,decimal(4,0)
+dim_plant_vw,country_code,string
+dim_plant_vw,region_code,string
+dim_plant_vw,city,string
+dim_plant_vw,postal_code,string
+dim_plant_vw,street,string
+dim_plant_vw,system,string
+dim_po_vw,purchase_order_number,decimal(7,0)
+dim_po_vw,po_item,decimal(2,0)
+dim_po_vw,po_amount,decimal(8,2)
+dim_po_vw,vendor_id,string
+dim_po_vw,company_code,decimal(4,0)
+dim_po_vw,po_date,date
+dim_po_vw,po_created_date,date
+dim_po_vw,po_doc_type,string
+dim_po_vw,po_payment_terms,string
+dim_po_vw,purchasing_org,string
+dim_po_vw,purchasing_group,string
+dim_po_vw,po_currency,string
+dim_po_vw,po_release_status,string
+dim_po_vw,delivery_date,date
+dim_po_vw,quantity_delivered,decimal(5,2)
+dim_po_vw,quantity_remaining,decimal(1,0)
+dim_po_vw,po_due_date,date
+dim_region_vw,country_code,string
+dim_region_vw,region_code,string
+dim_region_vw,region_name,string
+dim_vendor_vw,vendor_id,string
+dim_vendor_vw,vendor_name,string
+dim_vendor_vw,vendor_name_2,string
+dim_vendor_vw,country_code,string
+dim_vendor_vw,city,string
+dim_vendor_vw,postal_code,string
+dim_vendor_vw,street,string
+dim_vendor_vw,region_code,string
+dim_vendor_vw,tax_number_1,string
+dim_vendor_vw,tax_number_2,string
+dim_vendor_vw,industry_sector,string
+dim_vendor_vw,vendor_account_group,string
+dim_vendor_vw,deletion_flag,string
+dim_vendor_vw,posting_block,string
+dim_vendor_vw,system,string
+duplicate_payments_for_invoice_vw,invoice_number,decimal(7,0)
+duplicate_payments_for_invoice_vw,year,decimal(4,0)
+duplicate_payments_for_invoice_vw,month,decimal(2,0)
+duplicate_payments_for_invoice_vw,duplicate_payment_amount,decimal(7,2)
+duplicate_payments_for_invoice_vw,total_payments,decimal(7,2)
+duplicate_payments_for_invoice_vw,duplicate_payment_rate,decimal(11,8)
+early_payment_candidates_vw,document_number,decimal(7,0)
+early_payment_candidates_vw,vendor_id,string
+early_payment_candidates_vw,vendor_name,string
+early_payment_candidates_vw,invoice_amount_local,decimal(7,2)
+early_payment_candidates_vw,due_date,date
+early_payment_candidates_vw,days_until_due,decimal(2,0)
+early_payment_candidates_vw,savings_if_2pct_discount,decimal(7,4)
+early_payment_candidates_vw,vendor_tier,string
+early_payment_candidates_vw,early_pay_priority,string
+fact_all_sources_vw,document_number,decimal(7,0)
+fact_all_sources_vw,invoice_number,decimal(7,0)
+fact_all_sources_vw,company_code,decimal(4,0)
+fact_all_sources_vw,plant_code,string
+fact_all_sources_vw,fiscal_year,decimal(4,0)
+fact_all_sources_vw,posting_date,date
+fact_all_sources_vw,document_date,date
+fact_all_sources_vw,vendor_id,string
+fact_all_sources_vw,currency,string
+fact_all_sources_vw,invoice_amount_local,decimal(7,2)
+fact_all_sources_vw,invoice_amount_document,decimal(7,2)
+fact_all_sources_vw,gl_account,decimal(6,0)
+fact_all_sources_vw,baseline_date,date
+fact_all_sources_vw,payment_terms,string
+fact_all_sources_vw,invoice_status,string
+fact_all_sources_vw,status_notes,string
+fact_all_sources_vw,payment_date,date
+fact_all_sources_vw,clearing_document,decimal(7,0)
+fact_all_sources_vw,aging_days,decimal(3,0)
+fact_all_sources_vw,purchase_order_reference,decimal(7,0)
+fact_all_sources_vw,po_amount,decimal(8,2)
+fact_all_sources_vw,po_purpose,string
+fact_all_sources_vw,document_type,string
+fact_all_sources_vw,accrual_indicator,string
+fact_all_sources_vw,due_date,date
+fact_all_sources_vw,invoice_receipt_date,date
+fact_all_sources_vw,discount_percent,decimal(4,3)
+fact_all_sources_vw,discount_days,decimal(2,0)
+fact_all_sources_vw,net_due_days,decimal(2,0)
+fact_all_sources_vw,region,string
+fact_all_sources_vw,system,string
+fact_sap_po_level_vw,posting_year,decimal(4,0)
+fact_sap_po_level_vw,posting_month,decimal(2,0)
+fact_sap_po_level_vw,delivery_date,date
+fact_sap_po_level_vw,po_date,date
+fact_sap_po_level_vw,received_qty,decimal(6,3)
+fact_sap_po_level_vw,ordered_qty,decimal(5,2)
+fact_sap_po_level_vw,po_amount,decimal(8,2)
+full_payment_rate_vw,year,decimal(4,0)
+full_payment_rate_vw,month,decimal(2,0)
+full_payment_rate_vw,full_paid_invoices,decimal(1,0)
+full_payment_rate_vw,total_cleared_invoices,decimal(3,0)
+full_payment_rate_vw,full_payment_rate_pct,decimal(7,6)
+gr_ir_aging_vw,year,decimal(4,0)
+gr_ir_aging_vw,month,decimal(2,0)
+gr_ir_aging_vw,age_days,decimal(2,0)
+gr_ir_aging_vw,total_grir_balance,decimal(9,2)
+gr_ir_aging_vw,grir_over_30,decimal(9,2)
+gr_ir_aging_vw,grir_over_60,decimal(9,2)
+gr_ir_aging_vw,grir_over_90,decimal(9,2)
+gr_ir_aging_vw,pct_grir_over_30,decimal(8,8)
+gr_ir_aging_vw,pct_grir_over_60,decimal(8,8)
+gr_ir_aging_vw,pct_grir_over_90,decimal(8,8)
+gr_ir_aging_vw,cnt_grir_over_30,decimal(3,0)
+gr_ir_aging_vw,cnt_grir_over_60,decimal(3,0)
+gr_ir_aging_vw,cnt_grir_over_90,decimal(3,0)
+gr_ir_outstanding_balance_vw,year,decimal(4,0)
+gr_ir_outstanding_balance_vw,month,decimal(2,0)
+gr_ir_outstanding_balance_vw,invoice_count,decimal(3,0)
+gr_ir_outstanding_balance_vw,total_grir_blnc,decimal(9,2)
+invoice_status_history_vw,invoice_number,decimal(7,0)
+invoice_status_history_vw,company_code,decimal(4,0)
+invoice_status_history_vw,plant_code,string
+invoice_status_history_vw,fiscal_year,decimal(4,0)
+invoice_status_history_vw,status,string
+invoice_status_history_vw,effective_date,date
+invoice_status_history_vw,sequence_nbr,decimal(1,0)
+invoice_status_history_vw,status_notes,string
+invoice_status_history_vw,posting_date,date
+invoice_status_history_vw,document_date,date
+invoice_status_history_vw,vendor_id,string
+invoice_status_history_vw,currency,string
+invoice_status_history_vw,invoice_amount_local,decimal(7,2)
+invoice_status_history_vw,payment_terms,string
+invoice_status_history_vw,document_type,string
+invoice_status_history_vw,accrual_indicator,string
+invoice_status_history_vw,due_date,date
+invoice_status_history_vw,invoice_receipt_date,date
+invoice_status_history_vw,gl_account,decimal(6,0)
+invoice_status_history_vw,baseline_date,date
+invoice_status_history_vw,payment_date,date
+invoice_status_history_vw,clearing_document,decimal(7,0)
+invoice_status_history_vw,aging_days,decimal(3,0)
+invoice_status_history_vw,purchase_order_reference,decimal(7,0)
+invoice_status_history_vw,po_amount,decimal(8,2)
+invoice_status_history_vw,po_purpose,string
+invoice_status_history_vw,discount_percent,decimal(4,3)
+invoice_status_history_vw,discount_days,decimal(2,0)
+invoice_status_history_vw,net_due_days,decimal(2,0)
+invoice_status_history_vw,region,string
+invoice_status_history_vw,system,string
+late_accruals_vw,year,decimal(4,0)
+late_accruals_vw,month,decimal(2,0)
+late_accruals_vw,late_accrual_amount,decimal(9,2)
+late_accruals_vw,late_accrual_count,decimal(3,0)
+late_accruals_vw,total_accrual_amount,decimal(9,2)
+late_accruals_vw,late_accrual_rate_pct,decimal(10,8)
+late_payment_amount_vw,year,decimal(4,0)
+late_payment_amount_vw,month,decimal(2,0)
+late_payment_amount_vw,late_payment_amount,decimal(9,2)
+late_payment_amount_vw,late_payment_count,decimal(3,0)
+late_payment_amount_vw,total_payment_amount,decimal(9,2)
+late_payment_amount_vw,late_payment_rate_pct,decimal(11,8)
+net_early_payment_benefit_index_vw,total_net_benefit,decimal(17,11)
+net_early_payment_benefit_index_vw,total_spend,decimal(11,2)
+net_early_payment_benefit_index_vw,nepbi_percent,decimal(12,12)
+on_time_payment_rate_vw,year,decimal(4,0)
+on_time_payment_rate_vw,month,decimal(2,0)
+on_time_payment_rate_vw,on_time_payments,decimal(2,0)
+on_time_payment_rate_vw,total_payments,decimal(3,0)
+on_time_payment_rate_vw,on_time_payment_rate_pct,decimal(8,6)
+partial_payment_rate_vw,year,decimal(4,0)
+partial_payment_rate_vw,month,decimal(2,0)
+partial_payment_rate_vw,partial_paid_invoices,decimal(3,0)
+partial_payment_rate_vw,total_paid_invoices,decimal(3,0)
+partial_payment_rate_vw,partial_payment_rate_pct,decimal(8,6)
+payment_predictability_index_vw,posting_year,decimal(4,0)
+payment_predictability_index_vw,posting_month,decimal(2,0)
+payment_predictability_index_vw,payment_predictability_index,double
+payment_predictability_index_vw,interpretation,string
+payment_processing_cycle_time_vw,year,decimal(4,0)
+payment_processing_cycle_time_vw,month,decimal(2,0)
+payment_processing_cycle_time_vw,avg_payment_cycle_time_days,decimal(9,6)
+payment_processing_cycle_time_vw,min_cycle_time_days,decimal(3,0)
+payment_processing_cycle_time_vw,max_cycle_time_days,decimal(3,0)
+payment_processing_cycle_time_vw,cleared_invoices,decimal(3,0)
+payment_timing_recommendation_vw,recommendation,string
+payment_timing_recommendation_vw,amount,decimal(10,2)
+payment_timing_recommendation_vw,invoice_count,decimal(4,0)
+payment_timing_recommendation_vw,rationale,string
+supplier_delivery_accuracy_index_vw,year,decimal(4,0)
+supplier_delivery_accuracy_index_vw,month,decimal(2,0)
+supplier_delivery_accuracy_index_vw,on_time_deliveries,decimal(3,0)
+supplier_delivery_accuracy_index_vw,total_deliveries,decimal(3,0)
+supplier_delivery_accuracy_index_vw,delivery_accuracy_pct,decimal(8,6)
+weighted_days_payable_outstanding_vw,year,decimal(4,0)
+weighted_days_payable_outstanding_vw,month,decimal(2,0)
+weighted_days_payable_outstanding_vw,total_payables,decimal(9,2)
+weighted_days_payable_outstanding_vw,total_cogs,decimal(10,3)
+weighted_days_payable_outstanding_vw,weighted_dpo,decimal(10,8)
+ 
+we need to modify this glue job to see all sat hub and link tables what i shown in below 
+sliver layer glue job(procureiq-spend-raw-vault-job)
+import sys
+import json
+import logging
+import boto3
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, sha2, concat_ws, lit, current_timestamp
+from awsglue.utils import getResolvedOptions
+
+# --------------------------------------------------------------
+# Logging
+# --------------------------------------------------------------
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# --------------------------------------------------------------
+# Configuration
+# --------------------------------------------------------------
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+config_bucket = "yignite-procurespendiq-miniature"
+config_key = "config/config.json"
+bronze_db = "procureiqspend_bronze_sap"
+raw_vault_bucket = "yignite-procurespendiq-miniature"
+hub_path = "raw_vault/hub"
+link_path = "raw_vault/links"
+sat_path = "raw_vault/satellites"
+
+# --------------------------------------------------------------
+# AWS clients
+# --------------------------------------------------------------
+spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+glue_client = boto3.client('glue', region_name='us-east-1')
+s3_client = boto3.client('s3', region_name='us-east-1')
+bedrock_client = boto3.client('bedrock-runtime', region_name='us-east-1')
+
+# --------------------------------------------------------------
+# Helper: read config from S3
+# --------------------------------------------------------------
+def read_config():
+    try:
+        obj = s3_client.get_object(Bucket=config_bucket, Key=config_key)
+        config = json.loads(obj['Body'].read().decode('utf-8'))
+        logger.info("Config loaded from s3://%s/%s", config_bucket, config_key)
+        return config
+    except Exception as e:
+        logger.error("Failed to read config: %s", e)
+        raise
+
+# --------------------------------------------------------------
+# Helper: get all bronze tables and their schemas
+# --------------------------------------------------------------
+def get_bronze_tables(database_name):
+    tables = []
+    next_token = None
+    while True:
+        if next_token:
+            response = glue_client.get_tables(DatabaseName=database_name, NextToken=next_token)
+        else:
+            response = glue_client.get_tables(DatabaseName=database_name)
+        for table in response['TableList']:
+            table_name = table['Name']
+            table_detail = glue_client.get_table(DatabaseName=database_name, Name=table_name)
+            columns = []
+            for col_def in table_detail['Table']['StorageDescriptor']['Columns']:
+                columns.append({"name": col_def['Name'], "type": col_def['Type']})
+            tables.append({"name": table_name, "columns": columns})
+        next_token = response.get('NextToken')
+        if not next_token:
+            break
+    logger.info("Found %d tables in database %s: %s", len(tables), database_name, [t['name'] for t in tables])
+    return tables
+
+# --------------------------------------------------------------
+# Helper: case-insensitive mapping
+# --------------------------------------------------------------
+def build_table_map(tables):
+    return {t['name'].lower(): t['name'] for t in tables}
+
+# --------------------------------------------------------------
+# Helper: invoke Bedrock
+# --------------------------------------------------------------
+def get_model_from_llm(tables_info, actual_table_names):
+    prompt = f"""
+You are a Data Vault 2.0 expert. Given the following SAP source tables and their columns, 
+propose HUB, LINK, and SATELLITE tables.  
+**CRITICAL**: Only use the source tables listed below. Do not invent new table names.
+
+Actual source tables (exact names): {actual_table_names}
+
+Naming conventions:
+- HUB tables: HUB_<business concept> (e.g., HUB_VENDOR, HUB_PURCHASE_ORDER, HUB_COMPANY_CODE)
+- LINK tables: LINK_<concept1>_<concept2> (e.g., LINK_PURCHASE_ORDER_VENDOR, LINK_VENDOR_COMPANY_CODE)
+- SAT tables: SAT_<description>_<source_table> (e.g., SAT_VENDOR_LFA1, SAT_PURCHASE_ORDER_EKKO)
+
+Rules:
+- A HUB must have one business key column from a source table.
+- A LINK must connect at least two HUBs via foreign key columns that exist in the source table.
+- A SATELLITE must contain descriptive attributes from a single source table and link to one HUB.
+
+Return **only** valid JSON with this structure:
+{{
+  "hubs": [
+    {{ "hub_name": "HUB_VENDOR", "business_key_column": "lifnr", "source_tables": ["LFA1", "LFB1"] }},
+    {{ "hub_name": "HUB_PURCHASE_ORDER", "business_key_column": "ebeln", "source_tables": ["EKKO"] }},
+    {{ "hub_name": "HUB_COMPANY_CODE", "business_key_column": "bukrs", "source_tables": ["T001"] }}
+  ],
+  "links": [
+    {{ "link_name": "LINK_PURCHASE_ORDER_VENDOR", 
+       "hub_references": [
+         {{"hub_name": "HUB_PURCHASE_ORDER", "hub_reference_column": "ebeln"}},
+         {{"hub_name": "HUB_VENDOR", "hub_reference_column": "lifnr"}}
+       ], 
+       "source_tables": ["EKKO"] }}
+  ],
+  "satellites": [
+    {{ "sat_name": "SAT_VENDOR_LFA1", "hub_reference": "HUB_VENDOR", 
+       "attributes": ["name1", "ort01", "land1"], "source_table": "LFA1" }},
+    {{ "sat_name": "SAT_PURCHASE_ORDER_EKKO", "hub_reference": "HUB_PURCHASE_ORDER",
+       "attributes": ["bsart", "ekorg", "werks"], "source_table": "EKKO" }}
+  ]
+}}
+
+Now, analyze the following source tables and columns, and generate the JSON:
+
+{json.dumps(tables_info, indent=2)}
+
+Think step by step, then output the JSON.
+"""
+    body = json.dumps({
+        "messages": [{"role": "user", "content": [{"text": prompt}]}],
+        "inferenceConfig": {"maxTokens": 4096, "temperature": 0.1, "topP": 0.9}
+    })
+    try:
+        response = bedrock_client.invoke_model(
+            modelId="amazon.nova-lite-v1:0",
+            contentType="application/json",
+            accept="application/json",
+            body=body
+        )
+        response_body = json.loads(response['body'].read())
+        model_output = response_body['output']['message']['content'][0]['text']
+        start = model_output.find('{')
+        end = model_output.rfind('}') + 1
+        if start != -1 and end != 0:
+            model_output = model_output[start:end]
+        model_json = json.loads(model_output)
+        logger.info("LLM model generated successfully: %d hubs, %d links, %d sats",
+                    len(model_json.get('hubs', [])),
+                    len(model_json.get('links', [])),
+                    len(model_json.get('satellites', [])))
+        return model_json
+    except Exception as e:
+        logger.error("Bedrock invocation failed: %s", e)
+        raise
+
+# --------------------------------------------------------------
+# Helper: write DataFrame
+# --------------------------------------------------------------
+def write_to_s3(df, s3_path, mode="overwrite"):
+    full_path = f"s3://{raw_vault_bucket}/{s3_path}"
+    df.write.mode(mode).parquet(full_path)
+    logger.info("Written %d rows to %s", df.count(), full_path)
+
+# --------------------------------------------------------------
+# Helper: case-insensitive column lookup
+# --------------------------------------------------------------
+def find_column(df, col_name):
+    for c in df.columns:
+        if c.lower() == col_name.lower():
+            return c
+    return None
+
+# --------------------------------------------------------------
+# Main
+# --------------------------------------------------------------
+def main():
+    # 1. Load config and bronze tables
+    config = read_config()
+    bronze_tables = get_bronze_tables(bronze_db)
+    table_map = build_table_map(bronze_tables)
+    actual_table_names = list(table_map.keys())
+    logger.info("Actual table names (lowercase): %s", actual_table_names)
+    
+    # 2. Get LLM model
+    vault_model = get_model_from_llm(bronze_tables, [t['name'] for t in bronze_tables])
+    
+    # 3. Validate hubs (case-insensitive source table matching)
+    valid_hubs = []
+    for hub in vault_model.get('hubs', []):
+        src_tables = hub.get('source_tables', [])
+        valid_src = []
+        for src in src_tables:
+            src_lower = src.lower()
+            if src_lower in table_map:
+                valid_src.append(table_map[src_lower])
+            else:
+                logger.warning("Hub %s references non-existent table %s", hub['hub_name'], src)
+        if valid_src:
+            hub['source_tables'] = valid_src
+            valid_hubs.append(hub)
+        else:
+            logger.warning("Hub %s has no valid source tables, skipping", hub['hub_name'])
+    vault_model['hubs'] = valid_hubs
+    
+    # 4. Validate satellites
+    valid_sats = []
+    for sat in vault_model.get('satellites', []):
+        src = sat['source_table']
+        src_lower = src.lower()
+        if src_lower in table_map:
+            sat['source_table'] = table_map[src_lower]
+            valid_sats.append(sat)
+        else:
+            logger.warning("Satellite %s references missing table %s, skipping", sat['sat_name'], src)
+    vault_model['satellites'] = valid_sats
+    
+    # 5. Validate links
+    valid_links = []
+    for link in vault_model.get('links', []):
+        src_tables = link.get('source_tables', [])
+        valid_src = []
+        for src in src_tables:
+            src_lower = src.lower()
+            if src_lower in table_map:
+                valid_src.append(table_map[src_lower])
+            else:
+                logger.warning("Link %s references non-existent source table %s", link['link_name'], src)
+        if valid_src:
+            link['source_tables'] = valid_src
+            valid_links.append(link)
+        else:
+            logger.warning("Link %s has no valid source tables, skipping", link['link_name'])
+    vault_model['links'] = valid_links
+    
+    logger.info("After validation: %d hubs, %d links, %d sats",
+                len(vault_model['hubs']), len(vault_model['links']), len(vault_model['satellites']))
+    
+    # 6. Create HUB tables
+    for hub in vault_model['hubs']:
+        hub_name = hub['hub_name']
+        business_key_col = hub['business_key_column']
+        source_tables = hub['source_tables']
+        logger.info("Building HUB: %s (key: %s) from %s", hub_name, business_key_col, source_tables)
+        
+        dfs = []
+        for src_tbl in source_tables:
+            try:
+                src_df = spark.table(f"{bronze_db}.{src_tbl}")
+                actual_col = find_column(src_df, business_key_col)
+                if actual_col is None:
+                    logger.warning("Column %s not found in %s, skipping", business_key_col, src_tbl)
+                    continue
+                key_df = src_df.select(
+                    col(actual_col).alias("business_key"),
+                    lit(src_tbl).alias("record_source"),
+                    current_timestamp().alias("load_date")
+                ).distinct()
+                dfs.append(key_df)
+            except Exception as e:
+                logger.error("Error reading %s: %s", src_tbl, e)
+                continue
+        
+        if not dfs:
+            logger.warning("No data for HUB %s, skipping", hub_name)
+            continue
+        
+        hub_df = dfs[0]
+        for df in dfs[1:]:
+            hub_df = hub_df.union(df)
+        
+        hub_df = hub_df.withColumn("hub_hash_key", sha2(concat_ws("||", col("business_key")), 256))
+        hub_df = hub_df.select("hub_hash_key", "business_key", "load_date", "record_source")
+        write_to_s3(hub_df, f"{hub_path}/{hub_name}")
+    
+    # 7. Create SATELLITE tables
+    for sat in vault_model['satellites']:
+        sat_name = sat['sat_name']
+        hub_ref = sat['hub_reference']
+        attributes = sat.get('attributes', [])
+        source_table = sat['source_table']
+        logger.info("Building SATELLITE: %s linked to %s from %s", sat_name, hub_ref, source_table)
+        
+        try:
+            src_df = spark.table(f"{bronze_db}.{source_table}")
+        except Exception as e:
+            logger.error("Cannot read source table %s: %s", source_table, e)
+            continue
+        
+        hub_def = next((h for h in vault_model['hubs'] if h['hub_name'] == hub_ref), None)
+        if not hub_def:
+            logger.warning("No hub definition found for %s", hub_ref)
+            continue
+        business_key_col = hub_def['business_key_column']
+        
+        hub_path_full = f"s3://{raw_vault_bucket}/{hub_path}/{hub_ref}"
+        try:
+            # Only load needed columns from hub (exclude load_date to avoid ambiguity)
+            hub_df = spark.read.parquet(hub_path_full).select("hub_hash_key", "business_key")
+        except Exception as e:
+            logger.error("Cannot read HUB %s: %s", hub_ref, e)
+            continue
+        
+        join_col = find_column(src_df, business_key_col)
+        if join_col is None:
+            logger.warning("Business key column %s not found in source table %s", business_key_col, source_table)
+            continue
+        
+        existing_attrs = [a for a in attributes if a in src_df.columns]
+        if not existing_attrs:
+            logger.warning("No valid attributes for satellite %s", sat_name)
+            continue
+        
+        sat_df = src_df.join(hub_df, src_df[join_col] == hub_df["business_key"], "inner") \
+                       .select(
+                           hub_df["hub_hash_key"],
+                           *[col(a).alias(a) for a in existing_attrs],
+                           lit(source_table).alias("record_source"),
+                           current_timestamp().alias("load_date")
+                       ).distinct()
+        
+        if sat_df.count() == 0:
+            logger.warning("No data for satellite %s after join", sat_name)
+            continue
+        
+        attr_cols = [col(a) for a in existing_attrs]
+        if attr_cols:
+            concat_expr = concat_ws("||", *[c.cast("string") for c in attr_cols])
+            sat_df = sat_df.withColumn("hash_diff", sha2(concat_expr, 256))
+        
+        write_to_s3(sat_df, f"{sat_path}/{sat_name}")
+    
+    # 8. Create LINK tables (fixed ambiguous load_date)
+    for link in vault_model['links']:
+        try:
+            link_name = link['link_name']
+            hub_refs = link['hub_references']
+            source_tables = link['source_tables']
+            logger.info("Building LINK: %s from %s", link_name, source_tables)
+            
+            # Load all referenced hubs (only hub_hash_key and business_key)
+            hubs_dict = {}
+            valid = True
+            for ref in hub_refs:
+                hub_nm = ref['hub_name']
+                hub_path_full = f"s3://{raw_vault_bucket}/{hub_path}/{hub_nm}"
+                try:
+                    hub_df = spark.read.parquet(hub_path_full).select("hub_hash_key", "business_key")
+                    hubs_dict[hub_nm] = hub_df
+                    logger.info("Loaded HUB %s (%d rows)", hub_nm, hub_df.count())
+                except Exception as e:
+                    logger.error("Cannot load HUB %s: %s", hub_nm, e)
+                    valid = False
+                    break
+            if not valid:
+                continue
+            
+            link_dfs = []
+            for src_tbl in source_tables:
+                try:
+                    src_df = spark.table(f"{bronze_db}.{src_tbl}")
+                    # Drop any existing load_date or record_source from source to avoid ambiguity
+                    if "load_date" in src_df.columns:
+                        src_df = src_df.drop("load_date")
+                    if "record_source" in src_df.columns:
+                        src_df = src_df.drop("record_source")
+                    logger.info("Processing source table %s with %d columns", src_tbl, len(src_df.columns))
+                except Exception as e:
+                    logger.error("Cannot read source table %s: %s", src_tbl, e)
+                    continue
+                
+                current_df = src_df
+                hub_keys = []
+                ok = True
+                for ref in hub_refs:
+                    hub_nm = ref['hub_name']
+                    hub_ref_col = ref['hub_reference_column']
+                    actual_col = find_column(current_df, hub_ref_col)
+                    if actual_col is None:
+                        logger.warning("Column %s not found in %s for link %s", hub_ref_col, src_tbl, link_name)
+                        ok = False
+                        break
+                    hub_df = hubs_dict[hub_nm]
+                    # Join on foreign key = hub.business_key
+                    current_df = current_df.join(hub_df, current_df[actual_col] == hub_df["business_key"], "inner")
+                    # Rename hub_hash_key to unique name
+                    current_df = current_df.withColumnRenamed("hub_hash_key", f"hk_{hub_nm}")
+                    hub_keys.append(f"hk_{hub_nm}")
+                if not ok:
+                    continue
+                
+                # Generate link hash key
+                hash_cols = [col(f"hk_{ref['hub_name']}") for ref in hub_refs]
+                link_hash_expr = sha2(concat_ws("||", *hash_cols), 256)
+                current_df = current_df.withColumn("link_hash_key", link_hash_expr) \
+                                       .withColumn("load_date", current_timestamp()) \
+                                       .withColumn("record_source", lit(src_tbl))
+                select_cols = ["link_hash_key"] + hub_keys + ["load_date", "record_source"]
+                current_df = current_df.select(*select_cols).distinct()
+                logger.info("Link %s from source %s has %d rows after distinct", link_name, src_tbl, current_df.count())
+                link_dfs.append(current_df)
+            
+            if not link_dfs:
+                logger.warning("No data for LINK %s", link_name)
+                continue
+            
+            final_link_df = link_dfs[0]
+            for df in link_dfs[1:]:
+                final_link_df = final_link_df.union(df)
+            
+            write_to_s3(final_link_df, f"{link_path}/{link_name}")
+        except Exception as e:
+            logger.error("Failed to create link %s: %s", link.get('link_name', 'unknown'), e, exc_info=True)
+    
+    logger.info("Data Vault generation completed successfully")
+
+if __name__ == "__main__":
+    main()
+	
+we need these tables in output tables for silver layer 
+HUB_ACCOUNTING_DOC
+HUB_ACCT_DOC_LINE
+HUB_CLEARED_ITEM
+HUB_COMPANY_CODE
+HUB_INVOICE_LINE
+HUB_INVOICE
+HUB_MAT_DOC_LINE
+HUB_MATERIAL_DOC
+HUB_PAYMENT_TERMS
+HUB_PLANT
+HUB_PO_LINE
+HUB_PURCHASE_ORDER
+HUB_VENDOR
+LINK_ACCT_DOC_LINE_VENDOR
+LINK_CLEARED_ITEM_VENDOR
+LINK_INVOICE_LINE_PO_LINE
+LINK_INVOICE_VENDOR
+LINK_MAT_DOC_LINE_PO_LINE
+LINK_VENDOR_COMPANY_CODE
+SAT_ACCOUNTING_DOC_BKPF
+SAT_ACCT_DOC_LINE_BSEG
+SAT_CLEARED_ITEM_BSAK
+SAT_COMPANY_T001
+SAT_INVOICE_LINE_RSEG
+SAT_INVOICE_RBKP
+SAT_INVOICE_STATUS_LOG
+SAT_MAT_DOC_LINE_MSEG
+SAT_MATERIAL_DOC_MKPF
+SAT_PAYMENT_TERMS_T052
+SAT_PLANT_T001W
+SAT_PO_HEADER_EKKO
+SAT_PO_LINE_EKPO
+SAT_PO_SCHEDULE_EKET
+SAT_REGION_T005U
+SAT_VENDOR_BKP_LFA1
+SAT_VENDOR_LFA1
+SAT_VENDOR_LFB1
+
+
+we want these tables in gold  layer output please write gluw job for gold  layer as well by seeing this by using sat hub and link tables above genrtaed in sliver layer we need to create below tables in golden layer 
+Table Name,Column Name,Data Type
+
+accounts_payable_balance,year,decimal(4,0)
+
+accounts_payable_balance,month,decimal(2,0)
+
+accounts_payable_balance,ap_balance,decimal(9,2)
+
+accounts_payable_balance,invoice_count,decimal(3,0)
+
+cash_flow_forecast,forecast_bucket,string
+
+cash_flow_forecast,invoice_count,decimal(10,6)
+
+cash_flow_forecast,total_amount,decimal(10,2)
+
+cash_flow_forecast,earliest_due,date
+
+cash_flow_forecast,latest_due,date
+
+cash_flow_unpaid_obligations,document_number,decimal(7,0)
+
+cash_flow_unpaid_obligations,vendor_id,string
+
+cash_flow_unpaid_obligations,invoice_amount_local,decimal(7,2)
+
+cash_flow_unpaid_obligations,due_date,date
+
+cash_flow_unpaid_obligations,invoice_status,string
+
+cash_flow_unpaid_obligations,days_until_due,decimal(3,0)
+
+days_payable_outstanding,invoice_number,decimal(7,0)
+
+days_payable_outstanding,year,decimal(4,0)
+
+days_payable_outstanding,month,decimal(2,0)
+
+days_payable_outstanding,avg_trade_payables,decimal(7,2)
+
+days_payable_outstanding,cogs_amount,decimal(15,10)
+
+days_payable_outstanding,dpo,decimal(10,8)
+
+dim_company_code,company_code,decimal(4,0)
+
+dim_company_code,company_name,string
+
+dim_company_code,city,string
+
+dim_company_code,country_code,string
+
+dim_company_code,currency,string
+
+dim_company_code,postal_code,string
+
+dim_company_code,street,string
+
+dim_company_code,region_code,string
+
+dim_company_code,vat_reg_number,string
+
+dim_company_code,chart_of_accounts,string
+
+dim_company_code,system,string
+
+dim_plant,plant_code,string
+
+dim_plant,plant_name,string
+
+dim_plant,plant_name_2,string
+
+dim_plant,company_code,decimal(4,0)
+
+dim_plant,country_code,string
+
+dim_plant,region_code,string
+
+dim_plant,city,string
+
+dim_plant,postal_code,string
+
+dim_plant,street,string
+
+dim_plant,system,string
+
+dim_po,purchase_order_number,decimal(7,0)
+
+dim_po,po_item,decimal(2,0)
+
+dim_po,po_amount,decimal(8,2)
+
+dim_po,vendor_id,string
+
+dim_po,company_code,decimal(4,0)
+
+dim_po,po_date,date
+
+dim_po,po_created_date,date
+
+dim_po,po_doc_type,string
+
+dim_po,po_payment_terms,string
+
+dim_po,purchasing_org,string
+
+dim_po,purchasing_group,string
+
+dim_po,po_currency,string
+
+dim_po,po_release_status,string
+
+dim_po,delivery_date,date
+
+dim_po,quantity_delivered,decimal(5,2)
+
+dim_po,quantity_remaining,decimal(1,0)
+
+dim_po,po_due_date,date
+
+dim_region,country_code,string
+
+dim_region,region_code,string
+
+dim_region,region_name,string
+
+dim_vendor,vendor_id,string
+
+dim_vendor,vendor_name,string
+
+dim_vendor,vendor_name_2,string
+
+dim_vendor,country_code,string
+
+dim_vendor,city,string
+
+dim_vendor,postal_code,string
+
+dim_vendor,street,string
+
+dim_vendor,region_code,string
+
+dim_vendor,tax_number_1,string
+
+dim_vendor,tax_number_2,string
+
+dim_vendor,industry_sector,string
+
+dim_vendor,vendor_account_group,string
+
+dim_vendor,deletion_flag,string
+
+dim_vendor,posting_block,string
+
+dim_vendor,system,string
+
+duplicate_payments_for_invoice,invoice_number,decimal(7,0)
+
+duplicate_payments_for_invoice,year,decimal(4,0)
+
+duplicate_payments_for_invoice,month,decimal(2,0)
+
+duplicate_payments_for_invoice,duplicate_payment_amount,decimal(7,2)
+
+duplicate_payments_for_invoice,total_payments,decimal(7,2)
+
+duplicate_payments_for_invoice,duplicate_payment_rate,decimal(11,8)
+
+early_payment_candidates,document_number,decimal(7,0)
+
+early_payment_candidates,vendor_id,string
+
+early_payment_candidates,vendor_name,string
+
+early_payment_candidates,invoice_amount_local,decimal(7,2)
+
+early_payment_candidates,due_date,date
+
+early_payment_candidates,days_until_due,decimal(2,0)
+
+early_payment_candidates,savings_if_2pct_discount,decimal(7,4)
+
+early_payment_candidates,vendor_tier,string
+
+early_payment_candidates,early_pay_priority,string
+
+fact_sap_po_level,posting_year,decimal(4,0)
+
+fact_sap_po_level,posting_month,decimal(2,0)
+
+fact_sap_po_level,delivery_date,date
+
+fact_sap_po_level,po_date,date
+
+fact_sap_po_level,received_qty,decimal(6,3)
+
+fact_sap_po_level,ordered_qty,decimal(5,2)
+
+fact_sap_po_level,po_amount,decimal(8,2)
+
+full_payment_rate,year,decimal(4,0)
+
+full_payment_rate,month,decimal(2,0)
+
+full_payment_rate,full_paid_invoices,decimal(1,0)
+
+full_payment_rate,total_cleared_invoices,decimal(3,0)
+
+full_payment_rate,full_payment_rate_pct,decimal(7,6)
+
+genie_question_history,normalized_query,string
+
+genie_question_history,type,string
+
+genie_question_history,user,string
+
+genie_question_history,frequency,decimal(2,0)
+
+genie_question_history,last_asked_at,timestamp
+
+gr_ir_aging,year,decimal(4,0)
+
+gr_ir_aging,month,decimal(2,0)
+
+gr_ir_aging,age_days,decimal(2,0)
+
+gr_ir_aging,total_grir_balance,decimal(9,2)
+
+gr_ir_aging,grir_over_30,decimal(9,2)
+
+gr_ir_aging,grir_over_60,decimal(9,2)
+
+gr_ir_aging,grir_over_90,decimal(9,2)
+
+gr_ir_aging,pct_grir_over_30,decimal(8,8)
+
+gr_ir_aging,pct_grir_over_60,decimal(8,8)
+
+gr_ir_aging,pct_grir_over_90,decimal(8,8)
+
+gr_ir_aging,cnt_grir_over_30,decimal(3,0)
+
+gr_ir_aging,cnt_grir_over_60,decimal(3,0)
+
+gr_ir_aging,cnt_grir_over_90,decimal(3,0)
+
+gr_ir_outstanding_balance,year,decimal(4,0)
+
+gr_ir_outstanding_balance,month,decimal(2,0)
+
+gr_ir_outstanding_balance,invoice_count,decimal(3,0)
+
+gr_ir_outstanding_balance,total_grir_blnc,decimal(9,2)
+
+invoice_status_history,invoice_number,decimal(7,0)
+
+invoice_status_history,company_code,decimal(4,0)
+
+invoice_status_history,plant_code,string
+
+invoice_status_history,fiscal_year,decimal(4,0)
+
+invoice_status_history,status,string
+
+invoice_status_history,effective_date,date
+
+invoice_status_history,sequence_nbr,decimal(1,0)
+
+invoice_status_history,status_notes,string
+
+invoice_status_history,posting_date,date
+
+invoice_status_history,document_date,date
+
+invoice_status_history,vendor_id,string
+
+invoice_status_history,currency,string
+
+invoice_status_history,invoice_amount_local,decimal(7,2)
+
+invoice_status_history,payment_terms,string
+
+invoice_status_history,document_type,string
+
+invoice_status_history,accrual_indicator,string
+
+invoice_status_history,due_date,date
+
+invoice_status_history,invoice_receipt_date,date
+
+invoice_status_history,gl_account,decimal(6,0)
+
+invoice_status_history,baseline_date,date
+
+invoice_status_history,payment_date,date
+
+invoice_status_history,clearing_document,decimal(7,0)
+
+invoice_status_history,aging_days,decimal(3,0)
+
+invoice_status_history,purchase_order_reference,decimal(7,0)
+
+invoice_status_history,po_amount,decimal(8,2)
+
+invoice_status_history,po_purpose,string
+
+invoice_status_history,discount_percent,decimal(4,3)
+
+invoice_status_history,discount_days,decimal(2,0)
+
+invoice_status_history,net_due_days,decimal(2,0)
+
+invoice_status_history,region,string
+
+invoice_status_history,system,string
+
+late_accruals,year,decimal(4,0)
+
+late_accruals,month,decimal(2,0)
+
+late_accruals,late_accrual_amount,decimal(9,2)
+
+late_accruals,late_accrual_count,decimal(3,0)
+
+late_accruals,total_accrual_amount,decimal(9,2)
+
+late_accruals,late_accrual_rate_pct,decimal(10,8)
+
+late_payment_amount,year,decimal(4,0)
+
+late_payment_amount,month,decimal(2,0)
+
+late_payment_amount,late_payment_amount,decimal(9,2)
+
+late_payment_amount,late_payment_count,decimal(3,0)
+
+late_payment_amount,total_payment_amount,decimal(9,2)
+
+late_payment_amount,late_payment_rate_pct,decimal(11,8)
+
+net_early_payment_benefit_index,total_net_benefit,decimal(17,11)
+
+net_early_payment_benefit_index,total_spend,decimal(11,2)
+
+net_early_payment_benefit_index,nepbi_percent,decimal(12,12)
+
+on_time_payment_rate,year,decimal(4,0)
+
+on_time_payment_rate,month,decimal(2,0)
+
+on_time_payment_rate,on_time_payments,decimal(2,0)
+
+on_time_payment_rate,total_payments,decimal(3,0)
+
+on_time_payment_rate,on_time_payment_rate_pct,decimal(8,6)
+
+partial_payment_rate,year,decimal(4,0)
+
+partial_payment_rate,month,decimal(2,0)
+
+partial_payment_rate,partial_paid_invoices,decimal(3,0)
+
+partial_payment_rate,total_paid_invoices,decimal(3,0)
+
+partial_payment_rate,partial_payment_rate_pct,decimal(8,6)
+
+payment_predictability_index,posting_year,decimal(4,0)
+
+payment_predictability_index,posting_month,decimal(2,0)
+
+payment_predictability_index,payment_predictability_index,double
+
+payment_predictability_index,interpretation,string
+
+payment_processing_cycle_time,year,decimal(4,0)
+
+payment_processing_cycle_time,month,decimal(2,0)
+
+payment_processing_cycle_time,avg_payment_cycle_time_days,decimal(9,6)
+
+payment_processing_cycle_time,min_cycle_time_days,decimal(3,0)
+
+payment_processing_cycle_time,max_cycle_time_days,decimal(3,0)
+
+payment_processing_cycle_time,cleared_invoices,decimal(3,0)
+
+payment_timing_recommendation,recommendation,string
+
+payment_timing_recommendation,amount,decimal(10,2)
+
+payment_timing_recommendation,invoice_count,decimal(4,0)
+
+payment_timing_recommendation,rationale,string
+
+saved_insights,insight_id,bigint
+
+saved_insights,created_at,string
+
+saved_insights,created_by,string
+
+saved_insights,page,string
+
+saved_insights,title,string
+
+saved_insights,question,string
+
+saved_insights,verified_query_name,string
+
+saved_insights,sql_text,double
+
+saved_insights,tags,double
+
+supplier_delivery_accuracy_index,year,decimal(4,0)
+
+supplier_delivery_accuracy_index,month,decimal(2,0)
+
+supplier_delivery_accuracy_index,on_time_deliveries,decimal(3,0)
+
+supplier_delivery_accuracy_index,total_deliveries,decimal(3,0)
+
+supplier_delivery_accuracy_index,delivery_accuracy_pct,decimal(8,6)
+
+temp_table_17fae8f7928742b2a3e5fd08e59465e6,total_cleared,bigint
+
+temp_table_17fae8f7928742b2a3e5fd08e59465e6,auto_processed,bigint
+
+temp_table_36d6c7d20d594bf4bd5a2d5f1f9c5b81,vendor_name,string
+
+temp_table_417f39f5a3c7490da104f2abfa60a331,vendor_name,string
+
+temp_table_4bd04181b2a1444c85919c3e10bca5dd,status,varchar(8)
+
+temp_table_4bd04181b2a1444c85919c3e10bca5dd,cnt,bigint
+
+temp_table_928fa55187d245909c7b16210bfac65d,vendor_name,string
+
+temp_table_96e1dc5cdf124229a980b3e15fa30d99,status,varchar(8)
+
+temp_table_96e1dc5cdf124229a980b3e15fa30d99,cnt,bigint
+
+temp_table_b7889fd8886a47feb04a0c477c401cc6,overdue_count,bigint
+
+temp_table_b7889fd8886a47feb04a0c477c401cc6,disputed_count,bigint
+
+temp_table_b7889fd8886a47feb04a0c477c401cc6,due_count,bigint
+
+weighted_days_payable_outstanding,year,decimal(4,0)
+
+weighted_days_payable_outstanding,month,decimal(2,0)
+
+weighted_days_payable_outstanding,total_payables,decimal(9,2)
+
+weighted_days_payable_outstanding,total_cogs,decimal(10,3)
+
+weighted_days_payable_outstanding,weighted_dpo,decimal(10,8)
+ 
+ 
+ we need to create views in consumption layer by using these views these tables are present in loden layer 
+ create or replace secure view PROCURE2PAY.INFORMATION_MART.ACCOUNTS_PAYABLE_BALANCE_VW(
+	YEAR,
+	MONTH,
+	AP_BALANCE,
+	INVOICE_COUNT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.ACCOUNTS_PAYABLE_BALANCE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.CASH_FLOW_FORECAST_VW(
+	FORECAST_BUCKET,
+	INVOICE_COUNT,
+	TOTAL_AMOUNT,
+	EARLIEST_DUE,
+	LATEST_DUE
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.CASH_FLOW_FORECAST_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.CASH_FLOW_UNPAID_OBLIGATIONS_VW(
+	DOCUMENT_NUMBER,
+	VENDOR_ID,
+	INVOICE_AMOUNT_LOCAL,
+	DUE_DATE,
+	INVOICE_STATUS,
+	DAYS_UNTIL_DUE
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.CASH_FLOW_UNPAID_OBLIGATIONS_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DAYS_PAYABLE_OUTSTANDING_VW(
+	INVOICE_NUMBER,
+	YEAR,
+	MONTH,
+	AVG_TRADE_PAYABLES,
+	COGS_AMOUNT,
+	DPO
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DAYS_PAYABLE_OUTSTANDING_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DIM_COMPANY_CODE_VW(
+	COMPANY_CODE,
+	COMPANY_NAME,
+	CITY,
+	COUNTRY_CODE,
+	CURRENCY,
+	POSTAL_CODE,
+	STREET,
+	REGION_CODE,
+	VAT_REG_NUMBER,
+	CHART_OF_ACCOUNTS,
+	SYSTEM
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DIM_COMPANY_CODE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DIM_PLANT_VW(
+	PLANT_CODE,
+	PLANT_NAME,
+	PLANT_NAME_2,
+	COMPANY_CODE,
+	COUNTRY_CODE,
+	REGION_CODE,
+	CITY,
+	POSTAL_CODE,
+	STREET,
+	SYSTEM
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DIM_PLANT_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DIM_PO_VW(
+	PURCHASE_ORDER_NUMBER,
+	PO_ITEM,
+	PO_AMOUNT,
+	VENDOR_ID,
+	COMPANY_CODE,
+	PO_DATE,
+	PO_CREATED_DATE,
+	PO_DOC_TYPE,
+	PO_PAYMENT_TERMS,
+	PURCHASING_ORG,
+	PURCHASING_GROUP,
+	PO_CURRENCY,
+	PO_RELEASE_STATUS,
+	DELIVERY_DATE,
+	QUANTITY_DELIVERED,
+	QUANTITY_REMAINING,
+	PO_DUE_DATE
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DIM_PO_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DIM_REGION_VW(
+	COUNTRY_CODE,
+	REGION_CODE,
+	REGION_NAME
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DIM_REGION_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DIM_VENDOR_VW(
+	VENDOR_ID,
+	VENDOR_NAME,
+	VENDOR_NAME_2,
+	COUNTRY_CODE,
+	CITY,
+	POSTAL_CODE,
+	STREET,
+	REGION_CODE,
+	TAX_NUMBER_1,
+	TAX_NUMBER_2,
+	INDUSTRY_SECTOR,
+	VENDOR_ACCOUNT_GROUP,
+	DELETION_FLAG,
+	POSTING_BLOCK,
+	SYSTEM
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DIM_VENDOR_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.DUPLICATE_PAYMENTS_FOR_INVOICE_VW(
+	INVOICE_NUMBER,
+	YEAR,
+	MONTH,
+	DUPLICATE_PAYMENT_AMOUNT,
+	TOTAL_PAYMENTS,
+	DUPLICATE_PAYMENT_RATE
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.DUPLICATE_PAYMENTS_FOR_INVOICE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.EARLY_PAYMENT_CANDIDATES_VW(
+	DOCUMENT_NUMBER,
+	VENDOR_ID,
+	VENDOR_NAME,
+	INVOICE_AMOUNT_LOCAL,
+	DUE_DATE,
+	DAYS_UNTIL_DUE,
+	SAVINGS_IF_2PCT_DISCOUNT,
+	VENDOR_TIER,
+	EARLY_PAY_PRIORITY
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.EARLY_PAYMENT_CANDIDATES_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.FACT_ALL_SOURCES_VW(
+	DOCUMENT_NUMBER,
+	INVOICE_NUMBER,
+	COMPANY_CODE,
+	PLANT_CODE,
+	FISCAL_YEAR,
+	POSTING_DATE,
+	DOCUMENT_DATE,
+	VENDOR_ID,
+	CURRENCY,
+	INVOICE_AMOUNT_LOCAL,
+	INVOICE_AMOUNT_DOCUMENT,
+	GL_ACCOUNT,
+	BASELINE_DATE,
+	PAYMENT_TERMS,
+	INVOICE_STATUS,
+	STATUS_NOTES,
+	PAYMENT_DATE,
+	CLEARING_DOCUMENT,
+	AGING_DAYS,
+	PURCHASE_ORDER_REFERENCE,
+	PO_AMOUNT,
+	PO_PURPOSE,
+	DOCUMENT_TYPE,
+	ACCRUAL_INDICATOR,
+	DUE_DATE,
+	INVOICE_RECEIPT_DATE,
+	DISCOUNT_PERCENT,
+	DISCOUNT_DAYS,
+	NET_DUE_DAYS,
+	REGION,
+	SYSTEM
+) as
+SELECT
+	INVOICE_NUMBER AS DOCUMENT_NUMBER,
+	INVOICE_NUMBER,
+	COMPANY_CODE,
+	PLANT_CODE,
+	FISCAL_YEAR,
+	POSTING_DATE,
+	DOCUMENT_DATE,
+	VENDOR_ID,
+	CURRENCY,
+	INVOICE_AMOUNT_LOCAL,
+	INVOICE_AMOUNT_LOCAL AS INVOICE_AMOUNT_DOCUMENT,
+	GL_ACCOUNT,
+	BASELINE_DATE,
+	PAYMENT_TERMS,
+	STATUS AS INVOICE_STATUS,
+	STATUS_NOTES,
+	PAYMENT_DATE,
+	CLEARING_DOCUMENT,
+	AGING_DAYS,
+	PURCHASE_ORDER_REFERENCE,
+	PO_AMOUNT,
+	PO_PURPOSE,
+	DOCUMENT_TYPE,
+	ACCRUAL_INDICATOR,
+	DUE_DATE,
+	INVOICE_RECEIPT_DATE,
+	DISCOUNT_PERCENT,
+	DISCOUNT_DAYS,
+	NET_DUE_DAYS,
+	REGION,
+	SYSTEM
+FROM PROCURE2PAY.INFORMATION_MART.INVOICE_STATUS_HISTORY_D
+QUALIFY ROW_NUMBER() OVER (
+	PARTITION BY INVOICE_NUMBER, COMPANY_CODE, FISCAL_YEAR
+	ORDER BY SEQUENCE_NBR DESC
+) = 1;
+
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.FACT_SAP_PO_LEVEL_VW(
+	POSTING_YEAR,
+	POSTING_MONTH,
+	DELIVERY_DATE,
+	PO_DATE,
+	RECEIVED_QTY,
+	ORDERED_QTY,
+	PO_AMOUNT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.FACT_SAP_PO_LEVEL_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.FULL_PAYMENT_RATE_VW(
+	YEAR,
+	MONTH,
+	FULL_PAID_INVOICES,
+	TOTAL_CLEARED_INVOICES,
+	FULL_PAYMENT_RATE_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.FULL_PAYMENT_RATE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.GR_IR_AGING_VW(
+	YEAR,
+	MONTH,
+	AGE_DAYS,
+	TOTAL_GRIR_BALANCE,
+	GRIR_OVER_30,
+	GRIR_OVER_60,
+	GRIR_OVER_90,
+	PCT_GRIR_OVER_30,
+	PCT_GRIR_OVER_60,
+	PCT_GRIR_OVER_90,
+	CNT_GRIR_OVER_30,
+	CNT_GRIR_OVER_60,
+	CNT_GRIR_OVER_90
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.GR_IR_AGING_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.GR_IR_OUTSTANDING_BALANCE_VW(
+	YEAR,
+	MONTH,
+	INVOICE_COUNT,
+	TOTAL_GRIR_BLNC
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.GR_IR_OUTSTANDING_BALANCE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.INVOICE_STATUS_HISTORY_VW(
+	INVOICE_NUMBER,
+	COMPANY_CODE,
+	PLANT_CODE,
+	FISCAL_YEAR,
+	STATUS,
+	EFFECTIVE_DATE,
+	SEQUENCE_NBR,
+	STATUS_NOTES,
+	POSTING_DATE,
+	DOCUMENT_DATE,
+	VENDOR_ID,
+	CURRENCY,
+	INVOICE_AMOUNT_LOCAL,
+	PAYMENT_TERMS,
+	DOCUMENT_TYPE,
+	ACCRUAL_INDICATOR,
+	DUE_DATE,
+	INVOICE_RECEIPT_DATE,
+	GL_ACCOUNT,
+	BASELINE_DATE,
+	PAYMENT_DATE,
+	CLEARING_DOCUMENT,
+	AGING_DAYS,
+	PURCHASE_ORDER_REFERENCE,
+	PO_AMOUNT,
+	PO_PURPOSE,
+	DISCOUNT_PERCENT,
+	DISCOUNT_DAYS,
+	NET_DUE_DAYS,
+	REGION,
+	SYSTEM
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.INVOICE_STATUS_HISTORY_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.LATE_ACCRUALS_VW(
+	YEAR,
+	MONTH,
+	LATE_ACCRUAL_AMOUNT,
+	LATE_ACCRUAL_COUNT,
+	TOTAL_ACCRUAL_AMOUNT,
+	LATE_ACCRUAL_RATE_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.LATE_ACCRUALS_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.LATE_PAYMENT_AMOUNT_VW(
+	YEAR,
+	MONTH,
+	LATE_PAYMENT_AMOUNT,
+	LATE_PAYMENT_COUNT,
+	TOTAL_PAYMENT_AMOUNT,
+	LATE_PAYMENT_RATE_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.LATE_PAYMENT_AMOUNT_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.NET_EARLY_PAYMENT_BENEFIT_INDEX_VW(
+	TOTAL_NET_BENEFIT,
+	TOTAL_SPEND,
+	NEPBI_PERCENT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.NET_EARLY_PAYMENT_BENEFIT_INDEX_D;
+
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.ON_TIME_PAYMENT_RATE_VW(
+	YEAR,
+	MONTH,
+	ON_TIME_PAYMENTS,
+	TOTAL_PAYMENTS,
+	ON_TIME_PAYMENT_RATE_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.ON_TIME_PAYMENT_RATE_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.PARTIAL_PAYMENT_RATE_VW(
+	YEAR,
+	MONTH,
+	PARTIAL_PAID_INVOICES,
+	TOTAL_PAID_INVOICES,
+	PARTIAL_PAYMENT_RATE_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.PARTIAL_PAYMENT_RATE_D;
+
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.PAYMENT_PREDICTABILITY_INDEX_VW(
+	POSTING_YEAR,
+	POSTING_MONTH,
+	PAYMENT_PREDICTABILITY_INDEX,
+	INTERPRETATION
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.PAYMENT_PREDICTABILITY_INDEX_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.PAYMENT_PROCESSING_CYCLE_TIME_VW(
+	YEAR,
+	MONTH,
+	AVG_PAYMENT_CYCLE_TIME_DAYS,
+	MIN_CYCLE_TIME_DAYS,
+	MAX_CYCLE_TIME_DAYS,
+	CLEARED_INVOICES
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.PAYMENT_PROCESSING_CYCLE_TIME_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.PAYMENT_TIMING_RECOMMENDATION_VW(
+	RECOMMENDATION,
+	AMOUNT,
+	INVOICE_COUNT,
+	RATIONALE
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.PAYMENT_TIMING_RECOMMENDATION_D;
+
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.SUPPLIER_DELIVERY_ACCURACY_INDEX_VW(
+	YEAR,
+	MONTH,
+	ON_TIME_DELIVERIES,
+	TOTAL_DELIVERIES,
+	DELIVERY_ACCURACY_PCT
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.SUPPLIER_DELIVERY_ACCURACY_INDEX_D;
+
+create or replace secure view PROCURE2PAY.INFORMATION_MART.WEIGHTED_DAYS_PAYABLE_OUTSTANDING_VW(
+	YEAR,
+	MONTH,
+	TOTAL_PAYABLES,
+	TOTAL_COGS,
+	WEIGHTED_DPO
+) as SELECT * FROM PROCURE2PAY.INFORMATION_MART.WEIGHTED_DAYS_PAYABLE_OUTSTANDING_D;
