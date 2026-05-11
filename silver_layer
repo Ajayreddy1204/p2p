@@ -1,0 +1,1002 @@
+import sys
+import logging
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import (
+    col, sha2, concat_ws, lit, current_timestamp, coalesce
+)
+from pyspark.sql.types import StringType, StructType, StructField
+from awsglue.utils import getResolvedOptions
+from awsglue.context import GlueContext
+from awsglue.job import Job
+
+# --------------------------------------------------------------
+# Logging
+# --------------------------------------------------------------
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# --------------------------------------------------------------
+# Configuration
+# --------------------------------------------------------------
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+config_bucket = "yignite-procurespendiq-miniature"
+bronze_db = "procureiqspend_bronze_sap"
+raw_vault_bucket = "yignite-procurespendiq-miniature"
+hub_path = "silver/raw_vault/hub"
+link_path = "silver/raw_vault/links"
+sat_path = "silver/raw_vault/satellites"
+
+# --------------------------------------------------------------
+# Spark Session
+# --------------------------------------------------------------
+spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+glueContext = GlueContext(spark.sparkContext)
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+
+# --------------------------------------------------------------
+# Column Mapping: German → English (complete for all SAP tables)
+# --------------------------------------------------------------
+GERMAN_TO_ENGLISH = {
+    # Document / Header
+    "belnr": "DOCUMENT_NUMBER",
+    "bukrs": "COMPANY_CODE",
+    "gjahr": "FISCAL_YEAR",
+    "buzei": "LINE_ITEM",
+    "blart": "DOCUMENT_TYPE",
+    "bldat": "DOCUMENT_DATE",
+    "budat": "POSTING_DATE",
+    "monat": "FISCAL_PERIOD",
+    "cpudt": "ENTERED_ON",
+    "cputm": "ENTERED_AT",
+    "usnam": "USER_NAME",
+    "tcode": "TRANSACTION_CODE",
+    "xblnr": "REFERENCE_DOC_NUMBER",
+    "bktxt": "HEADER_TEXT",
+    "waers": "CURRENCY",
+    "kursf": "EXCHANGE_RATE",
+    "wwert": "EXCHANGE_RATE_DATE",
+    "awtyp": "REFERENCE_PROCESS",
+    "awkey": "REFERENCE_KEY",
+
+    # Line item (BSEG, RSEG, etc.)
+    "bschl": "POSTING_KEY",
+    "koart": "ACCOUNT_TYPE",
+    "shkzg": "DEBIT_CREDIT",
+    "dmbtr": "AMOUNT_LOCAL",
+    "wrbtr": "AMOUNT_DOC",
+    "mwskz": "TAX_CODE",
+    "mwsts": "TAX_AMOUNT",
+    "txjcd": "TAX_JURISDICTION",
+    "zuonr": "ASSIGNMENT_NUMBER",
+    "sgtxt": "LINE_TEXT",
+    "kostl": "COST_CENTER",
+    "aufnr": "ORDER_NUMBER",
+    "projk": "PROJECT_NUMBER",
+    "hkont": "GL_ACCOUNT",
+    "kunnr": "CUSTOMER_NUMBER",
+    "lifnr": "VENDOR_NUMBER",
+    "matnr": "MATERIAL_NUMBER",
+    "werks": "PLANT",
+    "menge": "QUANTITY",
+    "meins": "BASE_UOM",
+    "ebeln": "PURCHASE_DOC",
+    "ebelp": "PURCHASE_DOC_ITEM",
+    "zekkn": "PO_ACCOUNT_ASSIGNMENT",
+    "zfbdt": "BASELINE_DATE",
+    "zterm": "PAYMENT_TERMS",
+    "zbd1t": "CASH_DISC_DAYS1",
+    "zbd2t": "CASH_DISC_DAYS2",
+    "zbd3t": "CASH_DISC_DAYS3",
+    "skfbt": "CASH_DISC_BASE",
+    "sknto": "CASH_DISC_AMOUNT",
+    "wskto": "CASH_DISC_AMOUNT_DOC",
+    "zlsch": "PAYMENT_METHOD",
+    "zlspr": "PAYMENT_BLOCK",
+    "zbfix": "PAYMENT_TERMS_FIXED",
+    "augdt": "CLEARING_DATE",
+    "augbl": "CLEARING_DOC",
+    "augcp": "CLEARING_PERIOD",
+
+    # Vendor master
+    "name1": "NAME1",
+    "name2": "NAME2",
+    "name3": "NAME3",
+    "name4": "NAME4",
+    "stras": "STREET_ADDRESS",
+    "ort01": "CITY",
+    "pstlz": "POSTAL_CODE",
+    "land1": "COUNTRY_KEY",
+    "region": "REGION",
+    "telf1": "PHONE1",
+    "telf2": "PHONE2",
+    "telfx": "FAX",
+    "stcd1": "TAX_NUMBER1",
+    "stcd2": "TAX_NUMBER2",
+    "stceg": "VAT_REG_NUMBER",
+    "spras": "LANGUAGE_KEY",
+    "brsch": "INDUSTRY_KEY",
+    "ktokk": "VENDOR_ACCOUNT_GROUP",
+    "loevm": "DELETION_FLAG",
+    "sperr": "BLOCKING_FLAG",
+    "aufsd": "ORDER_BLOCK",
+    "lifsd": "DELIVERY_BLOCK",
+    "eession": "E_SESSION",
+    "gbort": "BIRTH_PLACE",
+    "dtaws": "BANK_ACCOUNT",
+    "dtams": "BANK_ACCOUNT_TYPE",
+    "adrnr": "ADDRESS_NUMBER",
+
+    # Company / Plant
+    "butxt": "COMPANY_NAME",
+    "ort01_comp": "COMPANY_CITY",
+    "land1_comp": "COMPANY_COUNTRY",
+    "waers_comp": "COMPANY_CURRENCY",
+    "spras_comp": "COMPANY_LANG",
+    "adrnr_comp": "COMPANY_ADDR",
+    "stceg_comp": "COMPANY_VAT",
+    "ktopl": "CHART_OF_ACCOUNTS",
+    "name1_plant": "PLANT_NAME1",
+    "name2_plant": "PLANT_NAME2",
+    "stras_plant": "PLANT_STREET",
+    "ort01_plant": "PLANT_CITY",
+    "pstlz_plant": "PLANT_POSTAL",
+    "land1_plant": "PLANT_COUNTRY",
+    "region_plant": "PLANT_REGION",
+    "bukrs_plant": "PLANT_COMPANY",
+    "kunnr_plant": "PLANT_CUSTOMER",
+    "lifnr_plant": "PLANT_VENDOR",
+    "fabkl": "FACTORY_CALENDAR",
+    "txjcd_plant": "PLANT_TAX_JUR",
+    "bedpl": "PLANNING_PLANT",
+    "j_1bbession": "BRAZIL_DUMMY",
+
+    # Material Document
+    "mblnr": "MATERIAL_DOC",
+    "mjahr": "MATERIAL_DOC_YEAR",
+    "zeession": "LINE_ITEM",
+    "bwart": "MOVE_TYPE",
+    "lgort": "STORAGE_LOCATION",
+    "charg": "BATCH_NUMBER",
+    "sobkz": "SPECIAL_STOCK",
+    "kzbew": "STOCK_MOVEMENT",
+    "kzzug": "RECEIPT_INDICATOR",
+    "kzvbr": "CONSUMPTION_IND",
+    "rsnum": "RESERVATION_NUMBER",
+    "rspos": "RESERVATION_ITEM",
+
+    # Purchase Order
+    "bstyp": "PO_CATEGORY",
+    "bsart": "PO_TYPE",
+    "loession": "LO_SESSION",
+    "statu": "PO_STATUS",
+    "aedat": "CHANGED_ON",
+    "ernam": "CREATED_BY",
+    "pincr": "INCOTERMS",
+    "lponr": "LAST_PO_NUMBER",
+    "ekorg": "PURCHASING_ORG",
+    "ekgrp": "PURCHASING_GROUP",
+    "bedat": "PO_DATE",
+    "kdatb": "VALID_FROM",
+    "kdate": "VALID_TO",
+    "bwbdt": "SUBMISSION_DATE",
+    "gwldt": "WARRANTY_DATE",
+    "ihrez": "INHOUSE_PROC_TIME",
+    "verkf": "SALES_PERSON",
+    "telf1_po": "PO_PHONE",
+    "llief": "FIXED_VENDOR",
+    "kunnr_po": "CUSTOMER_PO",
+    "wkurs": "EXCHANGE_RATE_PO",
+    "kufix": "RATE_FIXED",
+    "beession": "BE_SESSION",
+    "fession": "FE_SESSION",
+    "stceg_po": "PO_VAT_REG",
+    "stceg_l": "PO_VAT_REG_LONG",
+    "absgr": "RELEASE_GROUP",
+    "addnr": "ADDRESS_NUMBER_PO",
+    "kornr": "CONTRACT_NUMBER",
+    "memory": "MEMORY",
+    "procstat": "PROCESSING_STATUS",
+    "rlwrt": "RELEASE_VALUE",
+    "revno": "REVISION_LEVEL",
+    "scmproc": "SCM_PROCESS",
+    "reason_code": "REASON_CODE",
+    "memession": "MEM_SESSION",
+    "retession": "RET_SESSION",
+    "dpession": "DP_SESSION",
+    "mession": "M_SESSION",
+    "frggr": "RELEASE_GROUP_GR",
+    "frgsx": "RELEASE_STRATEGY",
+    "frgke": "RELEASE_CODE",
+    "frgzu": "RELEASE_STATUS",
+    "autession": "AUT_SESSION",
+
+    # PO Line
+    "txz01": "SHORT_TEXT",
+    "ematn": "MATERIAL_NUMBER_OLD",
+    "bednr": "REQUISITION_NUMBER",
+    "matkl": "MATERIAL_GROUP",
+    "infnr": "INFO_RECORD",
+    "idnlf": "VENDOR_MATERIAL",
+    "ktmng": "TARGET_QTY",
+    "bprme": "ORDER_UOM",
+    "bpumz": "ORDER_UOM_NUM",
+    "bpumn": "ORDER_UOM_DEN",
+    "netpr": "NET_PRICE",
+    "peinh": "PRICE_UNIT",
+    "netwr": "NET_VALUE",
+    "agdat": "REGULATION_DATE",
+    "webaz": "GOODS_RECEIPT_DAYS",
+    "bonus": "BONUS_GRP",
+    "insmk": "INSPECTION_SUFFIX",
+    "spinf": "SP_INF",
+    "prsdr": "PRICE_PRINTER",
+    "schpr": "SCH_PR",
+    "mahnz": "DUNNING_COUNTER",
+    "mahn1": "DUNNING_LEVEL1",
+    "mahn2": "DUNNING_LEVEL2",
+    "mahn3": "DUNNING_LEVEL3",
+    "kzabs": "ORDER_ACKNOWLEDGEMENT",
+    "laession": "LA_SESSION",
+    "vression": "VR_SESSION",
+    "twrkz": "PLANT_INDICATOR",
+    "wepos": "GOODS_RECEIPT",
+    "weunb": "UNLIMITED_GR",
+    "repos": "INVOICE_RECEIPT",
+    "webre": "GR_BASED_IV",
+    "kzwi1": "SUB_IND1",
+    "kzwi2": "SUB_IND2",
+    "kzwi3": "SUB_IND3",
+    "kzwi4": "SUB_IND4",
+    "kzwi5": "SUB_IND5",
+    "kzwi6": "SUB_IND6",
+    "sikgr": "CONF_CONTROL",
+    "mfession": "MF_SESSION",
+    "ffession": "FF_SESSION",
+    "afession": "AF_SESSION",
+    "uebpo": "SUPERIOR_ITEM",
+    "uebto": "SUPERIOR_DOC",
+    "untto": "SUPERIOR_DOC_ITEM",
+    "xersy": "ERS",
+    "xersf": "ERS_FLAG",
+    "retpo": "RETURNS_ITEM",
+    "sernp": "SERIAL_NUMBER_PROFILE",
+    "emlif": "SHIP_TO_VENDOR",
+    "lblkz": "SUPPLIER_SUBSET",
+
+    # Schedule lines (EKET)
+    "etenr": "SCHEDULE_LINE",
+    "eindt": "DELIVERY_DATE",
+    "slfdt": "CRITICAL_DATE",
+    "lpein": "CATEGORY",
+    "ameng": "TARGET_QTY_SCHED",
+    "wemng": "GR_QTY",
+    "wamng": "GR_QTY_SCHED",
+    "glmng": "DGR_QTY",
+    "nbgbn": "TAX_LOCATION",
+    "banfn": "PURCHASE_REQ",
+    "bnfpo": "PR_ITEM",
+    "esession": "E_SESSION_SCH",
+    "aession": "A_SESSION_SCH",
+
+    # Payment terms
+    "ztagg": "DAY_LIMIT",
+    "ztag1": "DAY1",
+    "ztag2": "DAY2",
+    "ztag3": "DAY3",
+    "zprz1": "PERCENT1",
+    "zprz2": "PERCENT2",
+    "zprz3": "PERCENT3",
+    "zmession": "Z_SESSION",
+
+    # Region
+    "bland": "REGION_CODE",
+    "bezei": "REGION_NAME",
+
+    # Invoice specific
+    "wmwst1": "TAX_AMOUNT_1",
+    "rmwwr": "AMOUNT_INV_DOC",
+    "beznk": "NON_DEDUCTIBLE_TAX",
+    "mwskz1": "TAX_CODE_1",
+    "bupla": "PLANT_INVOICE",
+    "sekko": "HEADER_DATA",
+    "bvtyp": "INVOICE_TYPE",
+    "xrech": "FINAL_INVOICE",
+    "stblg": "REVERSAL_DOC",
+    "stjah": "REVERSAL_YEAR",
+    "ivtyp": "INVOICE_CATEGORY",
+    "erfpr": "ENTERED_BY",
+    "bpmng": "INVOICE_QTY",
+    "bprme_inv": "INV_UOM",
+    "bstme": "ORDER_UNIT",
+    "bnkan": "PO_ITEM",
+    "kschl": "CONDITION_TYPE",
+    "bwtar": "VALUATION_TYPE",
+    "bwkey": "VALUATION_AREA",
+    "lfbnr": "DELIVERY_NOTE",
+    "lfgja": "DELIVERY_YEAR",
+    "lfpos": "DELIVERY_ITEM",
+
+    # Invoice status log (custom)
+    "status": "STATUS",
+    "effective_date": "EFFECTIVE_DATE",
+    "sequence_nbr": "SEQUENCE_NBR",
+    "status_notes": "STATUS_NOTES",
+    "created_by": "CREATED_BY",
+    "created_at": "CREATED_AT",
+
+    # Standard Data Vault columns (already English but renamed to our convention)
+    "hub_hash_key": "HUB_HASH_KEY_TEMP",
+    "load_date": "LOAD_DTS",
+    "record_source": "RECORD_SOURCE",
+    "hash_diff": "HASH_DIFF"
+}
+
+# --------------------------------------------------------------
+# Data Vault Model Definition (using English column names)
+# --------------------------------------------------------------
+VAULT_MODEL = {
+    "hubs": [
+        {
+            "hub_name": "HUB_ACCOUNTING_DOC",
+            "entity_name": "ACCOUNTING_DOC",
+            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR"],
+            "source_tables": ["BKPF"]
+        },
+        {
+            "hub_name": "HUB_ACCT_DOC_LINE",
+            "entity_name": "ACCT_DOC_LINE",
+            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
+            "source_tables": ["BSEG"]
+        },
+        {
+            "hub_name": "HUB_CLEARED_ITEM",
+            "entity_name": "CLEARED_ITEM",
+            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
+            "source_tables": ["BSAK"]
+        },
+        {
+            "hub_name": "HUB_COMPANY_CODE",
+            "entity_name": "COMPANY_CODE",
+            "business_key_columns": ["COMPANY_CODE"],
+            "source_tables": ["T001"]
+        },
+        {
+            "hub_name": "HUB_INVOICE",
+            "entity_name": "INVOICE",
+            "business_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
+            "source_tables": ["RBKP"]
+        },
+        {
+            "hub_name": "HUB_INVOICE_LINE",
+            "entity_name": "INVOICE_LINE",
+            "business_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"],
+            "source_tables": ["RSEG"]
+        },
+        {
+            "hub_name": "HUB_MATERIAL_DOC",
+            "entity_name": "MATERIAL_DOC",
+            "business_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR"],
+            "source_tables": ["MKPF"]
+        },
+        {
+            "hub_name": "HUB_MAT_DOC_LINE",
+            "entity_name": "MAT_DOC_LINE",
+            "business_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"],
+            "source_tables": ["MSEG"]
+        },
+        {
+            "hub_name": "HUB_PAYMENT_TERMS",
+            "entity_name": "PAYMENT_TERMS",
+            "business_key_columns": ["PAYMENT_TERMS"],
+            "source_tables": ["T052"]
+        },
+        {
+            "hub_name": "HUB_PLANT",
+            "entity_name": "PLANT",
+            "business_key_columns": ["PLANT"],
+            "source_tables": ["T001W"]
+        },
+        {
+            "hub_name": "HUB_PURCHASE_ORDER",
+            "entity_name": "PURCHASE_ORDER",
+            "business_key_columns": ["PURCHASE_DOC"],
+            "source_tables": ["EKKO"]
+        },
+        {
+            "hub_name": "HUB_PO_LINE",
+            "entity_name": "PO_LINE",
+            "business_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
+            "source_tables": ["EKPO"]
+        },
+        {
+            "hub_name": "HUB_VENDOR",
+            "entity_name": "VENDOR",
+            "business_key_columns": ["VENDOR_NUMBER"],
+            "source_tables": ["LFA1", "LFB1"]
+        }
+    ],
+    "links": [
+        {
+            "link_name": "LINK_ACCT_DOC_LINE_VENDOR",
+            "entity_name": "ACCT_DOC_LINE_VENDOR",
+            "hub_references": [
+                {"hub_name": "HUB_ACCT_DOC_LINE", "columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"]},
+                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
+            ],
+            "source_tables": ["BSEG"]
+        },
+        {
+            "link_name": "LINK_CLEARED_ITEM_VENDOR",
+            "entity_name": "CLEARED_ITEM_VENDOR",
+            "hub_references": [
+                {"hub_name": "HUB_CLEARED_ITEM", "columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"]},
+                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
+            ],
+            "source_tables": ["BSAK"]
+        },
+        {
+            "link_name": "LINK_INVOICE_LINE_PO_LINE",
+            "entity_name": "INVOICE_LINE_PO_LINE",
+            "hub_references": [
+                {"hub_name": "HUB_INVOICE_LINE", "columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"]},
+                {"hub_name": "HUB_PO_LINE", "columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"]}
+            ],
+            "source_tables": ["RSEG"]
+        },
+        {
+            "link_name": "LINK_INVOICE_VENDOR",
+            "entity_name": "INVOICE_VENDOR",
+            "hub_references": [
+                {"hub_name": "HUB_INVOICE", "columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"]},
+                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
+            ],
+            "source_tables": ["RBKP"]
+        },
+        {
+            "link_name": "LINK_MAT_DOC_LINE_PO_LINE",
+            "entity_name": "MAT_DOC_LINE_PO_LINE",
+            "hub_references": [
+                {"hub_name": "HUB_MAT_DOC_LINE", "columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"]},
+                {"hub_name": "HUB_PO_LINE", "columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"]}
+            ],
+            "source_tables": ["MSEG"]
+        },
+        {
+            "link_name": "LINK_VENDOR_COMPANY_CODE",
+            "entity_name": "VENDOR_COMPANY_CODE",
+            "hub_references": [
+                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]},
+                {"hub_name": "HUB_COMPANY_CODE", "columns": ["COMPANY_CODE"]}
+            ],
+            "source_tables": ["LFB1"]
+        }
+    ],
+    "satellites": [
+        {
+            "sat_name": "SAT_ACCOUNTING_DOC_BKPF",
+            "hub_name": "HUB_ACCOUNTING_DOC",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR"],
+            "attributes": [
+                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "FISCAL_PERIOD",
+                "ENTERED_ON", "ENTERED_AT", "USER_NAME", "TRANSACTION_CODE",
+                "REFERENCE_DOC_NUMBER", "HEADER_TEXT", "CURRENCY", "EXCHANGE_RATE",
+                "EXCHANGE_RATE_DATE", "REFERENCE_PROCESS", "REFERENCE_KEY"
+            ],
+            "source_table": "BKPF"
+        },
+        {
+            "sat_name": "SAT_ACCT_DOC_LINE_BSEG",
+            "hub_name": "HUB_ACCT_DOC_LINE",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
+            "attributes": [
+                "POSTING_KEY", "ACCOUNT_TYPE", "DEBIT_CREDIT", "AMOUNT_LOCAL", "AMOUNT_DOC",
+                "TAX_CODE", "TAX_AMOUNT", "TAX_JURISDICTION", "ASSIGNMENT_NUMBER", "LINE_TEXT",
+                "COST_CENTER", "ORDER_NUMBER", "PROJECT_NUMBER", "GL_ACCOUNT", "CUSTOMER_NUMBER",
+                "VENDOR_NUMBER", "MATERIAL_NUMBER", "PLANT", "QUANTITY", "BASE_UOM",
+                "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT", "BASELINE_DATE",
+                "PAYMENT_TERMS", "CASH_DISC_DAYS1", "CASH_DISC_DAYS2", "CASH_DISC_DAYS3",
+                "CASH_DISC_BASE", "CASH_DISC_AMOUNT", "CASH_DISC_AMOUNT_DOC", "PAYMENT_METHOD",
+                "PAYMENT_BLOCK", "PAYMENT_TERMS_FIXED", "CLEARING_DATE", "CLEARING_DOC", "CLEARING_PERIOD"
+            ],
+            "source_table": "BSEG"
+        },
+        {
+            "sat_name": "SAT_CLEARED_ITEM_BSAK",
+            "hub_name": "HUB_CLEARED_ITEM",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
+            "attributes": [
+                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "FISCAL_PERIOD", "ENTERED_ON",
+                "CURRENCY", "AMOUNT_LOCAL", "AMOUNT_DOC", "DEBIT_CREDIT", "CLEARING_DATE",
+                "CLEARING_DOC", "ASSIGNMENT_NUMBER", "LINE_TEXT", "BASELINE_DATE", "PAYMENT_TERMS",
+                "CASH_DISC_DAYS1", "CASH_DISC_DAYS2", "CASH_DISC_DAYS3", "CASH_DISC_BASE",
+                "CASH_DISC_AMOUNT", "CASH_DISC_AMOUNT_DOC"
+            ],
+            "source_table": "BSAK"
+        },
+        {
+            "sat_name": "SAT_COMPANY_T001",
+            "hub_name": "HUB_COMPANY_CODE",
+            "hub_key_columns": ["COMPANY_CODE"],
+            "attributes": [
+                "COMPANY_NAME", "COMPANY_CITY", "COMPANY_COUNTRY", "COMPANY_CURRENCY",
+                "COMPANY_LANG", "COMPANY_ADDR", "COMPANY_VAT", "CHART_OF_ACCOUNTS"
+            ],
+            "source_table": "T001"
+        },
+        {
+            "sat_name": "SAT_INVOICE_RBKP",
+            "hub_name": "HUB_INVOICE",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
+            "attributes": [
+                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "ENTERED_ON", "ENTERED_AT",
+                "USER_NAME", "TRANSACTION_CODE", "REFERENCE_DOC_NUMBER", "VENDOR_NUMBER",
+                "CURRENCY", "EXCHANGE_RATE", "TAX_AMOUNT_1", "AMOUNT_INV_DOC", "NON_DEDUCTIBLE_TAX",
+                "TAX_CODE_1", "PLANT_INVOICE", "HEADER_DATA", "PAYMENT_TERMS", "BASELINE_DATE",
+                "PAYMENT_METHOD", "PAYMENT_BLOCK", "PAYMENT_TERMS_FIXED", "INVOICE_TYPE",
+                "FINAL_INVOICE", "REVERSAL_DOC", "REVERSAL_YEAR", "INVOICE_CATEGORY", "ENTERED_BY"
+            ],
+            "source_table": "RBKP"
+        },
+        {
+            "sat_name": "SAT_INVOICE_LINE_RSEG",
+            "hub_name": "HUB_INVOICE_LINE",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"],
+            "attributes": [
+                "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT", "MATERIAL_NUMBER",
+                "PLANT", "QUANTITY", "BASE_UOM", "INVOICE_QTY", "INV_UOM", "NET_VALUE",
+                "CURRENCY", "TAX_CODE", "TAX_JURISDICTION", "ORDER_UNIT", "PO_ITEM",
+                "DEBIT_CREDIT", "CONDITION_TYPE", "VALUATION_TYPE", "VALUATION_AREA",
+                "REFERENCE_DOC_NUMBER", "LINE_TEXT", "COMPANY_CODE", "DELIVERY_NOTE",
+                "DELIVERY_YEAR", "DELIVERY_ITEM"
+            ],
+            "source_table": "RSEG"
+        },
+        {
+            "sat_name": "SAT_MATERIAL_DOC_MKPF",
+            "hub_name": "HUB_MATERIAL_DOC",
+            "hub_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR"],
+            "attributes": [
+                "DOCUMENT_DATE", "POSTING_DATE", "ENTERED_ON", "ENTERED_AT", "USER_NAME",
+                "TRANSACTION_CODE", "REFERENCE_DOC_NUMBER", "HEADER_TEXT", "MOVEMENT_TYPE_GROUP",
+                "DOCUMENT_TYPE", "DOCUMENT_TYPE_MAT", "SP_SESSION"
+            ],
+            "source_table": "MKPF"
+        },
+        {
+            "sat_name": "SAT_MAT_DOC_LINE_MSEG",
+            "hub_name": "HUB_MAT_DOC_LINE",
+            "hub_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"],
+            "attributes": [
+                "MOVE_TYPE", "MATERIAL_NUMBER", "PLANT", "STORAGE_LOCATION", "BATCH_NUMBER",
+                "DEBIT_CREDIT", "QUANTITY", "BASE_UOM", "AMOUNT_LOCAL", "CURRENCY",
+                "COMPANY_CODE", "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT",
+                "VENDOR_NUMBER", "SPECIAL_STOCK", "STOCK_MOVEMENT", "RECEIPT_INDICATOR",
+                "CONSUMPTION_IND", "COST_CENTER", "ORDER_NUMBER", "RESERVATION_NUMBER", "RESERVATION_ITEM"
+            ],
+            "source_table": "MSEG"
+        },
+        {
+            "sat_name": "SAT_PAYMENT_TERMS_T052",
+            "hub_name": "HUB_PAYMENT_TERMS",
+            "hub_key_columns": ["PAYMENT_TERMS"],
+            "attributes": ["DAY_LIMIT", "DAY1", "DAY2", "DAY3", "PERCENT1", "PERCENT2", "PERCENT3", "Z_SESSION"],
+            "source_table": "T052"
+        },
+        {
+            "sat_name": "SAT_PLANT_T001W",
+            "hub_name": "HUB_PLANT",
+            "hub_key_columns": ["PLANT"],
+            "attributes": [
+                "PLANT_NAME1", "PLANT_NAME2", "PLANT_STREET", "PLANT_CITY", "PLANT_POSTAL",
+                "PLANT_COUNTRY", "PLANT_REGION", "PLANT_COMPANY", "PLANT_CUSTOMER", "PLANT_VENDOR",
+                "FACTORY_CALENDAR", "PLANT_TAX_JUR", "PLANNING_PLANT", "BRAZIL_DUMMY"
+            ],
+            "source_table": "T001W"
+        },
+        {
+            "sat_name": "SAT_PO_HEADER_EKKO",
+            "hub_name": "HUB_PURCHASE_ORDER",
+            "hub_key_columns": ["PURCHASE_DOC"],
+            "attributes": [
+                "COMPANY_CODE", "PO_CATEGORY", "PO_TYPE", "LO_SESSION", "PO_STATUS",
+                "CHANGED_ON", "CREATED_BY", "INCOTERMS", "LAST_PO_NUMBER", "VENDOR_NUMBER",
+                "PAYMENT_TERMS", "PURCHASING_ORG", "PURCHASING_GROUP", "CURRENCY", "PO_DATE",
+                "VALID_FROM", "VALID_TO", "SUBMISSION_DATE", "WARRANTY_DATE", "INHOUSE_PROC_TIME",
+                "SALES_PERSON", "PO_PHONE", "FIXED_VENDOR", "CUSTOMER_PO", "EXCHANGE_RATE_PO",
+                "RATE_FIXED", "BE_SESSION", "FE_SESSION", "PO_VAT_REG", "PO_VAT_REG_LONG",
+                "RELEASE_GROUP", "ADDRESS_NUMBER_PO", "CONTRACT_NUMBER", "MEMORY", "PROCESSING_STATUS",
+                "RELEASE_VALUE", "REVISION_LEVEL", "SCM_PROCESS", "REASON_CODE", "MEM_SESSION",
+                "RET_SESSION", "DP_SESSION", "M_SESSION", "RELEASE_GROUP_GR", "RELEASE_STRATEGY",
+                "RELEASE_CODE", "RELEASE_STATUS", "AUT_SESSION"
+            ],
+            "source_table": "EKKO"
+        },
+        {
+            "sat_name": "SAT_PO_LINE_EKPO",
+            "hub_name": "HUB_PO_LINE",
+            "hub_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
+            "attributes": [
+                "LO_SESSION", "PO_STATUS", "CHANGED_ON", "SHORT_TEXT", "MATERIAL_NUMBER",
+                "MATERIAL_NUMBER_OLD", "COMPANY_CODE", "PLANT", "STORAGE_LOCATION", "REQUISITION_NUMBER",
+                "MATERIAL_GROUP", "INFO_RECORD", "VENDOR_MATERIAL", "TARGET_QTY", "QUANTITY",
+                "BASE_UOM", "ORDER_UOM", "ORDER_UOM_NUM", "ORDER_UOM_DEN", "NET_PRICE",
+                "PRICE_UNIT", "NET_VALUE", "REGULATION_DATE", "GOODS_RECEIPT_DAYS", "TAX_CODE",
+                "BONUS_GRP", "INSPECTION_SUFFIX", "SP_INF", "PRICE_PRINTER", "SCH_PR",
+                "DUNNING_COUNTER", "DUNNING_LEVEL1", "DUNNING_LEVEL2", "DUNNING_LEVEL3",
+                "ORDER_ACKNOWLEDGEMENT", "LA_SESSION", "VR_SESSION", "PLANT_INDICATOR",
+                "GOODS_RECEIPT", "UNLIMITED_GR", "INVOICE_RECEIPT", "GR_BASED_IV", "SUB_IND1",
+                "SUB_IND2", "SUB_IND3", "SUB_IND4", "SUB_IND5", "SUB_IND6", "CONF_CONTROL",
+                "MF_SESSION", "FF_SESSION", "AF_SESSION", "SUPERIOR_ITEM", "SUPERIOR_DOC",
+                "SUPERIOR_DOC_ITEM", "ERS", "ERS_FLAG", "RETURNS_ITEM", "SERIAL_NUMBER_PROFILE",
+                "SHIP_TO_VENDOR", "SUPPLIER_SUBSET"
+            ],
+            "source_table": "EKPO"
+        },
+        {
+            "sat_name": "SAT_PO_SCHEDULE_EKET",
+            "hub_name": "HUB_PO_LINE",
+            "hub_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
+            "attributes": [
+                "SCHEDULE_LINE", "DELIVERY_DATE", "CRITICAL_DATE", "CATEGORY", "QUANTITY",
+                "TARGET_QTY_SCHED", "GR_QTY", "GR_QTY_SCHED", "DGR_QTY", "TAX_LOCATION",
+                "NET_VALUE", "PURCHASE_REQ", "PR_ITEM", "E_SESSION_SCH", "A_SESSION_SCH"
+            ],
+            "source_table": "EKET"
+        },
+        {
+            "sat_name": "SAT_REGION_T005U",
+            "hub_name": "HUB_COMPANY_CODE",
+            "hub_key_columns": ["COMPANY_CODE"],
+            "attributes": ["LANGUAGE_KEY", "COUNTRY_KEY", "REGION_CODE", "REGION_NAME"],
+            "source_table": "T005U"
+        },
+        {
+            "sat_name": "SAT_VENDOR_LFA1",
+            "hub_name": "HUB_VENDOR",
+            "hub_key_columns": ["VENDOR_NUMBER"],
+            "attributes": [
+                "NAME1", "NAME2", "NAME3", "NAME4", "STREET_ADDRESS", "CITY", "POSTAL_CODE",
+                "COUNTRY_KEY", "REGION", "PHONE1", "PHONE2", "FAX", "TAX_NUMBER1", "TAX_NUMBER2",
+                "LANGUAGE_KEY", "INDUSTRY_KEY", "VENDOR_ACCOUNT_GROUP", "DELETION_FLAG",
+                "BLOCKING_FLAG", "ORDER_BLOCK", "DELIVERY_BLOCK", "E_SESSION", "BIRTH_PLACE",
+                "BANK_ACCOUNT", "BANK_ACCOUNT_TYPE", "ADDRESS_NUMBER"
+            ],
+            "source_table": "LFA1"
+        },
+        {
+            "sat_name": "SAT_VENDOR_BKP_LFA1",
+            "hub_name": "HUB_VENDOR",
+            "hub_key_columns": ["VENDOR_NUMBER"],
+            "attributes": ["NAME1", "NAME2", "NAME3", "NAME4", "STREET_ADDRESS", "CITY", "POSTAL_CODE", "COUNTRY_KEY", "REGION"],
+            "source_table": "BKP_LFA1"
+        },
+        {
+            "sat_name": "SAT_VENDOR_LFB1",
+            "hub_name": "HUB_VENDOR",
+            "hub_key_columns": ["VENDOR_NUMBER"],
+            "attributes": [
+                "COMPANY_CODE", "PERSONNEL_NUMBER", "CREATED_BY", "CREATED_ON", "A_SESSION",
+                "DELETION_FLAG", "BLOCKING_FLAG", "ZU_SESSION", "AUTHORIZATION_GROUP",
+                "PAYMENT_TERMS", "PAYMENT_METHOD", "X_SESSION", "ALTERNATIVE_PAYEE",
+                "BANK_ACCOUNT_KEY", "HEADQUARTERS_BANK", "X_INVE", "HE_SESSION", "AL_SESSION",
+                "KR_SESSION", "Q_SESSION", "WITHHOLDING_TAX_NUMBER", "WITHHOLDING_TAX_DATE",
+                "W_SESSION", "CE_SESSION"
+            ],
+            "source_table": "LFB1"
+        },
+        {
+            "sat_name": "SAT_INVOICE_STATUS_LOG",
+            "hub_name": "HUB_INVOICE",
+            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
+            "attributes": ["STATUS", "EFFECTIVE_DATE", "SEQUENCE_NBR", "STATUS_NOTES", "CREATED_BY", "CREATED_AT"],
+            "source_table": "INVOICE_STATUS_LOG"
+        }
+    ]
+}
+
+# --------------------------------------------------------------
+# Helper Functions
+# --------------------------------------------------------------
+def rename_columns_german_to_english(df):
+    """Rename all columns from German to English using the global mapping."""
+    for german, english in GERMAN_TO_ENGLISH.items():
+        if german in df.columns:
+            df = df.withColumnRenamed(german, english)
+    return df
+
+def find_column(df, col_name):
+    """Case-insensitive column lookup (English names are already uppercase)."""
+    for c in df.columns:
+        if c.upper() == col_name.upper():
+            return c
+    return None
+
+def get_existing_columns(df, columns):
+    """Return list of columns that exist in the DataFrame (English names)."""
+    existing = []
+    for c in columns:
+        found = find_column(df, c)
+        if found:
+            existing.append(found)
+    return existing
+
+def write_to_s3(df, s3_path, mode="overwrite"):
+    """Write DataFrame to S3 as Parquet. If df is empty, create an empty file with correct schema."""
+    full_path = f"s3://{raw_vault_bucket}/{s3_path}"
+    if df.rdd.isEmpty():
+        # Write empty DataFrame with the current schema
+        logger.warning(f"No data for {s3_path}, writing empty DataFrame with schema.")
+        df.write.mode(mode).parquet(full_path)
+    else:
+        df.write.mode(mode).parquet(full_path)
+    logger.info(f"Written {df.count()} rows to {full_path}")
+
+def read_bronze_table(table_name):
+    """Read a table from bronze database and rename columns to English."""
+    try:
+        df = spark.table(f"{bronze_db}.{table_name.lower()}")
+        df = rename_columns_german_to_english(df)
+        logger.info(f"Read table {table_name} with {len(df.columns)} columns (renamed to English).")
+        return df
+    except Exception as e:
+        logger.warning(f"Could not read table {table_name}: {e}")
+        return None
+
+def generate_hash_key(df, columns, key_name):
+    """Generate SHA-256 hash key from a list of columns."""
+    existing_cols = get_existing_columns(df, columns)
+    if not existing_cols:
+        return None
+    concat_expr = concat_ws("||", *[coalesce(col(c).cast(StringType()), lit("")) for c in existing_cols])
+    return df.withColumn(key_name, sha2(concat_expr, 256))
+
+def create_empty_hub(hub, hub_hash_key_name):
+    """Create an empty DataFrame with the required HUB schema."""
+    bk_cols = hub["business_key_columns"]
+    schema_cols = bk_cols + [hub_hash_key_name, "BUSINESS_KEY", "LOAD_DTS", "RECORD_SOURCE"]
+    empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
+    return empty_df
+
+def create_empty_link(link, link_hash_key_name, hub_hash_key_names):
+    """Create an empty DataFrame with the required LINK schema."""
+    schema_cols = [link_hash_key_name] + hub_hash_key_names + ["LOAD_DTS", "RECORD_SOURCE"]
+    empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
+    return empty_df
+
+def create_empty_satellite(sat, hub_hash_key_name, attributes):
+    """Create an empty DataFrame with the required SATELLITE schema."""
+    schema_cols = [hub_hash_key_name] + attributes + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE"]
+    empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
+    return empty_df
+
+# --------------------------------------------------------------
+# Create HUB Tables
+# --------------------------------------------------------------
+def create_hubs():
+    logger.info("=" * 60)
+    logger.info("Creating HUB Tables")
+    logger.info("=" * 60)
+
+    hub_dataframes = {}
+
+    for hub in VAULT_MODEL["hubs"]:
+        hub_name = hub["hub_name"]
+        entity_name = hub["entity_name"]
+        bk_columns = hub["business_key_columns"]
+        source_tables = hub["source_tables"]
+        hub_hash_key_name = f"{entity_name}_HK"
+
+        logger.info(f"Building HUB: {hub_name} (HK: {hub_hash_key_name})")
+
+        hub_dfs = []
+        for src_table in source_tables:
+            src_df = read_bronze_table(src_table)
+            if src_df is None:
+                continue
+
+            existing_bk = get_existing_columns(src_df, bk_columns)
+            if not existing_bk:
+                logger.warning(f"No business key columns found in {src_table} for {hub_name}")
+                continue
+
+            # Select business key columns
+            key_df = src_df.select(*[col(c) for c in existing_bk]).distinct()
+
+            # Generate hash key
+            key_df = generate_hash_key(key_df, existing_bk, hub_hash_key_name)
+            if key_df is None:
+                continue
+
+            key_df = key_df.withColumn("LOAD_DTS", current_timestamp())
+            key_df = key_df.withColumn("RECORD_SOURCE", lit(src_table))
+            # Create business_key for debugging (concatenated string)
+            key_df = key_df.withColumn("BUSINESS_KEY", concat_ws("|", *[col(c) for c in existing_bk]))
+
+            hub_dfs.append(key_df)
+
+        if not hub_dfs:
+            logger.warning(f"No data for HUB {hub_name}, creating empty DataFrame.")
+            hub_df = create_empty_hub(hub, hub_hash_key_name)
+        else:
+            hub_df = hub_dfs[0]
+            for df in hub_dfs[1:]:
+                hub_df = hub_df.unionByName(df, allowMissingColumns=True)
+            hub_df = hub_df.dropDuplicates([hub_hash_key_name])
+
+        write_to_s3(hub_df, f"{hub_path}/{hub_name}")
+        hub_dataframes[hub_name] = f"s3://{raw_vault_bucket}/{hub_path}/{hub_name}"
+
+    return hub_dataframes
+
+# --------------------------------------------------------------
+# Create SATELLITE Tables
+# --------------------------------------------------------------
+def create_satellites(hub_paths):
+    logger.info("=" * 60)
+    logger.info("Creating SATELLITE Tables")
+    logger.info("=" * 60)
+
+    for sat in VAULT_MODEL["satellites"]:
+        sat_name = sat["sat_name"]
+        hub_name = sat["hub_name"]
+        hub_key_columns = sat["hub_key_columns"]
+        attributes = sat["attributes"]
+        source_table = sat["source_table"]
+
+        # Find the corresponding hub to get the correct HK column name
+        hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == hub_name), None)
+        if hub_def is None:
+            logger.error(f"Hub {hub_name} not found for satellite {sat_name}, skipping.")
+            continue
+        hub_hash_key_name = f"{hub_def['entity_name']}_HK"
+
+        logger.info(f"Building SATELLITE: {sat_name} (HK: {hub_hash_key_name})")
+
+        src_df = read_bronze_table(source_table)
+        if src_df is None:
+            logger.warning(f"Source table {source_table} missing for satellite {sat_name}, creating empty DataFrame.")
+            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            write_to_s3(sat_df, f"{sat_path}/{sat_name}")
+            continue
+
+        # Get existing hub key columns (in English)
+        existing_hub_keys = get_existing_columns(src_df, hub_key_columns)
+        existing_attrs = get_existing_columns(src_df, attributes)
+
+        if not existing_hub_keys:
+            logger.warning(f"Hub key columns {hub_key_columns} not found in {source_table}, creating empty satellite.")
+            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            write_to_s3(sat_df, f"{sat_path}/{sat_name}")
+            continue
+
+        # Generate hub hash key
+        sat_df = generate_hash_key(src_df, existing_hub_keys, hub_hash_key_name)
+        if sat_df is None:
+            logger.warning(f"Could not generate HK for {sat_name}, creating empty.")
+            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            write_to_s3(sat_df, f"{sat_path}/{sat_name}")
+            continue
+
+        # Generate hash_diff if there are attributes
+        if existing_attrs:
+            attr_concat = concat_ws("||", *[coalesce(col(c).cast(StringType()), lit("")) for c in existing_attrs])
+            sat_df = sat_df.withColumn("HASH_DIFF", sha2(attr_concat, 256))
+        else:
+            sat_df = sat_df.withColumn("HASH_DIFF", lit(None).cast(StringType()))
+
+        sat_df = sat_df.withColumn("LOAD_DTS", current_timestamp())
+        sat_df = sat_df.withColumn("RECORD_SOURCE", lit(source_table))
+
+        # Select final columns
+        select_cols = [hub_hash_key_name] + existing_attrs + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE"]
+        sat_df = sat_df.select(*select_cols).distinct()
+
+        write_to_s3(sat_df, f"{sat_path}/{sat_name}")
+
+# --------------------------------------------------------------
+# Create LINK Tables
+# --------------------------------------------------------------
+def create_links(hub_paths):
+    logger.info("=" * 60)
+    logger.info("Creating LINK Tables")
+    logger.info("=" * 60)
+
+    for link in VAULT_MODEL["links"]:
+        link_name = link["link_name"]
+        entity_name = link["entity_name"]
+        hub_references = link["hub_references"]
+        source_tables = link["source_tables"]
+        link_hash_key_name = f"LINK_{entity_name}_HK"
+
+        logger.info(f"Building LINK: {link_name} (HK: {link_hash_key_name})")
+
+        link_dfs = []
+        for src_table in source_tables:
+            src_df = read_bronze_table(src_table)
+            if src_df is None:
+                continue
+
+            current_df = src_df
+            hub_hash_key_names = []
+            valid = True
+
+            for ref in hub_references:
+                hub_name = ref["hub_name"]
+                ref_columns = ref["columns"]
+
+                # Find hub definition to get the correct HK column name
+                hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == hub_name), None)
+                if hub_def is None:
+                    logger.error(f"Hub {hub_name} not found for link {link_name}, skipping source {src_table}")
+                    valid = False
+                    break
+                target_hk_name = f"{hub_def['entity_name']}_HK"
+
+                existing_cols = get_existing_columns(current_df, ref_columns)
+                if not existing_cols:
+                    logger.warning(f"Columns {ref_columns} not found in {src_table} for link {link_name}")
+                    valid = False
+                    break
+
+                # Generate the hub hash key column with the correct name
+                current_df = generate_hash_key(current_df, existing_cols, target_hk_name)
+                if current_df is None:
+                    valid = False
+                    break
+                hub_hash_key_names.append(target_hk_name)
+
+            if not valid:
+                continue
+
+            # Generate link hash key from all hub hash keys
+            link_concat = concat_ws("||", *[col(hk) for hk in hub_hash_key_names])
+            current_df = current_df.withColumn(link_hash_key_name, sha2(link_concat, 256))
+
+            current_df = current_df.withColumn("LOAD_DTS", current_timestamp())
+            current_df = current_df.withColumn("RECORD_SOURCE", lit(src_table))
+
+            select_cols = [link_hash_key_name] + hub_hash_key_names + ["LOAD_DTS", "RECORD_SOURCE"]
+            current_df = current_df.select(*select_cols).distinct()
+
+            link_dfs.append(current_df)
+
+        if not link_dfs:
+            logger.warning(f"No data for LINK {link_name}, creating empty DataFrame.")
+            # Build empty schema for this link
+            hub_hk_names = []
+            for ref in hub_references:
+                hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == ref["hub_name"]), None)
+                if hub_def:
+                    hub_hk_names.append(f"{hub_def['entity_name']}_HK")
+            link_df = create_empty_link(link, link_hash_key_name, hub_hk_names)
+        else:
+            link_df = link_dfs[0]
+            for df in link_dfs[1:]:
+                link_df = link_df.unionByName(df, allowMissingColumns=True)
+            link_df = link_df.dropDuplicates([link_hash_key_name])
+
+        write_to_s3(link_df, f"{link_path}/{link_name}")
+
+# --------------------------------------------------------------
+# Main Execution
+# --------------------------------------------------------------
+def main():
+    logger.info("Starting Silver Layer (Raw Vault) Job with English column names")
+    logger.info("=" * 60)
+
+    # Create HUBs first
+    hub_paths = create_hubs()
+
+    # Create SATELLITEs
+    create_satellites(hub_paths)
+
+    # Create LINKs
+    create_links(hub_paths)
+
+    logger.info("=" * 60)
+    logger.info("Silver Layer (Raw Vault) Job Completed Successfully - all 37 tables created")
+
+if __name__ == "__main__":
+    main()
+    job.commit()
