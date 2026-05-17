@@ -1,5 +1,1085 @@
+There are older events to load. 
+Load more.
+2026-05-15T10:10:31.435Z
+INFO	2026-05-15T10:10:31,435	10151	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 2, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+
+INFO 2026-05-15T10:10:31,435 10151 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 2, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+2026-05-15T10:10:31.436Z
+INFO	2026-05-15T10:10:31,436	10152	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	creating executor task for executor 2; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_2_a_spark-application-1778839830286_p_1
+
+INFO 2026-05-15T10:10:31,436 10152 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 creating executor task for executor 2; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_2_a_spark-application-1778839830286_p_1
+2026-05-15T10:10:31.436Z
+INFO	2026-05-15T10:10:31,436	10152	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	Sending request to JES
+
+INFO 2026-05-15T10:10:31,436 10152 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 Sending request to JES
+2026-05-15T10:10:31.751Z
+INFO	2026-05-15T10:10:31,751	10467	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	createChildTask API response code 200
+
+INFO 2026-05-15T10:10:31,751 10467 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 createChildTask API response code 200
+2026-05-15T10:10:31.751Z
+INFO	2026-05-15T10:10:31,751	10467	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	executor task g-c516b70b4e18473feebc4b0468b6071bcc0cfd4a created for executor 2 in resource profile 0
+
+INFO 2026-05-15T10:10:31,751 10467 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 executor task g-c516b70b4e18473feebc4b0468b6071bcc0cfd4a created for executor 2 in resource profile 0
+2026-05-15T10:10:31.752Z
+INFO	2026-05-15T10:10:31,751	10467	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[executorAllocator]	60	Creating executors task for application spark-application-1778839830286 with resource profile 0
+
+INFO 2026-05-15T10:10:31,751 10467 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [executorAllocator] 60 Creating executors task for application spark-application-1778839830286 with resource profile 0
+2026-05-15T10:10:31.752Z
+INFO	2026-05-15T10:10:31,752	10468	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 3, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+
+INFO 2026-05-15T10:10:31,752 10468 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 3, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+2026-05-15T10:10:31.753Z
+INFO	2026-05-15T10:10:31,753	10469	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	creating executor task for executor 3; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_3_a_spark-application-1778839830286_p_1
+
+INFO 2026-05-15T10:10:31,753 10469 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 creating executor task for executor 3; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_3_a_spark-application-1778839830286_p_1
+2026-05-15T10:10:31.753Z
+INFO	2026-05-15T10:10:31,753	10469	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	Sending request to JES
+
+INFO 2026-05-15T10:10:31,753 10469 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 Sending request to JES
+2026-05-15T10:10:31.889Z
+INFO	2026-05-15T10:10:31,889	10605	com.amazonaws.services.glue.GlueContext	[Thread-10]	121	GlueMetrics configured and enabled
+
+INFO 2026-05-15T10:10:31,889 10605 com.amazonaws.services.glue.GlueContext [Thread-10] 121 GlueMetrics configured and enabled
+2026-05-15T10:10:31.891Z
+INFO	2026-05-15T10:10:31,891	10607	org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener	[Thread-10]	28	ThroughputMetricsSource is initiated
+
+INFO 2026-05-15T10:10:31,891 10607 org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener [Thread-10] 28 ThroughputMetricsSource is initiated
+2026-05-15T10:10:31.892Z
+INFO	2026-05-15T10:10:31,892	10608	org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener	[Thread-10]	53	ResourceUtilizationMetricsSource is initiated
+
+INFO 2026-05-15T10:10:31,892 10608 org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener [Thread-10] 53 ResourceUtilizationMetricsSource is initiated
+2026-05-15T10:10:31.894Z
+INFO	2026-05-15T10:10:31,893	10609	org.apache.spark.metrics.source.StageSkewness	[Thread-10]	29	[Observability] Skewness metric using Skewness Factor = 5
+
+INFO 2026-05-15T10:10:31,893 10609 org.apache.spark.metrics.source.StageSkewness [Thread-10] 29 [Observability] Skewness metric using Skewness Factor = 5
+2026-05-15T10:10:31.894Z
+INFO	2026-05-15T10:10:31,894	10610	org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener	[Thread-10]	68	PerformanceMetricsSource is initiated
+
+INFO 2026-05-15T10:10:31,894 10610 org.apache.spark.metrics.source.ObservabilityTaskInfoRecorderListener [Thread-10] 68 PerformanceMetricsSource is initiated
+2026-05-15T10:10:31.895Z
+INFO	2026-05-15T10:10:31,895	10611	com.amazonaws.services.glue.GlueContext	[Thread-10]	129	ObservabilityMetrics configured and enabled
+
+INFO 2026-05-15T10:10:31,895 10611 com.amazonaws.services.glue.GlueContext [Thread-10] 129 ObservabilityMetrics configured and enabled
+2026-05-15T10:10:31.918Z
+INFO	2026-05-15T10:10:31,917	10633	com.amazonaws.services.glue.util.Job$	[Thread-10]	94	runId Method is Invoked 
+
+INFO 2026-05-15T10:10:31,917 10633 com.amazonaws.services.glue.util.Job$ [Thread-10] 94 runId Method is Invoked
+2026-05-15T10:10:31.918Z
+INFO	2026-05-15T10:10:31,917	10633	com.amazonaws.services.glue.util.Job$	[Thread-10]	103	Job run ID under runId method is jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791 
+
+INFO 2026-05-15T10:10:31,917 10633 com.amazonaws.services.glue.util.Job$ [Thread-10] 103 Job run ID under runId method is jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791
+2026-05-15T10:10:31.922Z
+INFO	2026-05-15T10:10:31,922	10638	org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping	[Thread-10]	220	Mapping EMRFS config fs.s3.buffer.dir to S3A config fs.s3a.buffer.dir
+
+INFO 2026-05-15T10:10:31,922 10638 org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping [Thread-10] 220 Mapping EMRFS config fs.s3.buffer.dir to S3A config fs.s3a.buffer.dir
+2026-05-15T10:10:31.939Z
+INFO	2026-05-15T10:10:31,922	10638	org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping	[Thread-10]	232	Mapping EMRFS config fs.s3.maxConnections to S3A config fs.s3a.connection.maximum
+
+INFO 2026-05-15T10:10:31,922 10638 org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping [Thread-10] 232 Mapping EMRFS config fs.s3.maxConnections to S3A config fs.s3a.connection.maximum
+2026-05-15T10:10:31.939Z
+INFO	2026-05-15T10:10:31,934	10650	com.amazonaws.services.glue.util.FileListPersistence	[Thread-10]	37	create FileListPersistence with conf: fs.s3.serverSideEncryption.kms.keyId: None
+
+INFO 2026-05-15T10:10:31,934 10650 com.amazonaws.services.glue.util.FileListPersistence [Thread-10] 37 create FileListPersistence with conf: fs.s3.serverSideEncryption.kms.keyId: None
+2026-05-15T10:10:31.939Z
+INFO	2026-05-15T10:10:31,936	10652	com.amazonaws.services.glue.utils.EndpointConfig$	[Thread-10]	34	 STAGE is prod
+
+INFO 2026-05-15T10:10:31,936 10652 com.amazonaws.services.glue.utils.EndpointConfig$ [Thread-10] 34 STAGE is prod
+2026-05-15T10:10:31.939Z
+INFO	2026-05-15T10:10:31,936	10652	com.amazonaws.services.glue.utils.EndpointConfig$	[Thread-10]	88	Endpoints: {credentials_provider=com.amazonaws.auth.DefaultAWSCredentialsProviderChain, glue.endpoint=https://glue.us-east-1.amazonaws.com, lakeformation.endpoint=https://lakeformation.us-east-1.amazonaws.com, jes.endpoint=https://glue-jes-prod.us-east-1.amazonaws.com, region=us-east-1}
+
+INFO 2026-05-15T10:10:31,936 10652 com.amazonaws.services.glue.utils.EndpointConfig$ [Thread-10] 88 Endpoints: {credentials_provider=com.amazonaws.auth.DefaultAWSCredentialsProviderChain, glue.endpoint=https://glue.us-east-1.amazonaws.com, lakeformation.endpoint=https://lakeformation.us-east-1.amazonaws.com, jes.endpoint=https://glue-jes-prod.us-east-1.amazonaws.com, region=us-east-1}
+2026-05-15T10:10:31.957Z
+INFO	2026-05-15T10:10:31,957	10673	com.amazonaws.services.glue.util.AvroReaderUtil$	[Thread-10]	245	Creating default Avro field parser for version 1.7.
+
+INFO 2026-05-15T10:10:31,957 10673 com.amazonaws.services.glue.util.AvroReaderUtil$ [Thread-10] 245 Creating default Avro field parser for version 1.7.
+2026-05-15T10:10:32.034Z
+INFO	2026-05-15T10:10:32,031	10747	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	createChildTask API response code 200
+
+INFO 2026-05-15T10:10:32,031 10747 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 createChildTask API response code 200
+2026-05-15T10:10:32.034Z
+INFO	2026-05-15T10:10:32,033	10749	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	executor task g-4da19d7634e2eda6b8c67f769bc745b4811996e8 created for executor 3 in resource profile 0
+
+INFO 2026-05-15T10:10:32,033 10749 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 executor task g-4da19d7634e2eda6b8c67f769bc745b4811996e8 created for executor 3 in resource profile 0
+2026-05-15T10:10:32.034Z
+INFO	2026-05-15T10:10:32,034	10750	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[executorAllocator]	60	Creating executors task for application spark-application-1778839830286 with resource profile 0
+
+INFO 2026-05-15T10:10:32,034 10750 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [executorAllocator] 60 Creating executors task for application spark-application-1778839830286 with resource profile 0
+2026-05-15T10:10:32.034Z
+INFO	2026-05-15T10:10:32,034	10750	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 4, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+
+INFO 2026-05-15T10:10:32,034 10750 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 Creating new task with arguments List(--driver-url, spark://CoarseGrainedScheduler@172.39.110.164:39197, --executor-id, 4, --app-id, spark-application-1778839830286, --cores, 4, --resourceProfileId, 0)
+2026-05-15T10:10:32.035Z
+INFO	2026-05-15T10:10:32,034	10750	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	creating executor task for executor 4; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_4_a_spark-application-1778839830286_p_1
+
+INFO 2026-05-15T10:10:32,034 10750 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 creating executor task for executor 4; clientToken gr_tg-21b745bf54ceb606fb69f8f3d908e601d4c617fd_e_4_a_spark-application-1778839830286_p_1
+2026-05-15T10:10:32.035Z
+INFO	2026-05-15T10:10:32,035	10751	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	Sending request to JES
+
+INFO 2026-05-15T10:10:32,035 10751 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 Sending request to JES
+2026-05-15T10:10:32.125Z
+INFO	2026-05-15T10:10:32,124	10840	org.apache.spark.storage.memory.MemoryStore	[Thread-10]	60	Block broadcast_0 stored as values in memory (estimated size 243.1 KiB, free 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,124 10840 org.apache.spark.storage.memory.MemoryStore [Thread-10] 60 Block broadcast_0 stored as values in memory (estimated size 243.1 KiB, free 5.8 GiB)
+2026-05-15T10:10:32.200Z
+INFO	2026-05-15T10:10:32,200	10916	org.apache.spark.storage.memory.MemoryStore	[Thread-10]	60	Block broadcast_0_piece0 stored as bytes in memory (estimated size 40.8 KiB, actual size: 40.8 KiB, free 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,200 10916 org.apache.spark.storage.memory.MemoryStore [Thread-10] 60 Block broadcast_0_piece0 stored as bytes in memory (estimated size 40.8 KiB, actual size: 40.8 KiB, free 5.8 GiB)
+2026-05-15T10:10:32.203Z
+INFO	2026-05-15T10:10:32,202	10918	org.apache.spark.storage.BlockManagerInfo	[dispatcher-BlockManagerMaster]	60	Added broadcast_0_piece0 in memory on 172.39.110.164:38317 (size: 40.8 KiB, free: 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,202 10918 org.apache.spark.storage.BlockManagerInfo [dispatcher-BlockManagerMaster] 60 Added broadcast_0_piece0 in memory on 172.39.110.164:38317 (size: 40.8 KiB, free: 5.8 GiB)
+2026-05-15T10:10:32.209Z
+INFO	2026-05-15T10:10:32,208	10924	org.apache.spark.SparkContext	[Thread-10]	60	Created broadcast 0 from broadcast at DynamoConnection.scala:55
+
+INFO 2026-05-15T10:10:32,208 10924 org.apache.spark.SparkContext [Thread-10] 60 Created broadcast 0 from broadcast at DynamoConnection.scala:55
+2026-05-15T10:10:32.221Z
+INFO	2026-05-15T10:10:32,220	10936	org.apache.spark.storage.memory.MemoryStore	[Thread-10]	60	Block broadcast_1 stored as values in memory (estimated size 243.1 KiB, free 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,220 10936 org.apache.spark.storage.memory.MemoryStore [Thread-10] 60 Block broadcast_1 stored as values in memory (estimated size 243.1 KiB, free 5.8 GiB)
+2026-05-15T10:10:32.240Z
+INFO	2026-05-15T10:10:32,239	10955	org.apache.spark.storage.memory.MemoryStore	[Thread-10]	60	Block broadcast_1_piece0 stored as bytes in memory (estimated size 40.8 KiB, actual size: 40.8 KiB, free 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,239 10955 org.apache.spark.storage.memory.MemoryStore [Thread-10] 60 Block broadcast_1_piece0 stored as bytes in memory (estimated size 40.8 KiB, actual size: 40.8 KiB, free 5.8 GiB)
+2026-05-15T10:10:32.240Z
+INFO	2026-05-15T10:10:32,240	10956	org.apache.spark.storage.BlockManagerInfo	[dispatcher-BlockManagerMaster]	60	Added broadcast_1_piece0 in memory on 172.39.110.164:38317 (size: 40.8 KiB, free: 5.8 GiB)
+
+INFO 2026-05-15T10:10:32,240 10956 org.apache.spark.storage.BlockManagerInfo [dispatcher-BlockManagerMaster] 60 Added broadcast_1_piece0 in memory on 172.39.110.164:38317 (size: 40.8 KiB, free: 5.8 GiB)
+2026-05-15T10:10:32.242Z
+INFO	2026-05-15T10:10:32,242	10958	org.apache.spark.SparkContext	[Thread-10]	60	Created broadcast 1 from broadcast at DynamoConnection.scala:55
+
+INFO 2026-05-15T10:10:32,242 10958 org.apache.spark.SparkContext [Thread-10] 60 Created broadcast 1 from broadcast at DynamoConnection.scala:55
+2026-05-15T10:10:32.243Z
+INFO	2026-05-15T10:10:32,243	10959	org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient	[executorAllocator]	60	createChildTask API response code 200
+
+INFO 2026-05-15T10:10:32,243 10959 org.apache.spark.deploy.glue.client.GlueTaskGroupRMClient [executorAllocator] 60 createChildTask API response code 200
+2026-05-15T10:10:32.260Z
+INFO	2026-05-15T10:10:32,243	10959	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorAllocator]	60	executor task g-74a90f3ede80d4b12e856bd5bf97d66cda321ed8 created for executor 4 in resource profile 0
+
+INFO 2026-05-15T10:10:32,243 10959 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorAllocator] 60 executor task g-74a90f3ede80d4b12e856bd5bf97d66cda321ed8 created for executor 4 in resource profile 0
+2026-05-15T10:10:32.260Z
+INFO	2026-05-15T10:10:32,246	10962	com.amazonaws.services.glue.util.JobBookmark$	[Thread-10]	71	jobbookmark is not enabled, do not init AWSGlueJobBookMarkService
+
+INFO 2026-05-15T10:10:32,246 10962 com.amazonaws.services.glue.util.JobBookmark$ [Thread-10] 71 jobbookmark is not enabled, do not init AWSGlueJobBookMarkService
+2026-05-15T10:10:32.268Z
+INFO	2026-05-15T10:10:32,268	10984	org.apache.spark.sql.internal.SharedState	[Thread-10]	60	spark.sql.warehouse.dir is not set, but hive.metastore.warehouse.dir is set. Setting spark.sql.warehouse.dir to the value of hive.metastore.warehouse.dir.
+
+INFO 2026-05-15T10:10:32,268 10984 org.apache.spark.sql.internal.SharedState [Thread-10] 60 spark.sql.warehouse.dir is not set, but hive.metastore.warehouse.dir is set. Setting spark.sql.warehouse.dir to the value of hive.metastore.warehouse.dir.
+2026-05-15T10:10:32.272Z
+INFO	2026-05-15T10:10:32,272	10988	org.apache.spark.sql.internal.SharedState	[Thread-10]	60	Warehouse path is 'file:/tmp/spark-warehouse'.
+
+INFO 2026-05-15T10:10:32,272 10988 org.apache.spark.sql.internal.SharedState [Thread-10] 60 Warehouse path is 'file:/tmp/spark-warehouse'.
+2026-05-15T10:10:34.711Z
+INFO	2026-05-15T10:10:34,711	13427	org.apache.spark.storage.BlockManagerInfo	[dispatcher-BlockManagerMaster]	60	Removed broadcast_1_piece0 on 172.39.110.164:38317 in memory (size: 40.8 KiB, free: 5.8 GiB)
+
+INFO 2026-05-15T10:10:34,711 13427 org.apache.spark.storage.BlockManagerInfo [dispatcher-BlockManagerMaster] 60 Removed broadcast_1_piece0 on 172.39.110.164:38317 in memory (size: 40.8 KiB, free: 5.8 GiB)
+2026-05-15T10:10:34.721Z
+INFO	2026-05-15T10:10:34,720	13436	org.apache.spark.storage.BlockManagerInfo	[dispatcher-BlockManagerMaster]	60	Removed broadcast_0_piece0 on 172.39.110.164:38317 in memory (size: 40.8 KiB, free: 5.8 GiB)
+
+INFO 2026-05-15T10:10:34,720 13436 org.apache.spark.storage.BlockManagerInfo [dispatcher-BlockManagerMaster] 60 Removed broadcast_0_piece0 on 172.39.110.164:38317 in memory (size: 40.8 KiB, free: 5.8 GiB)
+2026-05-15T10:10:35.351Z
+INFO	2026-05-15T10:10:35,347	14063	org.apache.hadoop.hive.conf.HiveConf	[Thread-10]	187	Found configuration file file:/etc/spark/conf.dist/hive-site.xml
+
+INFO 2026-05-15T10:10:35,347 14063 org.apache.hadoop.hive.conf.HiveConf [Thread-10] 187 Found configuration file file:/etc/spark/conf.dist/hive-site.xml
+2026-05-15T10:10:35.376Z
+INFO	2026-05-15T10:10:35,373	14089	org.apache.spark.sql.hive.HiveUtils	[Thread-10]	60	Initializing HiveMetastoreConnection version 2.3.9-amzn-4 using Spark classes.
+
+INFO 2026-05-15T10:10:35,373 14089 org.apache.spark.sql.hive.HiveUtils [Thread-10] 60 Initializing HiveMetastoreConnection version 2.3.9-amzn-4 using Spark classes.
+2026-05-15T10:10:36.016Z
+INFO	2026-05-15T10:10:36,016	14732	org.apache.spark.sql.hive.client.HiveClientImpl	[Thread-10]	60	Warehouse location for Hive client (version 2.3.9) is file:/tmp/spark-warehouse
+
+INFO 2026-05-15T10:10:36,016 14732 org.apache.spark.sql.hive.client.HiveClientImpl [Thread-10] 60 Warehouse location for Hive client (version 2.3.9) is file:/tmp/spark-warehouse
+2026-05-15T10:10:36.127Z
+INFO	2026-05-15T10:10:36,125	14841	com.amazonaws.glue.catalog.util.GlueUtils	[Thread-10]	62	Using region from ec2 metadata : us-east-1
+INFO	2026-05-15T10:10:36,125	14841	com.amazonaws.glue.catalog.metastore.AWSGlueClientFactory	[Thread-10]	63	Setting glue service region to us-east-1
+
+INFO 2026-05-15T10:10:36,125 14841 com.amazonaws.glue.catalog.util.GlueUtils [Thread-10] 62 Using region from ec2 metadata : us-east-1 INFO 2026-05-15T10:10:36,125 14841 com.amazonaws.glue.catalog.metastore.AWSGlueClientFactory [Thread-10] 63 Setting glue service region to us-east-1
+2026-05-15T10:10:36.405Z
+INFO	2026-05-15T10:10:36,404	15120	com.amazonaws.glue.catalog.util.GlueUtils	[Thread-10]	62	Using region from ec2 metadata : us-east-1
+
+INFO 2026-05-15T10:10:36,404 15120 com.amazonaws.glue.catalog.util.GlueUtils [Thread-10] 62 Using region from ec2 metadata : us-east-1
+2026-05-15T10:10:36.417Z
+INFO	2026-05-15T10:10:36,417	15133	com.amazonaws.glue.catalog.util.GlueUtils	[Thread-10]	62	Using region from ec2 metadata : us-east-1
+
+INFO 2026-05-15T10:10:36,417 15133 com.amazonaws.glue.catalog.util.GlueUtils [Thread-10] 62 Using region from ec2 metadata : us-east-1
+2026-05-15T10:10:36.417Z
+INFO	2026-05-15T10:10:36,417	15133	com.amazonaws.glue.catalog.metastore.AWSStsClientFactory	[Thread-10]	29	Setting sts service region to us-east-1
+
+INFO 2026-05-15T10:10:36,417 15133 com.amazonaws.glue.catalog.metastore.AWSStsClientFactory [Thread-10] 29 Setting sts service region to us-east-1
+2026-05-15T10:10:37.145Z
+INFO	2026-05-15T10:10:37,145	15861	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:37,145 15861 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:37.147Z
+INFO	2026-05-15T10:10:37,146	15862	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:37,146 15862 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:38.998Z
+INFO	2026-05-15T10:10:38,998	17714	org.apache.spark.sql.catalyst.expressions.codegen.CodeGenerator	[Thread-10]	60	Code generated in 267.002696 ms
+
+INFO 2026-05-15T10:10:38,998 17714 org.apache.spark.sql.catalyst.expressions.codegen.CodeGenerator [Thread-10] 60 Code generated in 267.002696 ms
+2026-05-15T10:10:39.013Z
+INFO	2026-05-15T10:10:39,013	17729	org.apache.spark.sql.execution.SQLExecution	[Thread-10]	60	Generating and posting SparkListenerSQLExecutionObfuscatedInfo...
+
+INFO 2026-05-15T10:10:39,013 17729 org.apache.spark.sql.execution.SQLExecution [Thread-10] 60 Generating and posting SparkListenerSQLExecutionObfuscatedInfo...
+2026-05-15T10:10:39.017Z
+INFO	2026-05-15T10:10:39,016	17732	org.apache.spark.sql.execution.SQLExecution	[Thread-10]	60	Posted SparkListenerSQLExecutionObfuscatedInfo in 4 ms
+
+INFO 2026-05-15T10:10:39,016 17732 org.apache.spark.sql.execution.SQLExecution [Thread-10] 60 Posted SparkListenerSQLExecutionObfuscatedInfo in 4 ms
+2026-05-15T10:10:39.145Z
+INFO	2026-05-15T10:10:39,145	17861	org.apache.spark.sql.catalyst.expressions.codegen.CodeGenerator	[Thread-10]	60	Code generated in 12.813658 ms
+
+INFO 2026-05-15T10:10:39,145 17861 org.apache.spark.sql.catalyst.expressions.codegen.CodeGenerator [Thread-10] 60 Code generated in 12.813658 ms
+2026-05-15T10:10:39.165Z
+INFO	2026-05-15T10:10:39,165	17881	org.apache.spark.sql.execution.SQLExecution	[Thread-10]	60	Generating and posting SparkListenerSQLExecutionObfuscatedInfo...
+
+INFO 2026-05-15T10:10:39,165 17881 org.apache.spark.sql.execution.SQLExecution [Thread-10] 60 Generating and posting SparkListenerSQLExecutionObfuscatedInfo...
+2026-05-15T10:10:39.166Z
+INFO	2026-05-15T10:10:39,165	17881	org.apache.spark.sql.execution.SQLExecution	[Thread-10]	60	Posted SparkListenerSQLExecutionObfuscatedInfo in 0 ms
+
+INFO 2026-05-15T10:10:39,165 17881 org.apache.spark.sql.execution.SQLExecution [Thread-10] 60 Posted SparkListenerSQLExecutionObfuscatedInfo in 0 ms
+2026-05-15T10:10:39.338Z
+INFO	2026-05-15T10:10:39,337	18053	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:39,337 18053 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:39.338Z
+INFO	2026-05-15T10:10:39,338	18054	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:39,338 18054 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:39.500Z
+INFO	2026-05-15T10:10:39,500	18216	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:39,500 18216 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:39.501Z
+INFO	2026-05-15T10:10:39,500	18216	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:39,500 18216 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:39.721Z
+INFO	2026-05-15T10:10:39,721	18437	org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping	[Thread-10]	220	Mapping EMRFS config fs.s3.buffer.dir to S3A config fs.s3a.buffer.dir
+
+INFO 2026-05-15T10:10:39,721 18437 org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping [Thread-10] 220 Mapping EMRFS config fs.s3.buffer.dir to S3A config fs.s3a.buffer.dir
+2026-05-15T10:10:39.722Z
+INFO	2026-05-15T10:10:39,721	18437	org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping	[Thread-10]	232	Mapping EMRFS config fs.s3.maxConnections to S3A config fs.s3a.connection.maximum
+
+INFO 2026-05-15T10:10:39,721 18437 org.apache.hadoop.fs.s3a.EMRFSToS3AConfigMapping [Thread-10] 232 Mapping EMRFS config fs.s3.maxConnections to S3A config fs.s3a.connection.maximum
+2026-05-15T10:10:39.964Z
+INFO	2026-05-15T10:10:39,963	18679	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:39,963 18679 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:39.964Z
+INFO	2026-05-15T10:10:39,964	18680	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:39,964 18680 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:39.987Z
+INFO	2026-05-15T10:10:39,986	18702	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint	[dispatcher-CoarseGrainedScheduler]	60	Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.131.62:33720) with ID 1,  ResourceProfileId 0
+
+INFO 2026-05-15T10:10:39,986 18702 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint [dispatcher-CoarseGrainedScheduler] 60 Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.131.62:33720) with ID 1, ResourceProfileId 0
+2026-05-15T10:10:39.988Z
+INFO	2026-05-15T10:10:39,988	18704	org.apache.spark.executor.ExecutorLogUrlHandler	[dispatcher-CoarseGrainedScheduler]	60	Fail to renew executor log urls: some of required attributes are missing in app's event log.. Required: Set(CONTAINER_ID) / available: Set(). Falling back to show app's original log urls.
+
+INFO 2026-05-15T10:10:39,988 18704 org.apache.spark.executor.ExecutorLogUrlHandler [dispatcher-CoarseGrainedScheduler] 60 Fail to renew executor log urls: some of required attributes are missing in app's event log.. Required: Set(CONTAINER_ID) / available: Set(). Falling back to show app's original log urls.
+2026-05-15T10:10:39.990Z
+INFO	2026-05-15T10:10:39,990	18706	org.apache.spark.scheduler.cluster.glue.ExecutorEventListener	[spark-listener-group-shared]	60	Got executor added event for 1 @ 1778839839988
+
+INFO 2026-05-15T10:10:39,990 18706 org.apache.spark.scheduler.cluster.glue.ExecutorEventListener [spark-listener-group-shared] 60 Got executor added event for 1 @ 1778839839988
+2026-05-15T10:10:39.991Z
+INFO	2026-05-15T10:10:39,991	18707	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[spark-listener-group-shared]	60	connected executor 1
+
+INFO 2026-05-15T10:10:39,991 18707 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [spark-listener-group-shared] 60 connected executor 1
+2026-05-15T10:10:40.075Z
+INFO	2026-05-15T10:10:40,074	18790	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:40,074 18790 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:40.075Z
+INFO	2026-05-15T10:10:40,074	18790	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:40,074 18790 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:40.076Z
+INFO	2026-05-15T10:10:40,075	18791	org.apache.spark.storage.BlockManagerMasterEndpoint	[dispatcher-BlockManagerMaster]	60	Registering block manager 172.36.131.62:45963 with 5.8 GiB RAM, BlockManagerId(1, 172.36.131.62, 45963, None)
+
+INFO 2026-05-15T10:10:40,075 18791 org.apache.spark.storage.BlockManagerMasterEndpoint [dispatcher-BlockManagerMaster] 60 Registering block manager 172.36.131.62:45963 with 5.8 GiB RAM, BlockManagerId(1, 172.36.131.62, 45963, None)
+2026-05-15T10:10:40.343Z
+INFO	2026-05-15T10:10:40,343	19059	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:40,343 19059 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:40.344Z
+INFO	2026-05-15T10:10:40,343	19059	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:40,343 19059 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:40.469Z
+INFO	2026-05-15T10:10:40,468	19184	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:40,468 19184 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:40.469Z
+INFO	2026-05-15T10:10:40,469	19185	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:40,469 19185 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:40.512Z
+INFO	2026-05-15T10:10:40,511	19227	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint	[dispatcher-CoarseGrainedScheduler]	60	Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.39.112.50:35610) with ID 2,  ResourceProfileId 0
+
+INFO 2026-05-15T10:10:40,511 19227 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint [dispatcher-CoarseGrainedScheduler] 60 Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.39.112.50:35610) with ID 2, ResourceProfileId 0
+2026-05-15T10:10:40.513Z
+INFO	2026-05-15T10:10:40,512	19228	org.apache.spark.scheduler.cluster.glue.ExecutorEventListener	[spark-listener-group-shared]	60	Got executor added event for 2 @ 1778839840512
+
+INFO 2026-05-15T10:10:40,512 19228 org.apache.spark.scheduler.cluster.glue.ExecutorEventListener [spark-listener-group-shared] 60 Got executor added event for 2 @ 1778839840512
+2026-05-15T10:10:40.513Z
+INFO	2026-05-15T10:10:40,513	19229	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[spark-listener-group-shared]	60	connected executor 2
+
+INFO 2026-05-15T10:10:40,513 19229 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [spark-listener-group-shared] 60 connected executor 2
+2026-05-15T10:10:40.629Z
+INFO	2026-05-15T10:10:40,629	19345	org.apache.spark.storage.BlockManagerMasterEndpoint	[dispatcher-BlockManagerMaster]	60	Registering block manager 172.39.112.50:40717 with 5.8 GiB RAM, BlockManagerId(2, 172.39.112.50, 40717, None)
+
+INFO 2026-05-15T10:10:40,629 19345 org.apache.spark.storage.BlockManagerMasterEndpoint [dispatcher-BlockManagerMaster] 60 Registering block manager 172.39.112.50:40717 with 5.8 GiB RAM, BlockManagerId(2, 172.39.112.50, 40717, None)
+2026-05-15T10:10:40.674Z
+INFO	2026-05-15T10:10:40,673	19389	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:40,673 19389 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:40.674Z
+INFO	2026-05-15T10:10:40,674	19390	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:40,674 19390 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:40.813Z
+INFO	2026-05-15T10:10:40,812	19528	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:40,812 19528 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:40.813Z
+INFO	2026-05-15T10:10:40,813	19529	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:40,813 19529 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.058Z
+INFO	2026-05-15T10:10:41,058	19774	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,058 19774 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.058Z
+INFO	2026-05-15T10:10:41,058	19774	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,058 19774 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.165Z
+INFO	2026-05-15T10:10:41,165	19881	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,165 19881 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.166Z
+INFO	2026-05-15T10:10:41,166	19882	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,166 19882 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.345Z
+INFO	2026-05-15T10:10:41,344	20060	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,344 20060 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.345Z
+INFO	2026-05-15T10:10:41,345	20061	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,345 20061 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.464Z
+INFO	2026-05-15T10:10:41,464	20180	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,464 20180 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.465Z
+INFO	2026-05-15T10:10:41,465	20181	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,465 20181 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.637Z
+INFO	2026-05-15T10:10:41,637	20353	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,637 20353 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.637Z
+INFO	2026-05-15T10:10:41,637	20353	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,637 20353 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.737Z
+INFO	2026-05-15T10:10:41,736	20452	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,736 20452 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.737Z
+INFO	2026-05-15T10:10:41,737	20453	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,737 20453 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:41.969Z
+INFO	2026-05-15T10:10:41,969	20685	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:41,969 20685 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:41.970Z
+INFO	2026-05-15T10:10:41,969	20685	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:41,969 20685 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.054Z
+INFO	2026-05-15T10:10:42,053	20769	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint	[dispatcher-CoarseGrainedScheduler]	60	Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.184.226:58218) with ID 3,  ResourceProfileId 0
+
+INFO 2026-05-15T10:10:42,053 20769 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint [dispatcher-CoarseGrainedScheduler] 60 Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.184.226:58218) with ID 3, ResourceProfileId 0
+2026-05-15T10:10:42.056Z
+INFO	2026-05-15T10:10:42,055	20771	org.apache.spark.scheduler.cluster.glue.ExecutorEventListener	[spark-listener-group-shared]	60	Got executor added event for 3 @ 1778839842054
+
+INFO 2026-05-15T10:10:42,055 20771 org.apache.spark.scheduler.cluster.glue.ExecutorEventListener [spark-listener-group-shared] 60 Got executor added event for 3 @ 1778839842054
+2026-05-15T10:10:42.056Z
+INFO	2026-05-15T10:10:42,056	20772	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[spark-listener-group-shared]	60	connected executor 3
+
+INFO 2026-05-15T10:10:42,056 20772 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [spark-listener-group-shared] 60 connected executor 3
+2026-05-15T10:10:42.074Z
+INFO	2026-05-15T10:10:42,074	20790	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,074 20790 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.074Z
+INFO	2026-05-15T10:10:42,074	20790	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,074 20790 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.140Z
+INFO	2026-05-15T10:10:42,140	20856	org.apache.spark.storage.BlockManagerMasterEndpoint	[dispatcher-BlockManagerMaster]	60	Registering block manager 172.36.184.226:38339 with 5.8 GiB RAM, BlockManagerId(3, 172.36.184.226, 38339, None)
+
+INFO 2026-05-15T10:10:42,140 20856 org.apache.spark.storage.BlockManagerMasterEndpoint [dispatcher-BlockManagerMaster] 60 Registering block manager 172.36.184.226:38339 with 5.8 GiB RAM, BlockManagerId(3, 172.36.184.226, 38339, None)
+2026-05-15T10:10:42.307Z
+INFO	2026-05-15T10:10:42,306	21022	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,306 21022 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.307Z
+INFO	2026-05-15T10:10:42,307	21023	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,307 21023 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.392Z
+INFO	2026-05-15T10:10:42,391	21107	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,391 21107 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.392Z
+INFO	2026-05-15T10:10:42,391	21107	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,391 21107 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.633Z
+INFO	2026-05-15T10:10:42,632	21348	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,632 21348 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.633Z
+INFO	2026-05-15T10:10:42,633	21349	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,633 21349 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.706Z
+INFO	2026-05-15T10:10:42,705	21421	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,705 21421 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.706Z
+INFO	2026-05-15T10:10:42,706	21422	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,706 21422 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:42.935Z
+INFO	2026-05-15T10:10:42,935	21651	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:42,935 21651 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:42.935Z
+INFO	2026-05-15T10:10:42,935	21651	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:42,935 21651 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.040Z
+INFO	2026-05-15T10:10:43,040	21756	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,040 21756 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.040Z
+INFO	2026-05-15T10:10:43,040	21756	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,040 21756 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.235Z
+INFO	2026-05-15T10:10:43,235	21951	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,235 21951 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.236Z
+INFO	2026-05-15T10:10:43,235	21951	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,235 21951 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.260Z
+INFO	2026-05-15T10:10:43,260	21976	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint	[dispatcher-CoarseGrainedScheduler]	60	Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.29.99:37288) with ID 4,  ResourceProfileId 0
+
+INFO 2026-05-15T10:10:43,260 21976 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint [dispatcher-CoarseGrainedScheduler] 60 Registered executor NettyRpcEndpointRef(spark-client://Executor) (172.36.29.99:37288) with ID 4, ResourceProfileId 0
+2026-05-15T10:10:43.261Z
+INFO	2026-05-15T10:10:43,261	21977	org.apache.spark.scheduler.cluster.glue.ExecutorEventListener	[spark-listener-group-shared]	60	Got executor added event for 4 @ 1778839843260
+
+INFO 2026-05-15T10:10:43,261 21977 org.apache.spark.scheduler.cluster.glue.ExecutorEventListener [spark-listener-group-shared] 60 Got executor added event for 4 @ 1778839843260
+2026-05-15T10:10:43.262Z
+INFO	2026-05-15T10:10:43,261	21977	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[spark-listener-group-shared]	60	connected executor 4
+
+INFO 2026-05-15T10:10:43,261 21977 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [spark-listener-group-shared] 60 connected executor 4
+2026-05-15T10:10:43.314Z
+INFO	2026-05-15T10:10:43,313	22029	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,313 22029 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.314Z
+INFO	2026-05-15T10:10:43,314	22030	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,314 22030 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.415Z
+INFO	2026-05-15T10:10:43,415	22131	org.apache.spark.storage.BlockManagerMasterEndpoint	[dispatcher-BlockManagerMaster]	60	Registering block manager 172.36.29.99:35595 with 5.8 GiB RAM, BlockManagerId(4, 172.36.29.99, 35595, None)
+
+INFO 2026-05-15T10:10:43,415 22131 org.apache.spark.storage.BlockManagerMasterEndpoint [dispatcher-BlockManagerMaster] 60 Registering block manager 172.36.29.99:35595 with 5.8 GiB RAM, BlockManagerId(4, 172.36.29.99, 35595, None)
+2026-05-15T10:10:43.527Z
+INFO	2026-05-15T10:10:43,526	22242	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,526 22242 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.527Z
+INFO	2026-05-15T10:10:43,526	22242	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,526 22242 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.615Z
+INFO	2026-05-15T10:10:43,615	22331	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,615 22331 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.616Z
+INFO	2026-05-15T10:10:43,615	22331	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,615 22331 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.794Z
+INFO	2026-05-15T10:10:43,794	22510	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,794 22510 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.794Z
+INFO	2026-05-15T10:10:43,794	22510	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,794 22510 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:43.881Z
+INFO	2026-05-15T10:10:43,881	22597	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:43,881 22597 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:43.882Z
+INFO	2026-05-15T10:10:43,881	22597	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:43,881 22597 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.174Z
+INFO	2026-05-15T10:10:44,174	22890	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,174 22890 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.174Z
+INFO	2026-05-15T10:10:44,174	22890	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,174 22890 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.261Z
+INFO	2026-05-15T10:10:44,261	22977	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,261 22977 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.261Z
+INFO	2026-05-15T10:10:44,261	22977	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,261 22977 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.453Z
+INFO	2026-05-15T10:10:44,452	23168	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,452 23168 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.453Z
+INFO	2026-05-15T10:10:44,453	23169	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,453 23169 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.565Z
+INFO	2026-05-15T10:10:44,565	23281	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,565 23281 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.565Z
+INFO	2026-05-15T10:10:44,565	23281	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,565 23281 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.848Z
+INFO	2026-05-15T10:10:44,848	23564	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,848 23564 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.849Z
+INFO	2026-05-15T10:10:44,848	23564	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,848 23564 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:44.940Z
+INFO	2026-05-15T10:10:44,940	23656	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:44,940 23656 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:44.941Z
+INFO	2026-05-15T10:10:44,940	23656	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:44,940 23656 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:45.161Z
+INFO	2026-05-15T10:10:45,161	23877	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:45,161 23877 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:45.161Z
+INFO	2026-05-15T10:10:45,161	23877	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:45,161 23877 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:45.250Z
+INFO	2026-05-15T10:10:45,249	23965	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	98	Getting current Glue AuditContext
+
+INFO 2026-05-15T10:10:45,249 23965 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 98 Getting current Glue AuditContext
+2026-05-15T10:10:45.250Z
+INFO	2026-05-15T10:10:45,250	23966	com.amazonaws.glue.catalog.util.AuditContextUtil	[Thread-10]	139	Using AuditContext: 
+{
+    "platformType": "GLUE_ETL",
+    "jobIdentifier": "procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"
+}
+
+
+INFO 2026-05-15T10:10:45,250 23966 com.amazonaws.glue.catalog.util.AuditContextUtil [Thread-10] 139 Using AuditContext: {"platformType":"GLUE_ETL","jobIdentifier":"procureiq-spend-raw-vault-job/jr_257a1ce4a06221ba6e435396f4675562afb2e1db0e30d7826cedab60a6c60791"}
+2026-05-15T10:10:56.414Z
+INFO	2026-05-15T10:10:56,413	35129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:10:56,413 35129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:11:26.413Z
+INFO	2026-05-15T10:11:26,413	65129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:11:26,413 65129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:11:30.347Z
+INFO	2026-05-15T10:11:30,347	69063	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[executorStatus-poller]	60	polling for JES executor task status
+
+INFO 2026-05-15T10:11:30,347 69063 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [executorStatus-poller] 60 polling for JES executor task status
+2026-05-15T10:11:30.348Z
+INFO	2026-05-15T10:11:30,348	69064	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorStatus-poller]	60	polling for 4 executor task status
+
+INFO 2026-05-15T10:11:30,348 69064 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorStatus-poller] 60 polling for 4 executor task status
+2026-05-15T10:11:56.413Z
+INFO	2026-05-15T10:11:56,413	95129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:11:56,413 95129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:12:26.413Z
+INFO	2026-05-15T10:12:26,413	125129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:12:26,413 125129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:12:30.351Z
+INFO	2026-05-15T10:12:30,350	129066	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[executorStatus-poller]	60	polling for JES executor task status
+
+INFO 2026-05-15T10:12:30,350 129066 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [executorStatus-poller] 60 polling for JES executor task status
+2026-05-15T10:12:30.351Z
+INFO	2026-05-15T10:12:30,351	129067	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorStatus-poller]	60	polling for 4 executor task status
+
+INFO 2026-05-15T10:12:30,351 129067 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorStatus-poller] 60 polling for 4 executor task status
+2026-05-15T10:12:56.413Z
+INFO	2026-05-15T10:12:56,413	155129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:12:56,413 155129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:13:26.413Z
+INFO	2026-05-15T10:13:26,413	185129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:13:26,413 185129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:13:30.352Z
+INFO	2026-05-15T10:13:30,351	189067	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[executorStatus-poller]	60	polling for JES executor task status
+
+INFO 2026-05-15T10:13:30,351 189067 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [executorStatus-poller] 60 polling for JES executor task status
+2026-05-15T10:13:30.352Z
+INFO	2026-05-15T10:13:30,351	189067	org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator	[executorStatus-poller]	60	polling for 4 executor task status
+
+INFO 2026-05-15T10:13:30,351 189067 org.apache.spark.scheduler.cluster.glue.allocator.ExecutorTaskAllocator [executorStatus-poller] 60 polling for 4 executor task status
+2026-05-15T10:13:56.413Z
+INFO	2026-05-15T10:13:56,413	215129	com.amazonaws.services.glue.LogPusher	[pool-6-thread-1]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:13:56,413 215129 com.amazonaws.services.glue.LogPusher [pool-6-thread-1] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:14:15.752Z
+ERROR	2026-05-15T10:14:15,751	234467	com.amazonaws.services.glue.ProcessLauncher	[main]	76	Error from Python:Traceback (most recent call last):
+  File "<frozen runpy>", line 291, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 782, in <module>
+    main()
+  File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 760, in main
+    source_dfs, translation_map = load_and_cache_source_tables()
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 313, in load_and_cache_source_tables
+    global_translation_map = translator.translate_batch(list(all_columns))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 166, in translate_batch
+    chunk_map = self._translate_chunk(chunk)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 155, in _translate_chunk
+    raise RuntimeError(f"Missing {len(missing2)} names: {missing2[:10]}...")
+RuntimeError: Missing 1 names: ['begru']...
+
+ERROR 2026-05-15T10:14:15,751 234467 com.amazonaws.services.glue.ProcessLauncher [main] 76 Error from Python:Traceback (most recent call last): File "<frozen runpy>", line 291, in run_path File "<frozen runpy>", line 98, in _run_module_code File "<frozen runpy>", line 88, in _run_code File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 782, in <module> main() File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 760, in main source_dfs, translation_map = load_and_cache_source_tables() ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 313, in load_and_cache_source_tables global_translation_map = translator.translate_batch(list(all_columns)) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 166, in translate_batch chunk_map = self._translate_chunk(chunk) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ File "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py", line 155, in _translate_chunk raise RuntimeError(f"Missing {len(missing2)} names: {missing2[:10]}...") RuntimeError: Missing 1 names: ['begru']...
+2026-05-15T10:14:15.785Z
+ERROR	2026-05-15T10:14:15,784	234500	com.amazonaws.services.glueexceptionanalysis.GlueExceptionAnalysisListener	[main]	9	[Glue Exception Analysis] 
+{
+    "Event": "GlueETLJobExceptionEvent",
+    "Timestamp": 1778840055780,
+    "Failure Reason": "Traceback (most recent call last):\n  File \"<frozen runpy>\", line 291, in run_path\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 782, in <module>\n    main()\n  File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 760, in main\n    source_dfs, translation_map = load_and_cache_source_tables()\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 313, in load_and_cache_source_tables\n    global_translation_map = translator.translate_batch(list(all_columns))\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 166, in translate_batch\n    chunk_map = self._translate_chunk(chunk)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 155, in _translate_chunk\n    raise RuntimeError(f\"Missing {len(missing2)} names: {missing2[:10]}...\")\nRuntimeError: Missing 1 names: ['begru']...",
+    "Stack Trace": [
+        {
+            "Declaring Class": "_translate_chunk",
+            "Method Name": "raise RuntimeError(f\"Missing {len(missing2)} names: {missing2[:10]}...\")",
+            "File Name": "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py",
+            "Line Number": 155
+        },
+        {
+            "Declaring Class": "translate_batch",
+            "Method Name": "chunk_map = self._translate_chunk(chunk)",
+            "File Name": "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py",
+            "Line Number": 166
+        },
+        {
+            "Declaring Class": "load_and_cache_source_tables",
+            "Method Name": "global_translation_map = translator.translate_batch(list(all_columns))",
+            "File Name": "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py",
+            "Line Number": 313
+        },
+        {
+            "Declaring Class": "main",
+            "Method Name": "source_dfs, translation_map = load_and_cache_source_tables()",
+            "File Name": "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py",
+            "Line Number": 760
+        },
+        {
+            "Declaring Class": "<module>",
+            "Method Name": "main()",
+            "File Name": "/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py",
+            "Line Number": 782
+        }
+    ],
+    "Last Executed Line number": 782,
+    "script": "procureiq-spend-raw-vault-job.py"
+}
+
+
+ERROR 2026-05-15T10:14:15,784 234500 com.amazonaws.services.glueexceptionanalysis.GlueExceptionAnalysisListener [main] 9 [Glue Exception Analysis] {"Event":"GlueETLJobExceptionEvent","Timestamp":1778840055780,"Failure Reason":"Traceback (most recent call last):\n File \"<frozen runpy>\", line 291, in run_path\n File \"<frozen runpy>\", line 98, in _run_module_code\n File \"<frozen runpy>\", line 88, in _run_code\n File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 782, in <module>\n main()\n File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 760, in main\n source_dfs, translation_map = load_and_cache_source_tables()\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 313, in load_and_cache_source_tables\n global_translation_map = translator.translate_batch(list(all_columns))\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 166, in translate_batch\n chunk_map = self._translate_chunk(chunk)\n ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n File \"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py\", line 155, in _translate_chunk\n raise RuntimeError(f\"Missing {len(missing2)} names: {missing2[:10]}...\")\nRuntimeError: Missing 1 names: ['begru']...","Stack Trace":[{"Declaring Class":"_translate_chunk","Method Name":"raise RuntimeError(f\"Missing {len(missing2)} names: {missing2[:10]}...\")","File Name":"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py","Line Number":155},{"Declaring Class":"translate_batch","Method Name":"chunk_map = self._translate_chunk(chunk)","File Name":"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py","Line Number":166},{"Declaring Class":"load_and_cache_source_tables","Method Name":"global_translation_map = translator.translate_batch(list(all_columns))","File Name":"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py","Line Number":313},{"Declaring Class":"main","Method Name":"source_dfs, translation_map = load_and_cache_source_tables()","File Name":"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py","Line Number":760},{"Declaring Class":"<module>","Method Name":"main()","File Name":"/tmp/glue-job-14451638460566569690/procureiq-spend-raw-vault-job.py","Line Number":782}],"Last Executed Line number":782,"script":"procureiq-spend-raw-vault-job.py"}
+2026-05-15T10:14:15.785Z
+ERROR	2026-05-15T10:14:15,785	234501	com.amazonaws.services.glueexceptionanalysis.GlueExceptionAnalysisListener	[main]	9	[Glue Exception Analysis] Last Executed Line number from script procureiq-spend-raw-vault-job.py: 782
+
+ERROR 2026-05-15T10:14:15,785 234501 com.amazonaws.services.glueexceptionanalysis.GlueExceptionAnalysisListener [main] 9 [Glue Exception Analysis] Last Executed Line number from script procureiq-spend-raw-vault-job.py: 782
+2026-05-15T10:14:15.791Z
+INFO	2026-05-15T10:14:15,787	234503	com.amazonaws.services.glue.ProcessLauncher	[main]	60	postprocessing
+
+INFO 2026-05-15T10:14:15,787 234503 com.amazonaws.services.glue.ProcessLauncher [main] 60 postprocessing
+2026-05-15T10:14:15.791Z
+INFO	2026-05-15T10:14:15,788	234504	com.amazonaws.services.glue.ProcessLauncher	[main]	661	Enhance failure reason and emit cloudwatch error metrics.
+
+INFO 2026-05-15T10:14:15,788 234504 com.amazonaws.services.glue.ProcessLauncher [main] 661 Enhance failure reason and emit cloudwatch error metrics.
+2026-05-15T10:14:15.807Z
+INFO	2026-05-15T10:14:15,807	234523	com.amazonaws.services.glue.ProcessLauncher	[main]	687	ExceptionErrorMessage failureReason: RuntimeError: Missing 1 names: ['begru']...
+
+INFO 2026-05-15T10:14:15,807 234523 com.amazonaws.services.glue.ProcessLauncher [main] 687 ExceptionErrorMessage failureReason: RuntimeError: Missing 1 names: ['begru']...
+2026-05-15T10:14:15.828Z
+INFO	2026-05-15T10:14:15,828	234544	com.amazonaws.services.glue.ProcessLauncher	[main]	689	Error Category: UNCLASSIFIED_ERROR
+
+INFO 2026-05-15T10:14:15,828 234544 com.amazonaws.services.glue.ProcessLauncher [main] 689 Error Category: UNCLASSIFIED_ERROR
+2026-05-15T10:14:15.831Z
+INFO	2026-05-15T10:14:15,829	234545	com.amazonaws.services.glue.ProcessLauncher	[main]	714	enhancedFailureReason: Error Category: UNCLASSIFIED_ERROR; Failed Line Number: 782; RuntimeError: Missing 1 names: ['begru']...
+
+INFO 2026-05-15T10:14:15,829 234545 com.amazonaws.services.glue.ProcessLauncher [main] 714 enhancedFailureReason: Error Category: UNCLASSIFIED_ERROR; Failed Line Number: 782; RuntimeError: Missing 1 names: ['begru']...
+2026-05-15T10:14:15.833Z
+INFO	2026-05-15T10:14:15,833	234549	com.amazonaws.services.glue.CloudWatchMetricsEmitter	[main]	34	Emit job error metrics
+
+INFO 2026-05-15T10:14:15,833 234549 com.amazonaws.services.glue.CloudWatchMetricsEmitter [main] 34 Emit job error metrics
+2026-05-15T10:14:15.913Z
+INFO	2026-05-15T10:14:15,912	234628	com.amazonaws.services.glue.CloudWatchMetricsEmitter	[main]	34	Emit job error metrics
+
+INFO 2026-05-15T10:14:15,912 234628 com.amazonaws.services.glue.CloudWatchMetricsEmitter [main] 34 Emit job error metrics
+2026-05-15T10:14:15.926Z
+INFO	2026-05-15T10:14:15,926	234642	com.amazonaws.services.glue.LogPusher	[main]	60	stopping
+
+INFO 2026-05-15T10:14:15,926 234642 com.amazonaws.services.glue.LogPusher [main] 60 stopping
+2026-05-15T10:14:15.928Z
+java.lang.reflect.InvocationTargetException
+
+java.lang.reflect.InvocationTargetException
+2026-05-15T10:14:15.928Z
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at com.amazonaws.services.glue.SparkProcessLauncherPlugin.invoke(ProcessLauncher.scala:55)
+	at com.amazonaws.services.glue.SparkProcessLauncherPlugin.invoke$(ProcessLauncher.scala:55)
+	at com.amazonaws.services.glue.ProcessLauncher$$anon$1.invoke(ProcessLauncher.scala:193)
+	at com.amazonaws.services.glue.ProcessLauncher.launch(ProcessLauncher.scala:421)
+	at com.amazonaws.services.glue.ProcessLauncher$.main(ProcessLauncher.scala:35)
+	at com.amazonaws.services.glue.ProcessLauncher.main(ProcessLauncher.scala)
+Caused by: org.apache.spark.SparkUserAppException: User application exited with 1
+	at org.apache.spark.deploy.PythonRunner$.main(PythonRunner.scala:112)
+	at org.apache.spark.deploy.PythonRunner.main(PythonRunner.scala)
+	... 10 more
+
+at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.base/java.lang.reflect.Method.invoke(Method.java:569) at com.amazonaws.services.glue.SparkProcessLauncherPlugin.invoke(ProcessLauncher.scala:55) at com.amazonaws.services.glue.SparkProcessLauncherPlugin.invoke$(ProcessLauncher.scala:55) at com.amazonaws.services.glue.ProcessLauncher$$anon$1.invoke(ProcessLauncher.scala:193) at com.amazonaws.services.glue.ProcessLauncher.launch(ProcessLauncher.scala:421) at com.amazonaws.services.glue.ProcessLauncher$.main(ProcessLauncher.scala:35) at com.amazonaws.services.glue.ProcessLauncher.main(ProcessLauncher.scala) Caused by: org.apache.spark.SparkUserAppException: User application exited with 1 at org.apache.spark.deploy.PythonRunner$.main(PythonRunner.scala:112) at org.apache.spark.deploy.PythonRunner.main(PythonRunner.scala) ... 10 more
+2026-05-15T10:14:15.930Z
+INFO	2026-05-15T10:14:15,929	234645	org.apache.spark.SparkContext	[shutdown-hook-0]	60	Invoking stop() from shutdown hook
+
+INFO 2026-05-15T10:14:15,929 234645 org.apache.spark.SparkContext [shutdown-hook-0] 60 Invoking stop() from shutdown hook
+2026-05-15T10:14:15.930Z
+INFO	2026-05-15T10:14:15,930	234646	org.apache.spark.SparkContext	[shutdown-hook-0]	60	SparkContext is stopping with exitCode 0.
+
+INFO 2026-05-15T10:14:15,930 234646 org.apache.spark.SparkContext [shutdown-hook-0] 60 SparkContext is stopping with exitCode 0.
+2026-05-15T10:14:15.932Z
+INFO	2026-05-15T10:14:15,932	234648	com.amazonaws.services.glueexceptionanalysis.EventLogFileWriter	[spark-listener-group-shared]	70	Logs, events processed and insights are written to file /tmp/glue-exception-analysis-logs/spark-application-1778839830286
+
+INFO 2026-05-15T10:14:15,932 234648 com.amazonaws.services.glueexceptionanalysis.EventLogFileWriter [spark-listener-group-shared] 70 Logs, events processed and insights are written to file /tmp/glue-exception-analysis-logs/spark-application-1778839830286
+2026-05-15T10:14:15.935Z
+INFO	2026-05-15T10:14:15,935	234651	glue.ch.cern.sparkmeasure.FlightRecorderStageMetrics	[spark-listener-group-shared]	43	Spark application ended, timestamp = 1778840055930
+
+INFO 2026-05-15T10:14:15,935 234651 glue.ch.cern.sparkmeasure.FlightRecorderStageMetrics [spark-listener-group-shared] 43 Spark application ended, timestamp = 1778840055930
+2026-05-15T10:14:15.935Z
+WARN	2026-05-15T10:14:15,935	234651	glue.ch.cern.sparkmeasure.FlightRecorderStageMetrics	[spark-listener-group-shared]	57	Writing Stage Metrics data serialized as json to /tmp/stageMetrics_flightRecorder
+
+WARN 2026-05-15T10:14:15,935 234651 glue.ch.cern.sparkmeasure.FlightRecorderStageMetrics [spark-listener-group-shared] 57 Writing Stage Metrics data serialized as json to /tmp/stageMetrics_flightRecorder
+2026-05-15T10:14:15.937Z
+INFO	2026-05-15T10:14:15,937	234653	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[shutdown-hook-0]	60	Stopping JES Scheduler Backend.
+
+INFO 2026-05-15T10:14:15,937 234653 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [shutdown-hook-0] 60 Stopping JES Scheduler Backend.
+2026-05-15T10:14:15.938Z
+INFO	2026-05-15T10:14:15,938	234654	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend	[shutdown-hook-0]	60	Shutting down all executors
+
+INFO 2026-05-15T10:14:15,938 234654 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend [shutdown-hook-0] 60 Shutting down all executors
+2026-05-15T10:14:15.939Z
+INFO	2026-05-15T10:14:15,939	234655	org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint	[dispatcher-CoarseGrainedScheduler]	60	Asking each executor to shut down
+
+INFO 2026-05-15T10:14:15,939 234655 org.apache.spark.scheduler.cluster.glue.JESSchedulerBackend$JESAsSchedulerBackendEndpoint [dispatcher-CoarseGrainedScheduler] 60 Asking each executor to shut down
+2026-05-15T10:14:15.984Z
+INFO	2026-05-15T10:14:15,954	234670	glue.ch.cern.sparkmeasure.FlightRecorderTaskMetrics	[spark-listener-group-shared]	102	Spark application ended, timestamp = 1778840055930
+
+INFO 2026-05-15T10:14:15,954 234670 glue.ch.cern.sparkmeasure.FlightRecorderTaskMetrics [spark-listener-group-shared] 102 Spark application ended, timestamp = 1778840055930
+2026-05-15T10:14:15.984Z
+INFO	2026-05-15T10:14:15,954	234670	glue.ch.cern.sparkmeasure.FlightRecorderTaskMetrics	[spark-listener-group-shared]	116	Writing Task Metrics data serialized as json to /tmp/taskMetrics_flightRecorder
+
+INFO 2026-05-15T10:14:15,954 234670 glue.ch.cern.sparkmeasure.FlightRecorderTaskMetrics [spark-listener-group-shared] 116 Writing Task Metrics data serialized as json to /tmp/taskMetrics_flightRecorder
+2026-05-15T10:14:15.984Z
+INFO	2026-05-15T10:14:15,971	234687	org.apache.spark.MapOutputTrackerMasterEndpoint	[dispatcher-event-loop-1]	60	MapOutputTrackerMasterEndpoint stopped!
+
+INFO 2026-05-15T10:14:15,971 234687 org.apache.spark.MapOutputTrackerMasterEndpoint [dispatcher-event-loop-1] 60 MapOutputTrackerMasterEndpoint stopped!
+2026-05-15T10:14:16.001Z
+INFO	2026-05-15T10:14:16,000	234716	org.apache.spark.storage.memory.MemoryStore	[shutdown-hook-0]	60	MemoryStore cleared
+
+INFO 2026-05-15T10:14:16,000 234716 org.apache.spark.storage.memory.MemoryStore [shutdown-hook-0] 60 MemoryStore cleared
+2026-05-15T10:14:16.001Z
+INFO	2026-05-15T10:14:16,001	234717	org.apache.spark.storage.BlockManager	[shutdown-hook-0]	60	BlockManager stopped
+
+INFO 2026-05-15T10:14:16,001 234717 org.apache.spark.storage.BlockManager [shutdown-hook-0] 60 BlockManager stopped
+2026-05-15T10:14:16.006Z
+INFO	2026-05-15T10:14:16,005	234721	org.apache.spark.storage.BlockManagerMaster	[shutdown-hook-0]	60	BlockManagerMaster stopped
+
+INFO 2026-05-15T10:14:16,005 234721 org.apache.spark.storage.BlockManagerMaster [shutdown-hook-0] 60 BlockManagerMaster stopped
+2026-05-15T10:14:16.068Z
+INFO	2026-05-15T10:14:16,067	234783	org.apache.spark.scheduler.OutputCommitCoordinator$OutputCommitCoordinatorEndpoint	[dispatcher-event-loop-2]	60	OutputCommitCoordinator stopped!
+
+INFO 2026-05-15T10:14:16,067 234783 org.apache.spark.scheduler.OutputCommitCoordinator$OutputCommitCoordinatorEndpoint [dispatcher-event-loop-2] 60 OutputCommitCoordinator stopped!
+2026-05-15T10:14:16.142Z
+INFO	2026-05-15T10:14:16,142	234858	org.apache.spark.SparkContext	[shutdown-hook-0]	60	Successfully stopped SparkContext
+
+INFO 2026-05-15T10:14:16,142 234858 org.apache.spark.SparkContext [shutdown-hook-0] 60 Successfully stopped SparkContext
+2026-05-15T10:14:16.143Z
+INFO	2026-05-15T10:14:16,143	234859	com.amazonaws.services.glue.LogPusher	[shutdown-hook-0]	60	uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+
+INFO 2026-05-15T10:14:16,143 234859 com.amazonaws.services.glue.LogPusher [shutdown-hook-0] 60 uploading file:///var/log/spark/apps to s3://aws-glue-assets-471613014483-us-east-1/sparkHistoryLogs/
+2026-05-15T10:14:16.145Z
+INFO	2026-05-15T10:14:16,144	234860	org.apache.spark.util.ShutdownHookManager	[shutdown-hook-0]	60	Shutdown hook called
+
+INFO 2026-05-15T10:14:16,144 234860 org.apache.spark.util.ShutdownHookManager [shutdown-hook-0] 60 Shutdown hook called
+2026-05-15T10:14:16.145Z
+INFO	2026-05-15T10:14:16,145	234861	org.apache.spark.util.ShutdownHookManager	[shutdown-hook-0]	60	Deleting directory /tmp/spark-ff43ffaf-17d7-4024-8258-2e94076488e9/pyspark-e759f2de-3a97-4e76-917c-9ac3480be9f1
+
+INFO 2026-05-15T10:14:16,145 234861 org.apache.spark.util.ShutdownHookManager [shutdown-hook-0] 60 Deleting directory /tmp/spark-ff43ffaf-17d7-4024-8258-2e94076488e9/pyspark-e759f2de-3a97-4e76-917c-9ac3480be9f1
+2026-05-15T10:14:16.153Z
+INFO	2026-05-15T10:14:16,153	234869	org.apache.spark.util.ShutdownHookManager	[shutdown-hook-0]	60	Deleting directory /tmp/spark-ff43ffaf-17d7-4024-8258-2e94076488e9
+
+INFO 2026-05-15T10:14:16,153 234869 org.apache.spark.util.ShutdownHookManager [shutdown-hook-0] 60 Deleting directory /tmp/spark-ff43ffaf-17d7-4024-8258-2e94076488e9
+2026-05-15T10:14:16.159Z
+INFO	2026-05-15T10:14:16,159	234875	org.apache.spark.util.ShutdownHookManager	[shutdown-hook-0]	60	Deleting directory /tmp/spark-22bb69c7-c437-4fe6-b1b4-3e5f35c1a127
+
+INFO 2026-05-15T10:14:16,159 234875 org.apache.spark.util.ShutdownHookManager [shutdown-hook-0] 60 Deleting directory /tmp/spark-22bb69c7-c437-4fe6-b1b4-3e5f35c1a127
+2026-05-15T10:14:16.415Z
+INFO	2026-05-15T10:14:16,415	235131	org.apache.hadoop.metrics2.impl.MetricsSystemImpl	[shutdown-hook-0]	210	Stopping s3a-file-system metrics system...
+
+INFO 2026-05-15T10:14:16,415 235131 org.apache.hadoop.metrics2.impl.MetricsSystemImpl [shutdown-hook-0] 210 Stopping s3a-file-system metrics system...
+2026-05-15T10:14:16.415Z
+INFO	2026-05-15T10:14:16,415	235131	org.apache.hadoop.metrics2.impl.MetricsSystemImpl	[shutdown-hook-0]	216	s3a-file-system metrics system stopped.
+
+INFO 2026-05-15T10:14:16,415 235131 org.apache.hadoop.metrics2.impl.MetricsSystemImpl [shutdown-hook-0] 216 s3a-file-system metrics system stopped.
+2026-05-15T10:14:16.415Z
+INFO	2026-05-15T10:14:16,415	235131	org.apache.hadoop.metrics2.impl.MetricsSystemImpl	[shutdown-hook-0]	612	s3a-file-system metrics system shutdown complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import sys
 import logging
+import boto3
+import json
+import re
+import time
+from botocore.exceptions import ClientError
+from botocore.config import Config
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, sha2, concat_ws, lit, current_timestamp, coalesce
@@ -19,15 +1099,25 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Configuration
 # --------------------------------------------------------------
 args = getResolvedOptions(sys.argv, ['JOB_NAME'])
-config_bucket = "yignite-procurespendiq-miniature"
 bronze_db = "procureiqspend_bronze_sap"
 raw_vault_bucket = "yignite-procurespendiq-miniature"
 hub_path = "silver/raw_vault/hub"
 link_path = "silver/raw_vault/links"
 sat_path = "silver/raw_vault/satellites"
 
+# Bedrock settings
+BEDROCK_MODEL_ID = "us.meta.llama3-1-70b-instruct-v1:0"
+BEDROCK_REGION = "us-east-1"
+BEDROCK_CONFIG = Config(
+    connect_timeout=60,
+    read_timeout=300,
+    retries={'max_attempts': 3, 'mode': 'adaptive'}
+)
+
+TRANSLATION_BATCH_SIZE = 100
+
 # --------------------------------------------------------------
-# Spark Session
+# Spark & Glue Context
 # --------------------------------------------------------------
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 glueContext = GlueContext(spark.sparkContext)
@@ -35,968 +1125,732 @@ job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
 # --------------------------------------------------------------
-# Column Mapping: German → English (complete for all SAP tables)
+# Helper: Retry decorator for Bedrock calls
 # --------------------------------------------------------------
-GERMAN_TO_ENGLISH = {
-    # Document / Header
-    "belnr": "DOCUMENT_NUMBER",
-    "bukrs": "COMPANY_CODE",
-    "gjahr": "FISCAL_YEAR",
-    "buzei": "LINE_ITEM",
-    "blart": "DOCUMENT_TYPE",
-    "bldat": "DOCUMENT_DATE",
-    "budat": "POSTING_DATE",
-    "monat": "FISCAL_PERIOD",
-    "cpudt": "ENTERED_ON",
-    "cputm": "ENTERED_AT",
-    "usnam": "USER_NAME",
-    "tcode": "TRANSACTION_CODE",
-    "xblnr": "REFERENCE_DOC_NUMBER",
-    "bktxt": "HEADER_TEXT",
-    "waers": "CURRENCY",
-    "kursf": "EXCHANGE_RATE",
-    "wwert": "EXCHANGE_RATE_DATE",
-    "awtyp": "REFERENCE_PROCESS",
-    "awkey": "REFERENCE_KEY",
-
-    # Line item (BSEG, RSEG, etc.)
-    "bschl": "POSTING_KEY",
-    "koart": "ACCOUNT_TYPE",
-    "shkzg": "DEBIT_CREDIT",
-    "dmbtr": "AMOUNT_LOCAL",
-    "wrbtr": "AMOUNT_DOC",
-    "mwskz": "TAX_CODE",
-    "mwsts": "TAX_AMOUNT",
-    "txjcd": "TAX_JURISDICTION",
-    "zuonr": "ASSIGNMENT_NUMBER",
-    "sgtxt": "LINE_TEXT",
-    "kostl": "COST_CENTER",
-    "aufnr": "ORDER_NUMBER",
-    "projk": "PROJECT_NUMBER",
-    "hkont": "GL_ACCOUNT",
-    "kunnr": "CUSTOMER_NUMBER",
-    "lifnr": "VENDOR_NUMBER",
-    "matnr": "MATERIAL_NUMBER",
-    "werks": "PLANT",
-    "menge": "QUANTITY",
-    "meins": "BASE_UOM",
-    "ebeln": "PURCHASE_DOC",
-    "ebelp": "PURCHASE_DOC_ITEM",
-    "zekkn": "PO_ACCOUNT_ASSIGNMENT",
-    "zfbdt": "BASELINE_DATE",
-    "zterm": "PAYMENT_TERMS",
-    "zbd1t": "CASH_DISC_DAYS1",
-    "zbd2t": "CASH_DISC_DAYS2",
-    "zbd3t": "CASH_DISC_DAYS3",
-    "skfbt": "CASH_DISC_BASE",
-    "sknto": "CASH_DISC_AMOUNT",
-    "wskto": "CASH_DISC_AMOUNT_DOC",
-    "zlsch": "PAYMENT_METHOD",
-    "zlspr": "PAYMENT_BLOCK",
-    "zbfix": "PAYMENT_TERMS_FIXED",
-    "augdt": "CLEARING_DATE",
-    "augbl": "CLEARING_DOC",
-    "augcp": "CLEARING_PERIOD",
-
-    # Vendor master
-    "name1": "NAME1",
-    "name2": "NAME2",
-    "name3": "NAME3",
-    "name4": "NAME4",
-    "stras": "STREET_ADDRESS",
-    "ort01": "CITY",
-    "pstlz": "POSTAL_CODE",
-    "land1": "COUNTRY_KEY",
-    "region": "REGION",
-    "telf1": "PHONE1",
-    "telf2": "PHONE2",
-    "telfx": "FAX",
-    "stcd1": "TAX_NUMBER1",
-    "stcd2": "TAX_NUMBER2",
-    "stceg": "VAT_REG_NUMBER",
-    "spras": "LANGUAGE_KEY",
-    "brsch": "INDUSTRY_KEY",
-    "ktokk": "VENDOR_ACCOUNT_GROUP",
-    "loevm": "DELETION_FLAG",
-    "sperr": "BLOCKING_FLAG",
-    "aufsd": "ORDER_BLOCK",
-    "lifsd": "DELIVERY_BLOCK",
-    "eession": "E_SESSION",
-    "gbort": "BIRTH_PLACE",
-    "dtaws": "BANK_ACCOUNT",
-    "dtams": "BANK_ACCOUNT_TYPE",
-    "adrnr": "ADDRESS_NUMBER",
-
-    # Company / Plant
-    "butxt": "COMPANY_NAME",
-    "ort01_comp": "COMPANY_CITY",
-    "land1_comp": "COMPANY_COUNTRY",
-    "waers_comp": "COMPANY_CURRENCY",
-    "spras_comp": "COMPANY_LANG",
-    "adrnr_comp": "COMPANY_ADDR",
-    "stceg_comp": "COMPANY_VAT",
-    "ktopl": "CHART_OF_ACCOUNTS",
-    "name1_plant": "PLANT_NAME1",
-    "name2_plant": "PLANT_NAME2",
-    "stras_plant": "PLANT_STREET",
-    "ort01_plant": "PLANT_CITY",
-    "pstlz_plant": "PLANT_POSTAL",
-    "land1_plant": "PLANT_COUNTRY",
-    "region_plant": "PLANT_REGION",
-    "bukrs_plant": "PLANT_COMPANY",
-    "kunnr_plant": "PLANT_CUSTOMER",
-    "lifnr_plant": "PLANT_VENDOR",
-    "fabkl": "FACTORY_CALENDAR",
-    "txjcd_plant": "PLANT_TAX_JUR",
-    "bedpl": "PLANNING_PLANT",
-    "j_1bbession": "BRAZIL_DUMMY",
-
-    # Material Document
-    "mblnr": "MATERIAL_DOC",
-    "mjahr": "MATERIAL_DOC_YEAR",
-    "zeession": "LINE_ITEM",
-    "bwart": "MOVE_TYPE",
-    "lgort": "STORAGE_LOCATION",
-    "charg": "BATCH_NUMBER",
-    "sobkz": "SPECIAL_STOCK",
-    "kzbew": "STOCK_MOVEMENT",
-    "kzzug": "RECEIPT_INDICATOR",
-    "kzvbr": "CONSUMPTION_IND",
-    "rsnum": "RESERVATION_NUMBER",
-    "rspos": "RESERVATION_ITEM",
-
-    # Purchase Order
-    "bstyp": "PO_CATEGORY",
-    "bsart": "PO_TYPE",
-    "loession": "LO_SESSION",
-    "statu": "PO_STATUS",
-    "aedat": "CHANGED_ON",
-    "ernam": "CREATED_BY",
-    "pincr": "INCOTERMS",
-    "lponr": "LAST_PO_NUMBER",
-    "ekorg": "PURCHASING_ORG",
-    "ekgrp": "PURCHASING_GROUP",
-    "bedat": "PO_DATE",
-    "kdatb": "VALID_FROM",
-    "kdate": "VALID_TO",
-    "bwbdt": "SUBMISSION_DATE",
-    "gwldt": "WARRANTY_DATE",
-    "ihrez": "INHOUSE_PROC_TIME",
-    "verkf": "SALES_PERSON",
-    "telf1_po": "PO_PHONE",
-    "llief": "FIXED_VENDOR",
-    "kunnr_po": "CUSTOMER_PO",
-    "wkurs": "EXCHANGE_RATE_PO",
-    "kufix": "RATE_FIXED",
-    "beession": "BE_SESSION",
-    "fession": "FE_SESSION",
-    "stceg_po": "PO_VAT_REG",
-    "stceg_l": "PO_VAT_REG_LONG",
-    "absgr": "RELEASE_GROUP",
-    "addnr": "ADDRESS_NUMBER_PO",
-    "kornr": "CONTRACT_NUMBER",
-    "memory": "MEMORY",
-    "procstat": "PROCESSING_STATUS",
-    "rlwrt": "RELEASE_VALUE",
-    "revno": "REVISION_LEVEL",
-    "scmproc": "SCM_PROCESS",
-    "reason_code": "REASON_CODE",
-    "memession": "MEM_SESSION",
-    "retession": "RET_SESSION",
-    "dpession": "DP_SESSION",
-    "mession": "M_SESSION",
-    "frggr": "RELEASE_GROUP_GR",
-    "frgsx": "RELEASE_STRATEGY",
-    "frgke": "RELEASE_CODE",
-    "frgzu": "RELEASE_STATUS",
-    "autession": "AUT_SESSION",
-
-    # PO Line
-    "txz01": "SHORT_TEXT",
-    "ematn": "MATERIAL_NUMBER_OLD",
-    "bednr": "REQUISITION_NUMBER",
-    "matkl": "MATERIAL_GROUP",
-    "infnr": "INFO_RECORD",
-    "idnlf": "VENDOR_MATERIAL",
-    "ktmng": "TARGET_QTY",
-    "bprme": "ORDER_UOM",
-    "bpumz": "ORDER_UOM_NUM",
-    "bpumn": "ORDER_UOM_DEN",
-    "netpr": "NET_PRICE",
-    "peinh": "PRICE_UNIT",
-    "netwr": "NET_VALUE",
-    "agdat": "REGULATION_DATE",
-    "webaz": "GOODS_RECEIPT_DAYS",
-    "bonus": "BONUS_GRP",
-    "insmk": "INSPECTION_SUFFIX",
-    "spinf": "SP_INF",
-    "prsdr": "PRICE_PRINTER",
-    "schpr": "SCH_PR",
-    "mahnz": "DUNNING_COUNTER",
-    "mahn1": "DUNNING_LEVEL1",
-    "mahn2": "DUNNING_LEVEL2",
-    "mahn3": "DUNNING_LEVEL3",
-    "kzabs": "ORDER_ACKNOWLEDGEMENT",
-    "laession": "LA_SESSION",
-    "vression": "VR_SESSION",
-    "twrkz": "PLANT_INDICATOR",
-    "wepos": "GOODS_RECEIPT",
-    "weunb": "UNLIMITED_GR",
-    "repos": "INVOICE_RECEIPT",
-    "webre": "GR_BASED_IV",
-    "kzwi1": "SUB_IND1",
-    "kzwi2": "SUB_IND2",
-    "kzwi3": "SUB_IND3",
-    "kzwi4": "SUB_IND4",
-    "kzwi5": "SUB_IND5",
-    "kzwi6": "SUB_IND6",
-    "sikgr": "CONF_CONTROL",
-    "mfession": "MF_SESSION",
-    "ffession": "FF_SESSION",
-    "afession": "AF_SESSION",
-    "uebpo": "SUPERIOR_ITEM",
-    "uebto": "SUPERIOR_DOC",
-    "untto": "SUPERIOR_DOC_ITEM",
-    "xersy": "ERS",
-    "xersf": "ERS_FLAG",
-    "retpo": "RETURNS_ITEM",
-    "sernp": "SERIAL_NUMBER_PROFILE",
-    "emlif": "SHIP_TO_VENDOR",
-    "lblkz": "SUPPLIER_SUBSET",
-
-    # Schedule lines (EKET)
-    "etenr": "SCHEDULE_LINE",
-    "eindt": "DELIVERY_DATE",
-    "slfdt": "CRITICAL_DATE",
-    "lpein": "CATEGORY",
-    "ameng": "TARGET_QTY_SCHED",
-    "wemng": "GR_QTY",
-    "wamng": "GR_QTY_SCHED",
-    "glmng": "DGR_QTY",
-    "nbgbn": "TAX_LOCATION",
-    "banfn": "PURCHASE_REQ",
-    "bnfpo": "PR_ITEM",
-    "esession": "E_SESSION_SCH",
-    "aession": "A_SESSION_SCH",
-
-    # Payment terms
-    "ztagg": "DAY_LIMIT",
-    "ztag1": "DAY1",
-    "ztag2": "DAY2",
-    "ztag3": "DAY3",
-    "zprz1": "PERCENT1",
-    "zprz2": "PERCENT2",
-    "zprz3": "PERCENT3",
-    "zmession": "Z_SESSION",
-
-    # Region
-    "bland": "REGION_CODE",
-    "bezei": "REGION_NAME",
-
-    # Invoice specific
-    "wmwst1": "TAX_AMOUNT_1",
-    "rmwwr": "AMOUNT_INV_DOC",
-    "beznk": "NON_DEDUCTIBLE_TAX",
-    "mwskz1": "TAX_CODE_1",
-    "bupla": "PLANT_INVOICE",
-    "sekko": "HEADER_DATA",
-    "bvtyp": "INVOICE_TYPE",
-    "xrech": "FINAL_INVOICE",
-    "stblg": "REVERSAL_DOC",
-    "stjah": "REVERSAL_YEAR",
-    "ivtyp": "INVOICE_CATEGORY",
-    "erfpr": "ENTERED_BY",
-    "bpmng": "INVOICE_QTY",
-    "bprme_inv": "INV_UOM",
-    "bstme": "ORDER_UNIT",
-    "bnkan": "PO_ITEM",
-    "kschl": "CONDITION_TYPE",
-    "bwtar": "VALUATION_TYPE",
-    "bwkey": "VALUATION_AREA",
-    "lfbnr": "DELIVERY_NOTE",
-    "lfgja": "DELIVERY_YEAR",
-    "lfpos": "DELIVERY_ITEM",
-
-    # Invoice status log (custom)
-    "status": "STATUS",
-    "effective_date": "EFFECTIVE_DATE",
-    "sequence_nbr": "SEQUENCE_NBR",
-    "status_notes": "STATUS_NOTES",
-    "created_by": "CREATED_BY",
-    "created_at": "CREATED_AT",
-
-    # Standard Data Vault columns (already English but renamed to our convention)
-    "hub_hash_key": "HUB_HASH_KEY_TEMP",
-    "load_date": "LOAD_DTS",
-    "record_source": "RECORD_SOURCE",
-    "hash_diff": "HASH_DIFF"
-}
+def bedrock_retry(max_retries=3, initial_delay=2, backoff=2):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            delay = initial_delay
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise
+                    logger.warning(f"Bedrock call failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay}s...")
+                    time.sleep(delay)
+                    delay *= backoff
+            return None
+        return wrapper
+    return decorator
 
 # --------------------------------------------------------------
-# Data Vault Model Definition (using English column names)
+# Batched LLM Column Translator (chunked, robust JSON)
 # --------------------------------------------------------------
-VAULT_MODEL = {
-    "hubs": [
-        {
-            "hub_name": "HUB_ACCOUNTING_DOC",
-            "entity_name": "ACCOUNTING_DOC",
-            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR"],
-            "source_tables": ["BKPF"]
-        },
-        {
-            "hub_name": "HUB_ACCT_DOC_LINE",
-            "entity_name": "ACCT_DOC_LINE",
-            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
-            "source_tables": ["BSEG"]
-        },
-        {
-            "hub_name": "HUB_CLEARED_ITEM",
-            "entity_name": "CLEARED_ITEM",
-            "business_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
-            "source_tables": ["BSAK"]
-        },
-        {
-            "hub_name": "HUB_COMPANY_CODE",
-            "entity_name": "COMPANY_CODE",
-            "business_key_columns": ["COMPANY_CODE"],
-            "source_tables": ["T001"]
-        },
-        {
-            "hub_name": "HUB_INVOICE",
-            "entity_name": "INVOICE",
-            "business_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
-            "source_tables": ["RBKP"]
-        },
-        {
-            "hub_name": "HUB_INVOICE_LINE",
-            "entity_name": "INVOICE_LINE",
-            "business_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"],
-            "source_tables": ["RSEG"]
-        },
-        {
-            "hub_name": "HUB_MATERIAL_DOC",
-            "entity_name": "MATERIAL_DOC",
-            "business_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR"],
-            "source_tables": ["MKPF"]
-        },
-        {
-            "hub_name": "HUB_MAT_DOC_LINE",
-            "entity_name": "MAT_DOC_LINE",
-            "business_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"],
-            "source_tables": ["MSEG"]
-        },
-        {
-            "hub_name": "HUB_PAYMENT_TERMS",
-            "entity_name": "PAYMENT_TERMS",
-            "business_key_columns": ["PAYMENT_TERMS"],
-            "source_tables": ["T052"]
-        },
-        {
-            "hub_name": "HUB_PLANT",
-            "entity_name": "PLANT",
-            "business_key_columns": ["PLANT"],
-            "source_tables": ["T001W"]
-        },
-        {
-            "hub_name": "HUB_PURCHASE_ORDER",
-            "entity_name": "PURCHASE_ORDER",
-            "business_key_columns": ["PURCHASE_DOC"],
-            "source_tables": ["EKKO"]
-        },
-        {
-            "hub_name": "HUB_PO_LINE",
-            "entity_name": "PO_LINE",
-            "business_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
-            "source_tables": ["EKPO"]
-        },
-        {
-            "hub_name": "HUB_VENDOR",
-            "entity_name": "VENDOR",
-            "business_key_columns": ["VENDOR_NUMBER"],
-            "source_tables": ["LFA1", "LFB1"]
-        }
-    ],
-    "links": [
-        {
-            "link_name": "LINK_ACCT_DOC_LINE_VENDOR",
-            "entity_name": "ACCT_DOC_LINE_VENDOR",
-            "hub_references": [
-                {"hub_name": "HUB_ACCT_DOC_LINE", "columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"]},
-                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
-            ],
-            "source_tables": ["BSEG"]
-        },
-        {
-            "link_name": "LINK_CLEARED_ITEM_VENDOR",
-            "entity_name": "CLEARED_ITEM_VENDOR",
-            "hub_references": [
-                {"hub_name": "HUB_CLEARED_ITEM", "columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"]},
-                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
-            ],
-            "source_tables": ["BSAK"]
-        },
-        {
-            "link_name": "LINK_INVOICE_LINE_PO_LINE",
-            "entity_name": "INVOICE_LINE_PO_LINE",
-            "hub_references": [
-                {"hub_name": "HUB_INVOICE_LINE", "columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"]},
-                {"hub_name": "HUB_PO_LINE", "columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"]}
-            ],
-            "source_tables": ["RSEG"]
-        },
-        {
-            "link_name": "LINK_INVOICE_VENDOR",
-            "entity_name": "INVOICE_VENDOR",
-            "hub_references": [
-                {"hub_name": "HUB_INVOICE", "columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"]},
-                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]}
-            ],
-            "source_tables": ["RBKP"]
-        },
-        {
-            "link_name": "LINK_MAT_DOC_LINE_PO_LINE",
-            "entity_name": "MAT_DOC_LINE_PO_LINE",
-            "hub_references": [
-                {"hub_name": "HUB_MAT_DOC_LINE", "columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"]},
-                {"hub_name": "HUB_PO_LINE", "columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"]}
-            ],
-            "source_tables": ["MSEG"]
-        },
-        {
-            "link_name": "LINK_VENDOR_COMPANY_CODE",
-            "entity_name": "VENDOR_COMPANY_CODE",
-            "hub_references": [
-                {"hub_name": "HUB_VENDOR", "columns": ["VENDOR_NUMBER"]},
-                {"hub_name": "HUB_COMPANY_CODE", "columns": ["COMPANY_CODE"]}
-            ],
-            "source_tables": ["LFB1"]
-        }
-    ],
-    "satellites": [
-        {
-            "sat_name": "SAT_ACCOUNTING_DOC_BKPF",
-            "hub_name": "HUB_ACCOUNTING_DOC",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR"],
-            "attributes": [
-                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "FISCAL_PERIOD",
-                "ENTERED_ON", "ENTERED_AT", "USER_NAME", "TRANSACTION_CODE",
-                "REFERENCE_DOC_NUMBER", "HEADER_TEXT", "CURRENCY", "EXCHANGE_RATE",
-                "EXCHANGE_RATE_DATE", "REFERENCE_PROCESS", "REFERENCE_KEY"
-            ],
-            "source_table": "BKPF"
-        },
-        {
-            "sat_name": "SAT_ACCT_DOC_LINE_BSEG",
-            "hub_name": "HUB_ACCT_DOC_LINE",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
-            "attributes": [
-                "POSTING_KEY", "ACCOUNT_TYPE", "DEBIT_CREDIT", "AMOUNT_LOCAL", "AMOUNT_DOC",
-                "TAX_CODE", "TAX_AMOUNT", "TAX_JURISDICTION", "ASSIGNMENT_NUMBER", "LINE_TEXT",
-                "COST_CENTER", "ORDER_NUMBER", "PROJECT_NUMBER", "GL_ACCOUNT", "CUSTOMER_NUMBER",
-                "VENDOR_NUMBER", "MATERIAL_NUMBER", "PLANT", "QUANTITY", "BASE_UOM",
-                "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT", "BASELINE_DATE",
-                "PAYMENT_TERMS", "CASH_DISC_DAYS1", "CASH_DISC_DAYS2", "CASH_DISC_DAYS3",
-                "CASH_DISC_BASE", "CASH_DISC_AMOUNT", "CASH_DISC_AMOUNT_DOC", "PAYMENT_METHOD",
-                "PAYMENT_BLOCK", "PAYMENT_TERMS_FIXED", "CLEARING_DATE", "CLEARING_DOC", "CLEARING_PERIOD"
-            ],
-            "source_table": "BSEG"
-        },
-        {
-            "sat_name": "SAT_CLEARED_ITEM_BSAK",
-            "hub_name": "HUB_CLEARED_ITEM",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "COMPANY_CODE", "FISCAL_YEAR", "LINE_ITEM"],
-            "attributes": [
-                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "FISCAL_PERIOD", "ENTERED_ON",
-                "CURRENCY", "AMOUNT_LOCAL", "AMOUNT_DOC", "DEBIT_CREDIT", "CLEARING_DATE",
-                "CLEARING_DOC", "ASSIGNMENT_NUMBER", "LINE_TEXT", "BASELINE_DATE", "PAYMENT_TERMS",
-                "CASH_DISC_DAYS1", "CASH_DISC_DAYS2", "CASH_DISC_DAYS3", "CASH_DISC_BASE",
-                "CASH_DISC_AMOUNT", "CASH_DISC_AMOUNT_DOC"
-            ],
-            "source_table": "BSAK"
-        },
-        {
-            "sat_name": "SAT_COMPANY_T001",
-            "hub_name": "HUB_COMPANY_CODE",
-            "hub_key_columns": ["COMPANY_CODE"],
-            "attributes": [
-                "COMPANY_NAME", "COMPANY_CITY", "COMPANY_COUNTRY", "COMPANY_CURRENCY",
-                "COMPANY_LANG", "COMPANY_ADDR", "COMPANY_VAT", "CHART_OF_ACCOUNTS"
-            ],
-            "source_table": "T001"
-        },
-        {
-            "sat_name": "SAT_INVOICE_RBKP",
-            "hub_name": "HUB_INVOICE",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
-            "attributes": [
-                "DOCUMENT_TYPE", "DOCUMENT_DATE", "POSTING_DATE", "ENTERED_ON", "ENTERED_AT",
-                "USER_NAME", "TRANSACTION_CODE", "REFERENCE_DOC_NUMBER", "VENDOR_NUMBER",
-                "CURRENCY", "EXCHANGE_RATE", "TAX_AMOUNT_1", "AMOUNT_INV_DOC", "NON_DEDUCTIBLE_TAX",
-                "TAX_CODE_1", "PLANT_INVOICE", "HEADER_DATA", "PAYMENT_TERMS", "BASELINE_DATE",
-                "PAYMENT_METHOD", "PAYMENT_BLOCK", "PAYMENT_TERMS_FIXED", "INVOICE_TYPE",
-                "FINAL_INVOICE", "REVERSAL_DOC", "REVERSAL_YEAR", "INVOICE_CATEGORY", "ENTERED_BY"
-            ],
-            "source_table": "RBKP"
-        },
-        {
-            "sat_name": "SAT_INVOICE_LINE_RSEG",
-            "hub_name": "HUB_INVOICE_LINE",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR", "LINE_ITEM"],
-            "attributes": [
-                "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT", "MATERIAL_NUMBER",
-                "PLANT", "QUANTITY", "BASE_UOM", "INVOICE_QTY", "INV_UOM", "NET_VALUE",
-                "CURRENCY", "TAX_CODE", "TAX_JURISDICTION", "ORDER_UNIT", "PO_ITEM",
-                "DEBIT_CREDIT", "CONDITION_TYPE", "VALUATION_TYPE", "VALUATION_AREA",
-                "REFERENCE_DOC_NUMBER", "LINE_TEXT", "COMPANY_CODE", "DELIVERY_NOTE",
-                "DELIVERY_YEAR", "DELIVERY_ITEM"
-            ],
-            "source_table": "RSEG"
-        },
-        {
-            "sat_name": "SAT_MATERIAL_DOC_MKPF",
-            "hub_name": "HUB_MATERIAL_DOC",
-            "hub_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR"],
-            "attributes": [
-                "DOCUMENT_DATE", "POSTING_DATE", "ENTERED_ON", "ENTERED_AT", "USER_NAME",
-                "TRANSACTION_CODE", "REFERENCE_DOC_NUMBER", "HEADER_TEXT", "MOVEMENT_TYPE_GROUP",
-                "DOCUMENT_TYPE", "DOCUMENT_TYPE_MAT", "SP_SESSION"
-            ],
-            "source_table": "MKPF"
-        },
-        {
-            "sat_name": "SAT_MAT_DOC_LINE_MSEG",
-            "hub_name": "HUB_MAT_DOC_LINE",
-            "hub_key_columns": ["MATERIAL_DOC", "MATERIAL_DOC_YEAR", "LINE_ITEM"],
-            "attributes": [
-                "MOVE_TYPE", "MATERIAL_NUMBER", "PLANT", "STORAGE_LOCATION", "BATCH_NUMBER",
-                "DEBIT_CREDIT", "QUANTITY", "BASE_UOM", "AMOUNT_LOCAL", "CURRENCY",
-                "COMPANY_CODE", "PURCHASE_DOC", "PURCHASE_DOC_ITEM", "PO_ACCOUNT_ASSIGNMENT",
-                "VENDOR_NUMBER", "SPECIAL_STOCK", "STOCK_MOVEMENT", "RECEIPT_INDICATOR",
-                "CONSUMPTION_IND", "COST_CENTER", "ORDER_NUMBER", "RESERVATION_NUMBER", "RESERVATION_ITEM"
-            ],
-            "source_table": "MSEG"
-        },
-        {
-            "sat_name": "SAT_PAYMENT_TERMS_T052",
-            "hub_name": "HUB_PAYMENT_TERMS",
-            "hub_key_columns": ["PAYMENT_TERMS"],
-            "attributes": ["DAY_LIMIT", "DAY1", "DAY2", "DAY3", "PERCENT1", "PERCENT2", "PERCENT3", "Z_SESSION"],
-            "source_table": "T052"
-        },
-        {
-            "sat_name": "SAT_PLANT_T001W",
-            "hub_name": "HUB_PLANT",
-            "hub_key_columns": ["PLANT"],
-            "attributes": [
-                "PLANT_NAME1", "PLANT_NAME2", "PLANT_STREET", "PLANT_CITY", "PLANT_POSTAL",
-                "PLANT_COUNTRY", "PLANT_REGION", "PLANT_COMPANY", "PLANT_CUSTOMER", "PLANT_VENDOR",
-                "FACTORY_CALENDAR", "PLANT_TAX_JUR", "PLANNING_PLANT", "BRAZIL_DUMMY"
-            ],
-            "source_table": "T001W"
-        },
-        {
-            "sat_name": "SAT_PO_HEADER_EKKO",
-            "hub_name": "HUB_PURCHASE_ORDER",
-            "hub_key_columns": ["PURCHASE_DOC"],
-            "attributes": [
-                "COMPANY_CODE", "PO_CATEGORY", "PO_TYPE", "LO_SESSION", "PO_STATUS",
-                "CHANGED_ON", "CREATED_BY", "INCOTERMS", "LAST_PO_NUMBER", "VENDOR_NUMBER",
-                "PAYMENT_TERMS", "PURCHASING_ORG", "PURCHASING_GROUP", "CURRENCY", "PO_DATE",
-                "VALID_FROM", "VALID_TO", "SUBMISSION_DATE", "WARRANTY_DATE", "INHOUSE_PROC_TIME",
-                "SALES_PERSON", "PO_PHONE", "FIXED_VENDOR", "CUSTOMER_PO", "EXCHANGE_RATE_PO",
-                "RATE_FIXED", "BE_SESSION", "FE_SESSION", "PO_VAT_REG", "PO_VAT_REG_LONG",
-                "RELEASE_GROUP", "ADDRESS_NUMBER_PO", "CONTRACT_NUMBER", "MEMORY", "PROCESSING_STATUS",
-                "RELEASE_VALUE", "REVISION_LEVEL", "SCM_PROCESS", "REASON_CODE", "MEM_SESSION",
-                "RET_SESSION", "DP_SESSION", "M_SESSION", "RELEASE_GROUP_GR", "RELEASE_STRATEGY",
-                "RELEASE_CODE", "RELEASE_STATUS", "AUT_SESSION"
-            ],
-            "source_table": "EKKO"
-        },
-        {
-            "sat_name": "SAT_PO_LINE_EKPO",
-            "hub_name": "HUB_PO_LINE",
-            "hub_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
-            "attributes": [
-                "LO_SESSION", "PO_STATUS", "CHANGED_ON", "SHORT_TEXT", "MATERIAL_NUMBER",
-                "MATERIAL_NUMBER_OLD", "COMPANY_CODE", "PLANT", "STORAGE_LOCATION", "REQUISITION_NUMBER",
-                "MATERIAL_GROUP", "INFO_RECORD", "VENDOR_MATERIAL", "TARGET_QTY", "QUANTITY",
-                "BASE_UOM", "ORDER_UOM", "ORDER_UOM_NUM", "ORDER_UOM_DEN", "NET_PRICE",
-                "PRICE_UNIT", "NET_VALUE", "REGULATION_DATE", "GOODS_RECEIPT_DAYS", "TAX_CODE",
-                "BONUS_GRP", "INSPECTION_SUFFIX", "SP_INF", "PRICE_PRINTER", "SCH_PR",
-                "DUNNING_COUNTER", "DUNNING_LEVEL1", "DUNNING_LEVEL2", "DUNNING_LEVEL3",
-                "ORDER_ACKNOWLEDGEMENT", "LA_SESSION", "VR_SESSION", "PLANT_INDICATOR",
-                "GOODS_RECEIPT", "UNLIMITED_GR", "INVOICE_RECEIPT", "GR_BASED_IV", "SUB_IND1",
-                "SUB_IND2", "SUB_IND3", "SUB_IND4", "SUB_IND5", "SUB_IND6", "CONF_CONTROL",
-                "MF_SESSION", "FF_SESSION", "AF_SESSION", "SUPERIOR_ITEM", "SUPERIOR_DOC",
-                "SUPERIOR_DOC_ITEM", "ERS", "ERS_FLAG", "RETURNS_ITEM", "SERIAL_NUMBER_PROFILE",
-                "SHIP_TO_VENDOR", "SUPPLIER_SUBSET"
-            ],
-            "source_table": "EKPO"
-        },
-        {
-            "sat_name": "SAT_PO_SCHEDULE_EKET",
-            "hub_name": "HUB_PO_LINE",
-            "hub_key_columns": ["PURCHASE_DOC", "PURCHASE_DOC_ITEM"],
-            "attributes": [
-                "SCHEDULE_LINE", "DELIVERY_DATE", "CRITICAL_DATE", "CATEGORY", "QUANTITY",
-                "TARGET_QTY_SCHED", "GR_QTY", "GR_QTY_SCHED", "DGR_QTY", "TAX_LOCATION",
-                "NET_VALUE", "PURCHASE_REQ", "PR_ITEM", "E_SESSION_SCH", "A_SESSION_SCH"
-            ],
-            "source_table": "EKET"
-        },
-        {
-            "sat_name": "SAT_REGION_T005U",
-            "hub_name": "HUB_COMPANY_CODE",
-            "hub_key_columns": ["COMPANY_CODE"],
-            "attributes": ["LANGUAGE_KEY", "COUNTRY_KEY", "REGION_CODE", "REGION_NAME"],
-            "source_table": "T005U"
-        },
-        {
-            "sat_name": "SAT_VENDOR_LFA1",
-            "hub_name": "HUB_VENDOR",
-            "hub_key_columns": ["VENDOR_NUMBER"],
-            "attributes": [
-                "NAME1", "NAME2", "NAME3", "NAME4", "STREET_ADDRESS", "CITY", "POSTAL_CODE",
-                "COUNTRY_KEY", "REGION", "PHONE1", "PHONE2", "FAX", "TAX_NUMBER1", "TAX_NUMBER2",
-                "LANGUAGE_KEY", "INDUSTRY_KEY", "VENDOR_ACCOUNT_GROUP", "DELETION_FLAG",
-                "BLOCKING_FLAG", "ORDER_BLOCK", "DELIVERY_BLOCK", "E_SESSION", "BIRTH_PLACE",
-                "BANK_ACCOUNT", "BANK_ACCOUNT_TYPE", "ADDRESS_NUMBER"
-            ],
-            "source_table": "LFA1"
-        },
-        {
-            "sat_name": "SAT_VENDOR_BKP_LFA1",
-            "hub_name": "HUB_VENDOR",
-            "hub_key_columns": ["VENDOR_NUMBER"],
-            "attributes": ["NAME1", "NAME2", "NAME3", "NAME4", "STREET_ADDRESS", "CITY", "POSTAL_CODE", "COUNTRY_KEY", "REGION"],
-            "source_table": "BKP_LFA1"
-        },
-        {
-            "sat_name": "SAT_VENDOR_LFB1",
-            "hub_name": "HUB_VENDOR",
-            "hub_key_columns": ["VENDOR_NUMBER"],
-            "attributes": [
-                "COMPANY_CODE", "PERSONNEL_NUMBER", "CREATED_BY", "CREATED_ON", "A_SESSION",
-                "DELETION_FLAG", "BLOCKING_FLAG", "ZU_SESSION", "AUTHORIZATION_GROUP",
-                "PAYMENT_TERMS", "PAYMENT_METHOD", "X_SESSION", "ALTERNATIVE_PAYEE",
-                "BANK_ACCOUNT_KEY", "HEADQUARTERS_BANK", "X_INVE", "HE_SESSION", "AL_SESSION",
-                "KR_SESSION", "Q_SESSION", "WITHHOLDING_TAX_NUMBER", "WITHHOLDING_TAX_DATE",
-                "W_SESSION", "CE_SESSION"
-            ],
-            "source_table": "LFB1"
-        },
-        {
-            "sat_name": "SAT_INVOICE_STATUS_LOG",
-            "hub_name": "HUB_INVOICE",
-            "hub_key_columns": ["DOCUMENT_NUMBER", "FISCAL_YEAR"],
-            "attributes": ["STATUS", "EFFECTIVE_DATE", "SEQUENCE_NBR", "STATUS_NOTES", "CREATED_BY", "CREATED_AT"],
-            "source_table": "INVOICE_STATUS_LOG"
-        }
-    ]
-}
+class BatchedLLMColumnTranslator:
+    def __init__(self, region=BEDROCK_REGION, model_id=BEDROCK_MODEL_ID):
+        self.region = region
+        self.model_id = model_id
+        self.cache = {}
+        self.bedrock_runtime = boto3.client('bedrock-runtime', region_name=region, config=BEDROCK_CONFIG)
+        logger.info(f"Bedrock client initialized with model {model_id} in {region}")
+
+    @bedrock_retry(max_retries=3)
+    def _invoke_llm(self, prompt, max_tokens=4000):
+        body = json.dumps({
+            "prompt": prompt,
+            "max_gen_len": max_tokens,
+            "temperature": 0.0,
+            "top_p": 0.9
+        })
+        response = self.bedrock_runtime.invoke_model(
+            modelId=self.model_id,
+            contentType='application/json',
+            accept='application/json',
+            body=body
+        )
+        response_body = json.loads(response['body'].read())
+        return response_body.get('generation', '').strip()
+
+    def _extract_json(self, text):
+        if not text or not text.strip():
+            raise ValueError("Empty response from LLM")
+        text = text.strip()
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*$', '', text)
+        first_brace = text.find('{')
+        last_brace = text.rfind('}')
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            json_candidate = text[first_brace:last_brace+1]
+        else:
+            json_candidate = text
+        json_candidate = re.sub(r',\s*}', '}', json_candidate)
+        json_candidate = re.sub(r',\s*]', ']', json_candidate)
+        try:
+            return json.loads(json_candidate)
+        except json.JSONDecodeError:
+            pattern = r'"([^"]+)"\s*:\s*"([^"]*)"'
+            matches = re.findall(pattern, json_candidate)
+            if matches:
+                return {k: v for k, v in matches}
+            raise ValueError(f"Could not extract JSON: {text[:200]}")
+
+    def _translate_chunk(self, chunk_names):
+        names_list = "\n".join(f"- {name}" for name in chunk_names)
+        prompt = (
+            f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+            f"You are an SAP expert. Convert the following German column names to English business terms.\n"
+            f"**MANDATORY**: Return a valid JSON object with a key for EVERY German name listed.\n"
+            f"**DO NOT include any explanatory text, backticks, or markdown. Return ONLY the JSON object.**\n\n"
+            f"Use UPPERCASE with underscores.\n\n"
+            f"Examples: 'lifnr' -> 'VENDOR_ID', 'bukrs' -> 'COMPANY_CODE', 'belnr' -> 'DOCUMENT_NUMBER', "
+            f"'gjahr' -> 'FISCAL_YEAR', 'matnr' -> 'MATERIAL_NUMBER', 'werks' -> 'PLANT', 'ebeln' -> 'PURCHASE_ORDER_NUMBER'\n\n"
+            f"German column names:\n{names_list}\n\n"
+            f"JSON output:\n"
+            f"<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+        )
+        raw_response = self._invoke_llm(prompt)
+        mapping = self._extract_json(raw_response)
+        missing = [name for name in chunk_names if name not in mapping]
+        if missing:
+            # Retry with simpler prompt
+            prompt2 = (
+                f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+                f"Return ONLY a JSON object. The JSON must have keys for all names below.\n"
+                f"Example: {{\"lifnr\": \"VENDOR_ID\", \"bukrs\": \"COMPANY_CODE\"}}\n\n"
+                f"Names: {', '.join(chunk_names)}\n\n"
+                f"JSON:\n"
+                f"<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+            )
+            raw_response2 = self._invoke_llm(prompt2)
+            mapping2 = self._extract_json(raw_response2)
+            missing2 = [name for name in chunk_names if name not in mapping2]
+            if missing2:
+                raise RuntimeError(f"Missing {len(missing2)} names: {missing2[:10]}...")
+            mapping = mapping2
+        return mapping
+
+    def translate_batch(self, all_german_names):
+        to_translate = [name for name in all_german_names if name not in self.cache]
+        if not to_translate:
+            return {name: self.cache[name] for name in all_german_names}
+        chunks = [to_translate[i:i+TRANSLATION_BATCH_SIZE] for i in range(0, len(to_translate), TRANSLATION_BATCH_SIZE)]
+        logger.info(f"Translating {len(to_translate)} names in {len(chunks)} chunks")
+        for idx, chunk in enumerate(chunks):
+            chunk_map = self._translate_chunk(chunk)
+            self.cache.update(chunk_map)
+            logger.info(f"Chunk {idx+1} done, cache size {len(self.cache)}")
+        missing_final = [name for name in all_german_names if name not in self.cache]
+        if missing_final:
+            raise RuntimeError(f"Still missing {len(missing_final)} names after all chunks")
+        return {name: self.cache[name] for name in all_german_names}
+
+    def rename_columns(self, df, translation_map):
+        # rename using the translation map, then deduplicate
+        original_columns = df.columns
+        name_counts = {}
+        rename_map = {}
+        for old in original_columns:
+            new_base = translation_map.get(old, old.upper())
+            if new_base not in name_counts:
+                rename_map[old] = new_base
+                name_counts[new_base] = 1
+            else:
+                cnt = name_counts[new_base] + 1
+                new_name = f"{new_base}_{cnt}"
+                rename_map[old] = new_name
+                name_counts[new_base] = cnt
+        for old, new in rename_map.items():
+            df = df.withColumnRenamed(old, new)
+        # final deduplication (safety)
+        df = deduplicate_columns(df)
+        logger.info(f"Renamed and deduplicated {len(rename_map)} columns")
+        return df
 
 # --------------------------------------------------------------
-# Helper Functions
+# Helper: Deduplicate column names in a DataFrame
 # --------------------------------------------------------------
-def rename_columns_german_to_english(df):
-    """Rename all columns from German to English using the global mapping."""
-    for german, english in GERMAN_TO_ENGLISH.items():
-        if german in df.columns:
-            df = df.withColumnRenamed(german, english)
+def deduplicate_columns(df):
+    """Rename duplicate columns (case-insensitive) by appending _2, _3 etc."""
+    cols = df.columns
+    new_cols = []
+    counts = {}
+    for c in cols:
+        upper_c = c.upper()
+        if upper_c not in counts:
+            counts[upper_c] = 1
+            new_cols.append(c)
+        else:
+            counts[upper_c] += 1
+            new_cols.append(f"{c}_{counts[upper_c]}")
+    if new_cols != list(cols):
+        logger.warning(f"Deduplicated columns: {list(zip(cols, new_cols))}")
+        df = df.toDF(*new_cols)
     return df
 
+# --------------------------------------------------------------
+# Helper Functions (S3, DataFrame utilities)
+# --------------------------------------------------------------
+def delete_s3_prefix(bucket, prefix):
+    s3 = boto3.resource('s3')
+    try:
+        s3.Bucket(bucket).objects.filter(Prefix=prefix).delete()
+        logger.info(f"Deleted existing files under s3://{bucket}/{prefix}")
+    except Exception as e:
+        logger.warning(f"Could not delete s3://{bucket}/{prefix}: {e}")
+
 def find_column(df, col_name):
-    """Case-insensitive column lookup (English names are already uppercase)."""
     for c in df.columns:
         if c.upper() == col_name.upper():
             return c
     return None
 
 def get_existing_columns(df, columns):
-    """Return list of columns that exist in the DataFrame (English names)."""
-    existing = []
+    """Return unique list of column names that exist in df, case-insensitive."""
+    existing = set()
     for c in columns:
         found = find_column(df, c)
         if found:
-            existing.append(found)
-    return existing
+            existing.add(found)
+    return list(existing)
 
-def write_to_s3(df, s3_path, mode="overwrite"):
-    """Write DataFrame to S3 as Parquet. If df is empty, create an empty file with correct schema."""
+def write_to_s3(df, s3_path):
     full_path = f"s3://{raw_vault_bucket}/{s3_path}"
+    df = deduplicate_columns(df)  # safety
     if df.rdd.isEmpty():
-        # Write empty DataFrame with the current schema
         logger.warning(f"No data for {s3_path}, writing empty DataFrame with schema.")
-        df.write.mode(mode).parquet(full_path)
+        df.write.mode("overwrite").parquet(full_path)
     else:
-        df.write.mode(mode).parquet(full_path)
+        df.write.mode("overwrite").parquet(full_path)
     logger.info(f"Written {df.count()} rows to {full_path}")
 
-def read_bronze_table(table_name):
-    """Read a table from bronze database and rename columns to English."""
-    try:
-        df = spark.table(f"{bronze_db}.{table_name.lower()}")
-        df = rename_columns_german_to_english(df)
-        logger.info(f"Read table {table_name} with {len(df.columns)} columns (renamed to English).")
-        return df
-    except Exception as e:
-        logger.warning(f"Could not read table {table_name}: {e}")
-        return None
-
 def generate_hash_key(df, columns, key_name):
-    """Generate SHA-256 hash key from a list of columns."""
     existing_cols = get_existing_columns(df, columns)
     if not existing_cols:
         return None
+    # Ensure no duplicate column references
+    existing_cols = list(dict.fromkeys(existing_cols))  # preserve order but deduplicate
     concat_expr = concat_ws("||", *[coalesce(col(c).cast(StringType()), lit("")) for c in existing_cols])
     return df.withColumn(key_name, sha2(concat_expr, 256))
 
-def create_empty_hub(hub, hub_hash_key_name):
-    """Create an empty DataFrame with the required HUB schema."""
-    bk_cols = hub["business_key_columns"]
-    schema_cols = bk_cols + [hub_hash_key_name, "BUSINESS_KEY", "LOAD_DTS", "RECORD_SOURCE"]
+def create_empty_hub(bk_columns, hub_hash_key_name):
+    bk_columns = list(dict.fromkeys(bk_columns))  # deduplicate
+    schema_cols = bk_columns + [hub_hash_key_name, "BUSINESS_KEY", "LOAD_DTS", "RECORD_SOURCE"]
     empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
-    return empty_df
+    return deduplicate_columns(empty_df)
 
-def create_empty_link(link, link_hash_key_name, hub_hash_key_names):
-    """Create an empty DataFrame with the required LINK schema."""
+def create_empty_link(link_hash_key_name, hub_hash_key_names):
+    hub_hash_key_names = list(dict.fromkeys(hub_hash_key_names))
     schema_cols = [link_hash_key_name] + hub_hash_key_names + ["LOAD_DTS", "RECORD_SOURCE"]
     empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
-    return empty_df
+    return deduplicate_columns(empty_df)
 
-def create_empty_satellite(sat, hub_hash_key_name, attributes):
-    """Create an empty DataFrame with the required SATELLITE schema."""
-    schema_cols = [hub_hash_key_name] + attributes + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE"]
+def create_empty_satellite(hub_hash_key_name, attributes):
+    attributes = list(dict.fromkeys(attributes))
+    schema_cols = [hub_hash_key_name] + attributes + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE", "END_DTS"]
     empty_df = spark.createDataFrame([], schema=StructType([StructField(c, StringType(), True) for c in schema_cols]))
-    return empty_df
+    return deduplicate_columns(empty_df)
 
 # --------------------------------------------------------------
-# Create HUB Tables
+# Dynamically discover tables in the Glue database
 # --------------------------------------------------------------
-def create_hubs():
+def get_table_names_from_database(database_name):
+    try:
+        tables_df = spark.sql(f"SHOW TABLES IN {database_name}")
+        table_names = [row.tableName for row in tables_df.collect()]
+        logger.info(f"Discovered {len(table_names)} tables in database {database_name}")
+        return table_names
+    except Exception as e:
+        logger.error(f"Failed to list tables: {e}")
+        raise
+
+# --------------------------------------------------------------
+# Load and cache all source tables with translated columns (once)
+# --------------------------------------------------------------
+def load_and_cache_source_tables():
+    source_tables = get_table_names_from_database(bronze_db)
+    if not source_tables:
+        logger.error(f"No tables found in database {bronze_db}. Exiting.")
+        sys.exit(1)
+
+    logger.info(f"Collecting all column names from {len(source_tables)} source tables...")
+    all_columns = set()
+    for table in source_tables:
+        try:
+            df_schema = spark.table(f"{bronze_db}.{table}")
+            all_columns.update(df_schema.columns)
+        except Exception as e:
+            logger.warning(f"Could not get schema for table {table}: {e}")
+
+    logger.info(f"Collected {len(all_columns)} unique column names.")
+    translator = BatchedLLMColumnTranslator()
+    global_translation_map = translator.translate_batch(list(all_columns))
+
+    source_dfs = {}
+    for table in source_tables:
+        try:
+            df = spark.table(f"{bronze_db}.{table}")
+            df = translator.rename_columns(df, global_translation_map)
+            df = deduplicate_columns(df)
+            df.cache()
+            row_count = df.count()
+            logger.info(f"Cached table {table}: {len(df.columns)} cols, {row_count} rows.")
+            source_dfs[table] = df
+        except Exception as e:
+            logger.warning(f"Could not read table {table}: {e}")
+            source_dfs[table] = None
+    return source_dfs, global_translation_map
+
+# --------------------------------------------------------------
+# Build schema description from cached DataFrames (already English)
+# --------------------------------------------------------------
+def build_schema_description(source_dfs):
+    schema_info = {}
+    for table, df in source_dfs.items():
+        if df is not None:
+            schema_info[table.upper()] = df.columns
+            logger.info(f"Table {table.upper()} columns: {df.columns}")
+        else:
+            logger.warning(f"Table {table} not found, skipping.")
+    return schema_info
+
+# --------------------------------------------------------------
+# Generate Data Vault Model via LLM (uses only English column names)
+# --------------------------------------------------------------
+@bedrock_retry(max_retries=3, initial_delay=2, backoff=2)
+def _invoke_model_generation(prompt):
+    bedrock = boto3.client('bedrock-runtime', region_name=BEDROCK_REGION, config=BEDROCK_CONFIG)
+    body = json.dumps({
+        "prompt": prompt,
+        "max_gen_len": 8000,
+        "temperature": 0.0,
+        "top_p": 0.9
+    })
+    response = bedrock.invoke_model(
+        modelId=BEDROCK_MODEL_ID,
+        contentType='application/json',
+        accept='application/json',
+        body=body
+    )
+    response_body = json.loads(response['body'].read())
+    json_text = response_body.get('generation', '').strip()
+    if not json_text and 'outputs' in response_body:
+        json_text = response_body['outputs'][0].get('text', '').strip()
+    return json_text
+
+def validate_column_names(vault_model, source_dfs, translation_map):
+    all_source_columns = set()
+    for df in source_dfs.values():
+        if df is not None:
+            all_source_columns.update([c.upper() for c in df.columns])
+
+    def fix_column(col_name, context):
+        upper_col = col_name.upper()
+        if upper_col in all_source_columns:
+            for df in source_dfs.values():
+                if df is not None and upper_col in [c.upper() for c in df.columns]:
+                    return next(c for c in df.columns if c.upper() == upper_col)
+            return col_name
+        if col_name in translation_map:
+            english = translation_map[col_name]
+            if english.upper() in all_source_columns:
+                logger.warning(f"Replaced German column '{col_name}' with '{english}' in {context}")
+                return english
+        for source_col in all_source_columns:
+            if source_col.upper() == upper_col:
+                return source_col
+        raise RuntimeError(f"Column '{col_name}' used in {context} does not exist. Available: {list(all_source_columns)[:20]}")
+
+    for hub in vault_model.get("hubs", []):
+        if "business_key_columns" in hub:
+            hub["business_key_columns"] = [fix_column(c, f"hub {hub.get('hub_name')}") for c in hub["business_key_columns"]]
+            hub["business_key_columns"] = list(dict.fromkeys(hub["business_key_columns"]))
+    for link in vault_model.get("links", []):
+        for ref in link.get("hub_references", []):
+            if "columns" in ref:
+                ref["columns"] = [fix_column(c, f"link {link.get('link_name')}") for c in ref["columns"]]
+                ref["columns"] = list(dict.fromkeys(ref["columns"]))
+    for sat in vault_model.get("satellites", []):
+        if "hub_key_columns" in sat:
+            sat["hub_key_columns"] = [fix_column(c, f"satellite {sat.get('sat_name')} hub_key") for c in sat["hub_key_columns"]]
+            sat["hub_key_columns"] = list(dict.fromkeys(sat["hub_key_columns"]))
+        if "attributes" in sat:
+            sat["attributes"] = [fix_column(c, f"satellite {sat.get('sat_name')} attr") for c in sat["attributes"]]
+            sat["attributes"] = list(dict.fromkeys(sat["attributes"]))
+    return vault_model
+
+def ensure_full_column_coverage(vault_model, schema_info, source_dfs):
+    covered_per_table = {}
+    for sat in vault_model["satellites"]:
+        src_table = sat.get("source_table", "").upper()
+        if not src_table:
+            continue
+        attrs = set(sat.get("attributes", []))
+        covered_per_table[src_table] = covered_per_table.get(src_table, set()).union(attrs)
+
+    missing_per_table = {}
+    for table, required_cols in schema_info.items():
+        covered = covered_per_table.get(table, set())
+        missing = set(required_cols) - covered
+        if missing:
+            missing_per_table[table] = missing
+
+    if not missing_per_table:
+        logger.info("All columns are already covered.")
+        return vault_model
+
+    logger.warning(f"Found missing columns for {len(missing_per_table)} source tables. Auto-remediating...")
+
+    for table, missing_cols in missing_per_table.items():
+        existing_sats = [sat for sat in vault_model["satellites"] if sat.get("source_table", "").upper() == table]
+        if existing_sats:
+            target_sat = existing_sats[0]
+            original_attrs = set(target_sat.get("attributes", []))
+            target_sat["attributes"] = list(original_attrs.union(missing_cols))
+            logger.info(f"Added {len(missing_cols)} missing columns to existing satellite {target_sat['sat_name']} for table {table}")
+        else:
+            # Find a hub or create one
+            hub_name = None
+            hub_key_columns = []
+            for hub in vault_model["hubs"]:
+                if table in [st.upper() for st in hub.get("source_tables", [])]:
+                    hub_name = hub["hub_name"]
+                    hub_key_columns = hub.get("business_key_columns", [])
+                    break
+            if not hub_name:
+                hub_name = f"HUB_{table}"
+                business_key_col = list(missing_cols)[0] if missing_cols else "DUMMY_KEY"
+                new_hub = {
+                    "hub_name": hub_name,
+                    "entity_name": table,
+                    "business_key_columns": [business_key_col],
+                    "source_tables": [table]
+                }
+                vault_model["hubs"].append(new_hub)
+                logger.info(f"Created new hub {hub_name} for table {table}")
+                hub_key_columns = [business_key_col]
+            sat_name = f"SAT_{table}_AUTO"
+            new_sat = {
+                "sat_name": sat_name,
+                "hub_name": hub_name,
+                "hub_key_columns": hub_key_columns,
+                "attributes": list(missing_cols),
+                "source_table": table
+            }
+            vault_model["satellites"].append(new_sat)
+            logger.info(f"Created new satellite {sat_name} for table {table} covering {len(missing_cols)} columns")
+
+    # Re-validate
+    covered_per_table = {}
+    for sat in vault_model["satellites"]:
+        src_table = sat.get("source_table", "").upper()
+        if src_table:
+            attrs = set(sat.get("attributes", []))
+            covered_per_table[src_table] = covered_per_table.get(src_table, set()).union(attrs)
+    still_missing = {}
+    for table, required_cols in schema_info.items():
+        covered = covered_per_table.get(table, set())
+        missing = set(required_cols) - covered
+        if missing:
+            still_missing[table] = missing
+    if still_missing:
+        error_msg = "FATAL: After auto-remediation, columns are still missing:\n"
+        for table, cols in still_missing.items():
+            error_msg += f"  Table {table}: {sorted(cols)}\n"
+        raise RuntimeError(error_msg)
+    logger.info("Column coverage enforced successfully.")
+    return vault_model
+
+def generate_vault_model_from_llm(schema_info, translation_map, source_dfs):
+    schema_str = ""
+    for table, cols in schema_info.items():
+        schema_str += f"Table {table}: columns = {cols}\n"
+
+    prompt = f"""<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+You are a Data Vault 2.0 expert. The source tables below have ALREADY been translated to English column names.
+**CRITICAL**: You MUST use the EXACT column names as they appear in the schema. 
+Do NOT use any German abbreviations like 'bukrs', 'belnr', 'lifnr', 'matnr', etc.
+For example, if the schema shows 'COMPANY_CODE', use 'COMPANY_CODE' – never 'bukrs'.
+
+**REQUIREMENTS**:
+- **Every column** from every source table must appear in the `attributes` list of some satellite.
+- Hubs: 10–15 tables. Links: ~10 tables. Satellites: 10–20 tables.
+- Table names must be in English (e.g., HUB_COMPANY, SAT_ACCOUNTING_DOCUMENT_HEADER). No German table names.
+
+**Output format**: Return a single JSON object with three lists:
+- "hubs": list of {{"hub_name": string, "entity_name": string, "business_key_columns": [string], "source_tables": [string]}}
+- "links": list of {{"link_name": string, "entity_name": string, "hub_references": [{{"hub_name": string, "columns": [string]}}], "source_tables": [string]}}
+- "satellites": list of {{"sat_name": string, "hub_name": string, "hub_key_columns": [string], "attributes": [string], "source_table": string}}
+
+Return ONLY valid JSON. No extra text.
+
+Source schema (all column names are already in English):
+{schema_str}
+<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+
+    try:
+        json_text = _invoke_model_generation(prompt)
+    except Exception as e:
+        logger.error(f"LLM model generation failed: {e}. Cannot proceed.")
+        sys.exit(1)
+
+    logger.info(f"Raw response length: {len(json_text)} characters")
+    first_brace = json_text.find('{')
+    last_brace = json_text.rfind('}')
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        json_text = json_text[first_brace:last_brace+1]
+    else:
+        raise ValueError("No JSON object found in LLM response")
+
+    json_text = re.sub(r',\s*}', '}', json_text)
+    json_text = re.sub(r',\s*]', ']', json_text)
+
+    try:
+        vault_model = json.loads(json_text)
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
+        logger.error(f"Raw JSON text (first 2000 chars): {json_text[:2000]}")
+        raise ValueError(f"Failed to parse LLM response as JSON. Error at {e}.")
+
+    for key in ["hubs", "links", "satellites"]:
+        if key not in vault_model:
+            raise ValueError(f"LLM response missing '{key}' key")
+
+    vault_model = validate_column_names(vault_model, source_dfs, translation_map)
+
+    hub_names = {h["hub_name"] for h in vault_model["hubs"]}
+    cleaned_satellites = []
+    for sat in vault_model["satellites"]:
+        hub_name = sat.get("hub_name")
+        if not hub_name:
+            logger.warning(f"Satellite {sat.get('sat_name')} has no hub_name. Assigning to 'HUB_DUMMY'.")
+            sat["hub_name"] = "HUB_DUMMY"
+            hub_name = "HUB_DUMMY"
+        if hub_name not in hub_names:
+            logger.warning(f"Satellite {sat['sat_name']} references missing hub {hub_name}. Creating hub automatically.")
+            new_hub = {
+                "hub_name": hub_name,
+                "entity_name": hub_name.replace("HUB_", ""),
+                "business_key_columns": sat.get("hub_key_columns", []),
+                "source_tables": [sat.get("source_table", "UNKNOWN")]
+            }
+            vault_model["hubs"].append(new_hub)
+            hub_names.add(hub_name)
+        cleaned_satellites.append(sat)
+    vault_model["satellites"] = cleaned_satellites
+
+    vault_model["hubs"] = [h for h in vault_model["hubs"] if h.get("business_key_columns")]
+
+    vault_model = ensure_full_column_coverage(vault_model, schema_info, source_dfs)
+
+    total_tables = len(vault_model["hubs"]) + len(vault_model["links"]) + len(vault_model["satellites"])
+    logger.info(f"Final model: {len(vault_model['hubs'])} hubs, {len(vault_model['links'])} links, {len(vault_model['satellites'])} satellites (total {total_tables} tables).")
+    return vault_model
+
+# --------------------------------------------------------------
+# Data Vault Table Creation Functions
+# --------------------------------------------------------------
+def create_hubs(vault_model, source_dfs):
     logger.info("=" * 60)
     logger.info("Creating HUB Tables")
     logger.info("=" * 60)
-
-    hub_dataframes = {}
-
-    for hub in VAULT_MODEL["hubs"]:
+    for hub in vault_model["hubs"]:
         hub_name = hub["hub_name"]
         entity_name = hub["entity_name"]
-        bk_columns = hub["business_key_columns"]
+        bk_columns = list(dict.fromkeys(hub["business_key_columns"]))
         source_tables = hub["source_tables"]
         hub_hash_key_name = f"{entity_name}_HK"
-
         logger.info(f"Building HUB: {hub_name} (HK: {hub_hash_key_name})")
-
         hub_dfs = []
         for src_table in source_tables:
-            src_df = read_bronze_table(src_table)
+            src_df = source_dfs.get(src_table.lower())
             if src_df is None:
                 continue
-
             existing_bk = get_existing_columns(src_df, bk_columns)
             if not existing_bk:
-                logger.warning(f"No business key columns found in {src_table} for {hub_name}")
+                logger.warning(f"No business key columns found in {src_table} for {hub_name}. Columns: {src_df.columns}")
                 continue
-
-            # Select business key columns
             key_df = src_df.select(*[col(c) for c in existing_bk]).distinct()
-
-            # Generate hash key
             key_df = generate_hash_key(key_df, existing_bk, hub_hash_key_name)
             if key_df is None:
                 continue
-
             key_df = key_df.withColumn("LOAD_DTS", current_timestamp())
             key_df = key_df.withColumn("RECORD_SOURCE", lit(src_table))
-            # Create business_key for debugging (concatenated string)
             key_df = key_df.withColumn("BUSINESS_KEY", concat_ws("|", *[col(c) for c in existing_bk]))
-
             hub_dfs.append(key_df)
-
         if not hub_dfs:
-            logger.warning(f"No data for HUB {hub_name}, creating empty DataFrame.")
-            hub_df = create_empty_hub(hub, hub_hash_key_name)
+            hub_df = create_empty_hub(bk_columns, hub_hash_key_name)
         else:
             hub_df = hub_dfs[0]
             for df in hub_dfs[1:]:
                 hub_df = hub_df.unionByName(df, allowMissingColumns=True)
             hub_df = hub_df.dropDuplicates([hub_hash_key_name])
-
+        hub_df = deduplicate_columns(hub_df)
+        delete_s3_prefix(raw_vault_bucket, f"{hub_path}/{hub_name}")
         write_to_s3(hub_df, f"{hub_path}/{hub_name}")
-        hub_dataframes[hub_name] = f"s3://{raw_vault_bucket}/{hub_path}/{hub_name}"
 
-    return hub_dataframes
-
-# --------------------------------------------------------------
-# Create SATELLITE Tables
-# --------------------------------------------------------------
-def create_satellites(hub_paths):
+def create_satellites(vault_model, source_dfs):
     logger.info("=" * 60)
     logger.info("Creating SATELLITE Tables")
     logger.info("=" * 60)
-
-    for sat in VAULT_MODEL["satellites"]:
+    for sat in vault_model["satellites"]:
         sat_name = sat["sat_name"]
-        hub_name = sat["hub_name"]
-        hub_key_columns = sat["hub_key_columns"]
-        attributes = sat["attributes"]
+        hub_name = sat.get("hub_name")
+        if not hub_name:
+            logger.error(f"Satellite {sat_name} has no hub_name. Skipping.")
+            continue
+        hub_key_columns = list(dict.fromkeys(sat["hub_key_columns"]))
         source_table = sat["source_table"]
-
-        # Find the corresponding hub to get the correct HK column name
-        hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == hub_name), None)
+        hub_def = next((h for h in vault_model["hubs"] if h["hub_name"] == hub_name), None)
         if hub_def is None:
             logger.error(f"Hub {hub_name} not found for satellite {sat_name}, skipping.")
             continue
         hub_hash_key_name = f"{hub_def['entity_name']}_HK"
-
         logger.info(f"Building SATELLITE: {sat_name} (HK: {hub_hash_key_name})")
 
-        src_df = read_bronze_table(source_table)
+        src_df = source_dfs.get(source_table.lower())
         if src_df is None:
-            logger.warning(f"Source table {source_table} missing for satellite {sat_name}, creating empty DataFrame.")
-            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            sat_df = create_empty_satellite(hub_hash_key_name, [])
+            delete_s3_prefix(raw_vault_bucket, f"{sat_path}/{sat_name}")
             write_to_s3(sat_df, f"{sat_path}/{sat_name}")
             continue
 
-        # Get existing hub key columns (in English)
         existing_hub_keys = get_existing_columns(src_df, hub_key_columns)
-        existing_attrs = get_existing_columns(src_df, attributes)
-
         if not existing_hub_keys:
-            logger.warning(f"Hub key columns {hub_key_columns} not found in {source_table}, creating empty satellite.")
-            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            logger.warning(f"Hub key columns {hub_key_columns} not found in {source_table}. Creating empty satellite.")
+            sat_df = create_empty_satellite(hub_hash_key_name, [])
+            delete_s3_prefix(raw_vault_bucket, f"{sat_path}/{sat_name}")
             write_to_s3(sat_df, f"{sat_path}/{sat_name}")
             continue
 
-        # Generate hub hash key
         sat_df = generate_hash_key(src_df, existing_hub_keys, hub_hash_key_name)
         if sat_df is None:
-            logger.warning(f"Could not generate HK for {sat_name}, creating empty.")
-            sat_df = create_empty_satellite(sat, hub_hash_key_name, attributes)
+            sat_df = create_empty_satellite(hub_hash_key_name, [])
+            delete_s3_prefix(raw_vault_bucket, f"{sat_path}/{sat_name}")
             write_to_s3(sat_df, f"{sat_path}/{sat_name}")
             continue
 
-        # Generate hash_diff if there are attributes
-        if existing_attrs:
-            attr_concat = concat_ws("||", *[coalesce(col(c).cast(StringType()), lit("")) for c in existing_attrs])
-            sat_df = sat_df.withColumn("HASH_DIFF", sha2(attr_concat, 256))
+        reserved = set(existing_hub_keys + [hub_hash_key_name])
+        all_cols = set(sat_df.columns)
+        attributes = list(all_cols - reserved)
+        for meta in ["LOAD_DTS", "RECORD_SOURCE", "HASH_DIFF", "END_DTS"]:
+            if meta in attributes:
+                attributes.remove(meta)
+        attributes = list(dict.fromkeys(attributes))
+
+        if not attributes:
+            logger.warning(f"No attributes found for satellite {sat_name}. Creating empty satellite.")
+            sat_df = create_empty_satellite(hub_hash_key_name, [])
         else:
-            sat_df = sat_df.withColumn("HASH_DIFF", lit(None).cast(StringType()))
+            attr_concat = concat_ws("||", *[coalesce(col(c).cast(StringType()), lit("")) for c in attributes])
+            sat_df = sat_df.withColumn("HASH_DIFF", sha2(attr_concat, 256))
+            sat_df = sat_df.withColumn("LOAD_DTS", current_timestamp())
+            sat_df = sat_df.withColumn("RECORD_SOURCE", lit(source_table))
+            sat_df = sat_df.withColumn("END_DTS", lit(None).cast(StringType()))
+            select_cols = [hub_hash_key_name] + attributes + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE", "END_DTS"]
+            select_cols = [c for c in select_cols if c in sat_df.columns]
+            sat_df = sat_df.select(*select_cols).distinct()
 
-        sat_df = sat_df.withColumn("LOAD_DTS", current_timestamp())
-        sat_df = sat_df.withColumn("RECORD_SOURCE", lit(source_table))
-
-        # Select final columns
-        select_cols = [hub_hash_key_name] + existing_attrs + ["HASH_DIFF", "LOAD_DTS", "RECORD_SOURCE"]
-        sat_df = sat_df.select(*select_cols).distinct()
-
+        sat_df = deduplicate_columns(sat_df)
+        delete_s3_prefix(raw_vault_bucket, f"{sat_path}/{sat_name}")
         write_to_s3(sat_df, f"{sat_path}/{sat_name}")
 
-# --------------------------------------------------------------
-# Create LINK Tables
-# --------------------------------------------------------------
-def create_links(hub_paths):
+def create_links(vault_model, source_dfs):
     logger.info("=" * 60)
     logger.info("Creating LINK Tables")
     logger.info("=" * 60)
-
-    for link in VAULT_MODEL["links"]:
+    for link in vault_model["links"]:
         link_name = link["link_name"]
         entity_name = link["entity_name"]
         hub_references = link["hub_references"]
         source_tables = link["source_tables"]
         link_hash_key_name = f"LINK_{entity_name}_HK"
-
         logger.info(f"Building LINK: {link_name} (HK: {link_hash_key_name})")
-
         link_dfs = []
         for src_table in source_tables:
-            src_df = read_bronze_table(src_table)
+            src_df = source_dfs.get(src_table.lower())
             if src_df is None:
                 continue
-
             current_df = src_df
             hub_hash_key_names = []
             valid = True
-
             for ref in hub_references:
                 hub_name = ref["hub_name"]
-                ref_columns = ref["columns"]
-
-                # Find hub definition to get the correct HK column name
-                hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == hub_name), None)
+                ref_columns = list(dict.fromkeys(ref["columns"]))
+                hub_def = next((h for h in vault_model["hubs"] if h["hub_name"] == hub_name), None)
                 if hub_def is None:
                     logger.error(f"Hub {hub_name} not found for link {link_name}, skipping source {src_table}")
                     valid = False
                     break
                 target_hk_name = f"{hub_def['entity_name']}_HK"
-
                 existing_cols = get_existing_columns(current_df, ref_columns)
                 if not existing_cols:
                     logger.warning(f"Columns {ref_columns} not found in {src_table} for link {link_name}")
                     valid = False
                     break
-
-                # Generate the hub hash key column with the correct name
                 current_df = generate_hash_key(current_df, existing_cols, target_hk_name)
                 if current_df is None:
                     valid = False
                     break
                 hub_hash_key_names.append(target_hk_name)
-
             if not valid:
                 continue
-
-            # Generate link hash key from all hub hash keys
+            # Deduplicate hub hash key names
+            hub_hash_key_names = list(dict.fromkeys(hub_hash_key_names))
             link_concat = concat_ws("||", *[col(hk) for hk in hub_hash_key_names])
             current_df = current_df.withColumn(link_hash_key_name, sha2(link_concat, 256))
-
             current_df = current_df.withColumn("LOAD_DTS", current_timestamp())
             current_df = current_df.withColumn("RECORD_SOURCE", lit(src_table))
-
             select_cols = [link_hash_key_name] + hub_hash_key_names + ["LOAD_DTS", "RECORD_SOURCE"]
+            select_cols = list(dict.fromkeys(select_cols))
             current_df = current_df.select(*select_cols).distinct()
-
             link_dfs.append(current_df)
-
         if not link_dfs:
-            logger.warning(f"No data for LINK {link_name}, creating empty DataFrame.")
-            # Build empty schema for this link
             hub_hk_names = []
             for ref in hub_references:
-                hub_def = next((h for h in VAULT_MODEL["hubs"] if h["hub_name"] == ref["hub_name"]), None)
+                hub_def = next((h for h in vault_model["hubs"] if h["hub_name"] == ref["hub_name"]), None)
                 if hub_def:
                     hub_hk_names.append(f"{hub_def['entity_name']}_HK")
-            link_df = create_empty_link(link, link_hash_key_name, hub_hk_names)
+            hub_hk_names = list(dict.fromkeys(hub_hk_names))
+            link_df = create_empty_link(link_hash_key_name, hub_hk_names)
         else:
             link_df = link_dfs[0]
             for df in link_dfs[1:]:
                 link_df = link_df.unionByName(df, allowMissingColumns=True)
             link_df = link_df.dropDuplicates([link_hash_key_name])
-
+        link_df = deduplicate_columns(link_df)
+        delete_s3_prefix(raw_vault_bucket, f"{link_path}/{link_name}")
         write_to_s3(link_df, f"{link_path}/{link_name}")
 
 # --------------------------------------------------------------
-# Main Execution
+# Main
 # --------------------------------------------------------------
 def main():
-    logger.info("Starting Silver Layer (Raw Vault) Job with English column names")
-    logger.info("=" * 60)
+    logger.info("Starting Silver Layer Job: Chunked LLM translation, deduplicated columns, 100% coverage.")
 
-    # Create HUBs first
-    hub_paths = create_hubs()
+    source_dfs, translation_map = load_and_cache_source_tables()
+    schema_info = build_schema_description(source_dfs)
+    if not schema_info:
+        logger.error("No source tables found. Exiting.")
+        job.commit()
+        sys.exit(1)
 
-    # Create SATELLITEs
-    create_satellites(hub_paths)
+    vault_model = generate_vault_model_from_llm(schema_info, translation_map, source_dfs)
 
-    # Create LINKs
-    create_links(hub_paths)
+    delete_s3_prefix(raw_vault_bucket, hub_path)
+    delete_s3_prefix(raw_vault_bucket, link_path)
+    delete_s3_prefix(raw_vault_bucket, sat_path)
 
-    logger.info("=" * 60)
-    logger.info("Silver Layer (Raw Vault) Job Completed Successfully - all 37 tables created")
+    create_hubs(vault_model, source_dfs)
+    create_satellites(vault_model, source_dfs)
+    create_links(vault_model, source_dfs)
+
+    total_created = len(vault_model["hubs"]) + len(vault_model["links"]) + len(vault_model["satellites"])
+    logger.info(f"Job completed. Created {total_created} Data Vault tables with 100% English column names and full coverage.")
+    job.commit()
 
 if __name__ == "__main__":
     main()
-    job.commit()
