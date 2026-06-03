@@ -503,11 +503,21 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BORDER ON NEEDS ATTENTION CARDS
+# dashboard.py - FIXED FILTER LAYOUT
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
 <style>
+    /* Fix for filter alignment */
+    .stDateInput, .stSelectbox {
+        width: 100%;
+    }
+    /* Ensure vendor selectbox doesn't wrap */
+    div[data-testid="stSelectbox"] div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     /* KPI Cards */
     .kpi-card {
         border-radius: 16px;
@@ -705,12 +715,16 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
 </div>
 """, unsafe_allow_html=True)
 
+# ------------------------------------------------------------
+# FIXED: render_filters - balanced columns and no wrapping
+# ------------------------------------------------------------
 def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
     current_preset = st.session_state.preset
 
-    col_date, col_vendor, col_preset = st.columns([1.4, 1.4, 2.2])
+    # Use more balanced column widths: date picker, vendor, preset buttons
+    col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.6], gap="small")
 
     with col_date:
         date_range = st.date_input(
@@ -751,7 +765,7 @@ def render_filters():
 
     with col_preset:
         presets = ["Last 30 Days", "QTD", "YTD", "Custom"]
-        p_cols = st.columns(4)
+        p_cols = st.columns(4, gap="small")
         for idx, p in enumerate(presets):
             with p_cols[idx]:
                 is_active = (p == current_preset)
@@ -851,7 +865,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - CARDS WITH BORDER
+# render_needs_attention - CARDS WITH BORDER
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -1008,7 +1022,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     with col:
                         # Use st.container(border=True) to add border to each card
                         with st.container(border=True):
-                            # No additional background color - just white with border
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 ref = str(r.get("ref_no", "")).strip() or "—"
