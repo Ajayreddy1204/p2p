@@ -1503,7 +1503,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - UPDATED LAYOUT (with Start a Conversation placeholder restored)
+# genie.py - UPDATED with wrapper and buttons
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2689,7 +2689,7 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI (with Start a Conversation)
+# User question processing and Genie UI (with wrapper and buttons)
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2764,6 +2764,41 @@ def start_new_session():
     save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
+def summarize_conversation():
+    if not st.session_state.current_messages:
+        st.warning("No conversation to summarize.")
+        return
+    # Build conversation text
+    conv_text = ""
+    for msg in st.session_state.current_messages:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        content = msg["content"]
+        conv_text += f"{role}: {content}\n\n"
+    prompt = f"Summarize the following conversation concisely, highlighting key questions, findings, and recommendations:\n\n{conv_text}"
+    summary = ask_bedrock(prompt, system_prompt="You are a helpful assistant that summarizes conversations.")
+    if summary:
+        st.info(f"**Conversation Summary:**\n\n{summary}")
+    else:
+        st.error("Could not generate summary at this time.")
+
+def export_conversation_md():
+    if not st.session_state.current_messages:
+        st.warning("No conversation to export.")
+        return
+    md_lines = ["# ProcureIQ Genie Conversation\n"]
+    for msg in st.session_state.current_messages:
+        role = "**User**" if msg["role"] == "user" else "**Genie**"
+        content = msg["content"]
+        md_lines.append(f"{role}\n\n{content}\n\n---\n")
+    md_content = "\n".join(md_lines)
+    st.download_button(
+        label="📥 Download MD",
+        data=md_content,
+        file_name=f"genie_conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+        mime="text/markdown",
+        key="export_md_btn"
+    )
+
 def render_genie():
     st.markdown("""
 <style>
@@ -2794,7 +2829,8 @@ def render_genie():
     .quick-card button { margin-top: auto; }
     .chat-messages {
         max-height: 400px; overflow-y: auto; padding: 0.5rem; margin-bottom: 1rem;
-        background: #fafcff; border-radius: 16px;
+        background: #fafcff;
+        border-radius: 16px;
         border: 1px solid #e2e8f0;
     }
     .message-user {
@@ -2904,7 +2940,7 @@ def render_genie():
 
     st.markdown("---")
 
-    # Left column: grouped container with expanders, Right column: chat area
+    # Left column: grouped container with expanders, Right column: chat area with wrapper and buttons
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
 
     with left_info:
@@ -2941,72 +2977,94 @@ def render_genie():
                     st.caption("No questions yet")
 
     with right_chat:
-        # No "AI Assistant" heading
-        if not st.session_state.current_messages:
-            # Show the start conversation placeholder
-            st.markdown("""
-            <div class="start-conversation">
-                <div class="plus-button"><span>+</span></div>
-                <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Start a Conversation</div>
-                <div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">Ask questions about your Procurement to Pay data, or select a pre-built analysis from the library.</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
-            for msg in st.session_state.current_messages:
-                if msg["role"] == "user":
-                    st.markdown(f'<div class="message-user"><strong>You</strong><br/>{html.escape(msg["content"])}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown('<div class="message-assistant"><strong>Genie</strong></div>', unsafe_allow_html=True)
-                    if "response" in msg and msg["response"]:
-                        resp = msg["response"]
-                        layout = resp.get("layout")
-                        if layout == "cash_flow":
-                            render_cash_flow_response(resp)
-                        elif layout == "early_payment":
-                            render_early_payment_response(resp)
-                        elif layout == "payment_timing":
-                            render_payment_timing_response(resp)
-                        elif layout == "late_payment_trend":
-                            render_late_payment_trend_response(resp)
-                        elif layout == "grir_hotspots":
-                            render_grir_hotspots(resp)
-                        elif layout == "grir_root_causes":
-                            render_grir_root_causes(resp)
-                        elif layout == "grir_working_capital":
-                            render_grir_working_capital(resp)
-                        elif layout == "grir_vendor_followup":
-                            render_grir_vendor_followup(resp)
-                        elif layout == "quick":
-                            render_quick_analysis_response(resp)
-                        elif layout == "analyst":
-                            if resp.get("analyst_response"):
-                                st.markdown(resp["analyst_response"])
-                            df = pd.DataFrame(resp["df"])
-                            if not df.empty:
-                                st.subheader("Supporting Data")
-                                st.dataframe(df, use_container_width=True, hide_index=True)
-                                chart = auto_chart(df)
-                                if chart:
-                                    st.altair_chart(chart, use_container_width=True)
-                            with st.expander("View SQL used"):
-                                st.code(_safe_sql_string(resp.get("sql")), language="sql")
-                        elif layout == "error":
-                            st.error(resp.get("message", "Unknown error"))
+        # Wrap the entire chat area (including buttons, messages, input) in a bordered container
+        with st.container(border=True):
+            # Buttons row
+            btn_col1, btn_col2, btn_col3 = st.columns(3)
+            with btn_col1:
+                # Export MD button triggers download directly
+                if st.button("📄 Export MD", use_container_width=True, key="export_md_top"):
+                    if st.session_state.current_messages:
+                        export_conversation_md()
                     else:
-                        st.markdown(msg["content"])
-            st.markdown('</div>', unsafe_allow_html=True)
+                        st.warning("No conversation to export.")
+            with btn_col2:
+                if st.button("📝 Summarize", use_container_width=True, key="summarize_top"):
+                    if st.session_state.current_messages:
+                        summarize_conversation()
+                    else:
+                        st.warning("No conversation to summarize.")
+            with btn_col3:
+                if st.button("🗑️ Clear", use_container_width=True, key="clear_top"):
+                    start_new_session()
+                    st.rerun()
 
-        # Always show the input form
-        with st.form(key="genie_chat_form", clear_on_submit=True):
-            col_in, col_btn = st.columns([0.85, 0.15])
-            with col_in:
-                prefill = st.session_state.pop("genie_prefill", "")
-                user_question = st.text_input("Ask a question", value=prefill, placeholder="Ask a question here...", label_visibility="collapsed")
-            with col_btn:
-                submitted = st.form_submit_button("→", type="primary", use_container_width=True)
-            if submitted and user_question:
-                process_user_question(user_question)
+            # Chat area
+            if not st.session_state.current_messages:
+                # Show the start conversation placeholder
+                st.markdown("""
+                <div class="start-conversation">
+                    <div class="plus-button"><span>+</span></div>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Start a Conversation</div>
+                    <div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">Ask questions about your Procurement to Pay data, or select a pre-built analysis from the library.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
+                for msg in st.session_state.current_messages:
+                    if msg["role"] == "user":
+                        st.markdown(f'<div class="message-user"><strong>You</strong><br/>{html.escape(msg["content"])}</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="message-assistant"><strong>Genie</strong></div>', unsafe_allow_html=True)
+                        if "response" in msg and msg["response"]:
+                            resp = msg["response"]
+                            layout = resp.get("layout")
+                            if layout == "cash_flow":
+                                render_cash_flow_response(resp)
+                            elif layout == "early_payment":
+                                render_early_payment_response(resp)
+                            elif layout == "payment_timing":
+                                render_payment_timing_response(resp)
+                            elif layout == "late_payment_trend":
+                                render_late_payment_trend_response(resp)
+                            elif layout == "grir_hotspots":
+                                render_grir_hotspots(resp)
+                            elif layout == "grir_root_causes":
+                                render_grir_root_causes(resp)
+                            elif layout == "grir_working_capital":
+                                render_grir_working_capital(resp)
+                            elif layout == "grir_vendor_followup":
+                                render_grir_vendor_followup(resp)
+                            elif layout == "quick":
+                                render_quick_analysis_response(resp)
+                            elif layout == "analyst":
+                                if resp.get("analyst_response"):
+                                    st.markdown(resp["analyst_response"])
+                                df = pd.DataFrame(resp["df"])
+                                if not df.empty:
+                                    st.subheader("Supporting Data")
+                                    st.dataframe(df, use_container_width=True, hide_index=True)
+                                    chart = auto_chart(df)
+                                    if chart:
+                                        st.altair_chart(chart, use_container_width=True)
+                                with st.expander("View SQL used"):
+                                    st.code(_safe_sql_string(resp.get("sql")), language="sql")
+                            elif layout == "error":
+                                st.error(resp.get("message", "Unknown error"))
+                        else:
+                            st.markdown(msg["content"])
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # Input form (always visible)
+            with st.form(key="genie_chat_form", clear_on_submit=True):
+                col_in, col_btn = st.columns([0.85, 0.15])
+                with col_in:
+                    prefill = st.session_state.pop("genie_prefill", "")
+                    user_question = st.text_input("Ask a question", value=prefill, placeholder="Ask a question here...", label_visibility="collapsed")
+                with col_btn:
+                    submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+                if submitted and user_question:
+                    process_user_question(user_question)
 
 # ------------------------------------------------------------
 # invoices.py - BLUE BUTTONS (unchanged)
