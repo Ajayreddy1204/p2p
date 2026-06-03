@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH SEPARATE CONTAINERS FOR CHARTS AND PLAIN NEEDS ATTENTION CARDS
+# dashboard.py - WITH SEPARATE CONTAINERS FOR CHARTS AND PLAIN NEEDS ATTENTION CARDS (NO BORDER)
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -587,13 +587,10 @@ def inject_dashboard_css():
         color: white !important;
     }
 
-    /* Plain card for Needs Attention */
-    .na-card-plain {
-        background: white !important;
-        border: 1px solid #e5e7eb !important;
-        border-radius: 12px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-        padding: 0.75rem 1rem;
+    /* No border/rounded rectangle for Needs Attention cards */
+    .na-card-content {
+        /* No border, no border-radius, no background */
+        display: block;
     }
 
     /* NA Card Click Button - Blue */
@@ -860,7 +857,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# UPDATED render_needs_attention - PLAIN CARDS (no colour)
+# UPDATED render_needs_attention - NO ROUNDED RECTANGLE BOX
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -1015,34 +1012,34 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
-                        # Plain card with no background colour
-                        with st.container(border=True):
-                            st.markdown('<div class="na-card-plain">', unsafe_allow_html=True)
-                            left, right = st.columns([2, 1], gap="small")
-                            with left:
-                                ref = str(r.get("ref_no", "")).strip() or "—"
-                                ref = format_invoice_number(ref)
-                                btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                if st.button(ref, key=btn_key):
-                                    st.session_state["invoice_search_from_card"] = ref
-                                    st.session_state["page"] = "Invoices"
-                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
-                                    st.rerun()
-                                vendor_nm = str(r.get("vendor_name", "—"))
-                                st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
-                            with right:
-                                amt = safe_number(r.get("amount"))
-                                ddate_raw = r.get("due_date")
-                                ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
-                                st.markdown(
-                                    f"<div style='text-align:right;'>"
-                                    f"<span style='background:{tag_bg};color:{tag_color};font-size:12px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;'>{status_label}</span>"
-                                    f"<div style='font-weight:600;font-size:13px;'>{abbr_currency(amt)}</div>"
-                                    f"<div style='color:#888;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
-                                    f"</div>",
-                                    unsafe_allow_html=True
-                                )
-                            st.markdown('</div>', unsafe_allow_html=True)
+                        # NO container with border - just the content
+                        # Use a simple div without any border/radius styling
+                        st.markdown('<div class="na-card-content">', unsafe_allow_html=True)
+                        left, right = st.columns([2, 1], gap="small")
+                        with left:
+                            ref = str(r.get("ref_no", "")).strip() or "—"
+                            ref = format_invoice_number(ref)
+                            btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
+                            if st.button(ref, key=btn_key):
+                                st.session_state["invoice_search_from_card"] = ref
+                                st.session_state["page"] = "Invoices"
+                                st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                st.rerun()
+                            vendor_nm = str(r.get("vendor_name", "—"))
+                            st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
+                        with right:
+                            amt = safe_number(r.get("amount"))
+                            ddate_raw = r.get("due_date")
+                            ddate = pd.to_datetime(ddate_raw).date().isoformat() if pd.notna(ddate_raw) else "—"
+                            st.markdown(
+                                f"<div style='text-align:right;'>"
+                                f"<span style='background:{tag_bg};color:{tag_color};font-size:12px;padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:6px;'>{status_label}</span>"
+                                f"<div style='font-weight:600;font-size:13px;'>{abbr_currency(amt)}</div>"
+                                f"<div style='color:#888;font-size:10px;line-height:1.2;white-space:nowrap;'>Due: {ddate}</div>"
+                                f"</div>",
+                                unsafe_allow_html=True
+                            )
+                        st.markdown('</div>', unsafe_allow_html=True)
                     card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
