@@ -1503,7 +1503,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - UPDATED LAYOUT
+# genie.py - UPDATED LAYOUT (with Start a Conversation placeholder restored)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2689,7 +2689,7 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI (UPDATED)
+# User question processing and Genie UI (with Start a Conversation)
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2806,6 +2806,16 @@ def render_genie():
         background: #f1f5f9; color: #1e293b; padding: 10px 16px;
         border-radius: 18px 18px 18px 4px; margin: 8px 0; max-width: 85%;
     }
+    .start-conversation {
+        text-align: center; padding: 2rem 1rem; background: #f8fafc;
+        border-radius: 20px; margin: 1rem 0;
+    }
+    .plus-button {
+        width: 56px; height: 56px; background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1rem auto; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .plus-button span { font-size: 1.8rem; color: white; font-weight: 300; }
     hr { margin: 0.5rem 0; }
 </style>
     """, unsafe_allow_html=True)
@@ -2933,8 +2943,14 @@ def render_genie():
     with right_chat:
         # No "AI Assistant" heading
         if not st.session_state.current_messages:
-            # No start conversation placeholder - just show input form
-            pass  # The input form will be displayed below anyway
+            # Show the start conversation placeholder
+            st.markdown("""
+            <div class="start-conversation">
+                <div class="plus-button"><span>+</span></div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Start a Conversation</div>
+                <div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">Ask questions about your Procurement to Pay data, or select a pre-built analysis from the library.</div>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
             for msg in st.session_state.current_messages:
