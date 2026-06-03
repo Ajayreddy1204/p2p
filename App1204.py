@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - FIXED FILTER LAYOUT
+# dashboard.py
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -715,9 +715,6 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
 </div>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# FIXED: render_filters - balanced columns and no wrapping
-# ------------------------------------------------------------
 def render_filters():
     rng_start, rng_end = st.session_state.date_range
     selected_vendor = st.session_state.selected_vendor
@@ -864,9 +861,6 @@ def navigate_to_invoice(invoice_number):
     st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
-# ------------------------------------------------------------
-# render_needs_attention - CARDS WITH BORDER
-# ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -1070,9 +1064,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# render_charts - each chart in its own container with border
-# ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1512,7 +1503,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (all functions, with updated memory context)
+# genie.py - UPDATED LAYOUT
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2698,7 +2689,7 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI (NO SIDEBAR, updated with global memory)
+# User question processing and Genie UI (UPDATED)
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2777,9 +2768,9 @@ def render_genie():
     st.markdown("""
 <style>
     .main-container { max-width: 1400px; margin: 0 auto; }
-    .welcome-header { text-align: center; padding: 0.5rem 0 0.5rem 0; }
-    .welcome-header h1 { font-size: 1.8rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
-    .welcome-header p { color: #64748b; font-size: 0.9rem; }
+    .welcome-header-left { text-align: left; margin-bottom: 1rem; }
+    .welcome-header-left h1 { font-size: 1.8rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
+    .welcome-header-left p { color: #64748b; font-size: 0.9rem; }
     .quick-card {
         background: white;
         border-radius: 16px;
@@ -2815,16 +2806,6 @@ def render_genie():
         background: #f1f5f9; color: #1e293b; padding: 10px 16px;
         border-radius: 18px 18px 18px 4px; margin: 8px 0; max-width: 85%;
     }
-    .start-conversation {
-        text-align: center; padding: 2rem 1rem; background: #f8fafc;
-        border-radius: 20px; margin: 1rem 0;
-    }
-    .plus-button {
-        width: 56px; height: 56px; background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-        border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        margin: 0 auto 1rem auto; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.3);
-    }
-    .plus-button span { font-size: 1.8rem; color: white; font-weight: 300; }
     hr { margin: 0.5rem 0; }
 </style>
     """, unsafe_allow_html=True)
@@ -2882,7 +2863,15 @@ def render_genie():
                 st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
             st.rerun()
 
-    st.markdown('<div class="welcome-header"><h1>Welcome to ProcureIQ Genie</h1><p>Let Genie run one of these quick analyses for you</p></div>', unsafe_allow_html=True)
+    # Left-aligned welcome header
+    st.markdown("""
+    <div class="welcome-header-left">
+        <h1>Welcome to ProcureIQ Genie</h1>
+        <p>Let Genie run one of these quick analyses for you</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Quick analysis cards (4 columns)
     cards_data = [
         {"icon": "📊", "title": "Spending Overview", "description": "Track total spend, monthly trends and major changes"},
         {"icon": "🏭", "title": "Vendor Analysis", "description": "Understand vendor-wise spend, concentration, and dependency"},
@@ -2902,48 +2891,50 @@ def render_genie():
             if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
                 st.session_state.auto_run_query = card['title']
                 st.rerun()
+
     st.markdown("---")
+
+    # Left column: grouped container with expanders, Right column: chat area
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
+
     with left_info:
-        with st.expander("Saved insights"):
-            insights = get_saved_insights_cached(page="genie")
-            if insights:
-                for ins in insights[:5]:
-                    if st.button(f"› {ins['title'][:40]}...", key=f"insight_{ins['id']}", use_container_width=True):
-                        st.session_state.auto_run_query = ins["question"]
-                        st.rerun()
-            else:
-                st.caption("No saved insights yet")
-        with st.expander("Frequently asked by you"):
-            faqs = get_frequent_questions_by_user_cached(5)
-            if faqs:
-                for faq in faqs[:5]:
-                    if st.button(f"› {faq['query'][:40]}...", key=f"faq_user_{faq['query'][:20]}", use_container_width=True):
-                        st.session_state.genie_prefill = faq["query"]
-                        st.rerun()
-            else:
-                suggestions = ["Total spend YTD and trends", "Top vendors by spend", "Overdue invoices summary"]
-                for sug in suggestions:
-                    if st.button(f"› {sug}", key=f"sug_{sug[:15]}", use_container_width=True):
-                        st.session_state.genie_prefill = sug
-                        st.rerun()
-        with st.expander("Most frequent (all)"):
-            all_faqs = get_frequent_questions_all_cached(5)
-            if all_faqs:
-                for faq in all_faqs[:5]:
-                    st.markdown(f"<div style='color: #64748b; font-size: 0.85rem; padding: 0.25rem 0;'>› {faq['query'][:40]}...</div>", unsafe_allow_html=True)
-            else:
-                st.caption("No questions yet")
+        # Group the three expanders in a single bordered container
+        with st.container(border=True):
+            with st.expander("Saved insights"):
+                insights = get_saved_insights_cached(page="genie")
+                if insights:
+                    for ins in insights[:5]:
+                        if st.button(f"› {ins['title'][:40]}...", key=f"insight_{ins['id']}", use_container_width=True):
+                            st.session_state.auto_run_query = ins["question"]
+                            st.rerun()
+                else:
+                    st.caption("No saved insights yet")
+            with st.expander("Frequently asked by you"):
+                faqs = get_frequent_questions_by_user_cached(5)
+                if faqs:
+                    for faq in faqs[:5]:
+                        if st.button(f"› {faq['query'][:40]}...", key=f"faq_user_{faq['query'][:20]}", use_container_width=True):
+                            st.session_state.genie_prefill = faq["query"]
+                            st.rerun()
+                else:
+                    suggestions = ["Total spend YTD and trends", "Top vendors by spend", "Overdue invoices summary"]
+                    for sug in suggestions:
+                        if st.button(f"› {sug}", key=f"sug_{sug[:15]}", use_container_width=True):
+                            st.session_state.genie_prefill = sug
+                            st.rerun()
+            with st.expander("Most frequent (all)"):
+                all_faqs = get_frequent_questions_all_cached(5)
+                if all_faqs:
+                    for faq in all_faqs[:5]:
+                        st.markdown(f"<div style='color: #64748b; font-size: 0.85rem; padding: 0.25rem 0;'>› {faq['query'][:40]}...</div>", unsafe_allow_html=True)
+                else:
+                    st.caption("No questions yet")
+
     with right_chat:
-        st.markdown('<div style="text-align: right; margin-bottom: 0.5rem;"><span style="font-size: 1rem; font-weight: 600; color: #1e293b;">AI Assistant</span></div>', unsafe_allow_html=True)
+        # No "AI Assistant" heading
         if not st.session_state.current_messages:
-            st.markdown("""
-<div class="start-conversation">
-<div class="plus-button"><span>+</span></div>
-<div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Start a Conversation</div>
-<div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">Ask questions about your Procurement to Pay data, or select a pre-built analysis from the library.</div>
-</div>
-            """, unsafe_allow_html=True)
+            # No start conversation placeholder - just show input form
+            pass  # The input form will be displayed below anyway
         else:
             st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
             for msg in st.session_state.current_messages:
@@ -2989,6 +2980,8 @@ def render_genie():
                     else:
                         st.markdown(msg["content"])
             st.markdown('</div>', unsafe_allow_html=True)
+
+        # Always show the input form
         with st.form(key="genie_chat_form", clear_on_submit=True):
             col_in, col_btn = st.columns([0.85, 0.15])
             with col_in:
@@ -3000,7 +2993,7 @@ def render_genie():
                 process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - BLUE BUTTONS (with emojis removed)
+# invoices.py - BLUE BUTTONS (unchanged)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
