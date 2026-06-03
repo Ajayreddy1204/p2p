@@ -503,7 +503,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
 # ------------------------------------------------------------
-# dashboard.py - WITH BLUE BUTTONS AND COLOURED NEEDS ATTENTION CARDS
+# dashboard.py - WITH SEPARATE CONTAINERS FOR CHARTS AND PLAIN NEEDS ATTENTION CARDS
 # ------------------------------------------------------------
 def inject_dashboard_css():
     st.markdown("""
@@ -587,10 +587,14 @@ def inject_dashboard_css():
         color: white !important;
     }
 
-    /* Needs Attention card backgrounds - coloured by tab */
-    .na-card-overdue { background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
-    .na-card-disputed { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
-    .na-card-due { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,.05) !important; }
+    /* Plain card for Needs Attention */
+    .na-card-plain {
+        background: white !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        padding: 0.75rem 1rem;
+    }
 
     /* NA Card Click Button - Blue */
     button[data-testid^="baseButton-na_card_"] {
@@ -856,7 +860,7 @@ def navigate_to_invoice(invoice_number):
     st.rerun()
 
 # ------------------------------------------------------------
-# CORRECTED render_needs_attention - COLOURED CARDS (no key error)
+# UPDATED render_needs_attention - PLAIN CARDS (no colour)
 # ------------------------------------------------------------
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
@@ -984,18 +988,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         if current_tab == 'Overdue':
             df = overdue_df
             status_label = "Overdue"
-            tag_bg, tag_color = "#fde7e9", "#b42318"
-            card_class = "na-card-overdue"
         elif current_tab == 'Disputed':
             df = disputed_df
             status_label = "Disputed"
-            tag_bg, tag_color = "#fff4e5", "#b54708"
-            card_class = "na-card-disputed"
         else:
             df = due_df
             status_label = "Due soon"
-            tag_bg, tag_color = "#DBEAFE", "#0284C7"
-            card_class = "na-card-due"
+
+        # Plain neutral styling for status badge
+        tag_bg = "#f3f4f6"      # light gray
+        tag_color = "#1f2937"    # dark gray
 
         if df.empty:
             st.markdown('<div class="na-empty">No items in this category</div>', unsafe_allow_html=True)
@@ -1013,9 +1015,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
-                        # Use st.container without key, inner div for background colour
+                        # Plain card with no background colour
                         with st.container(border=True):
-                            st.markdown(f'<div class="{card_class}" style="padding: 0.75rem 1rem; border-radius: 12px;">', unsafe_allow_html=True)
+                            st.markdown('<div class="na-card-plain">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 ref = str(r.get("ref_no", "")).strip() or "—"
@@ -1066,7 +1068,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# render_charts (unchanged)
+# UPDATED render_charts - each chart in its own container with border
 # ------------------------------------------------------------
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
@@ -1075,105 +1077,108 @@ def render_charts(rng_start, rng_end, vendor_where):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
-        status_sql = f"""
-            SELECT
-                CASE
-                    WHEN UPPER(invoice_status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 'Paid'
-                    WHEN UPPER(invoice_status) IN ('OPEN','PENDING','ON HOLD','PARKED','IN PROGRESS') THEN 'Pending'
-                    WHEN UPPER(invoice_status) IN ('DISPUTE','DISPUTED','BLOCKED','CONTESTED') THEN 'Disputed'
-                    ELSE 'Other'
-                END AS status,
-                COUNT(*) AS cnt
-            FROM {DATABASE}.fact_all_sources_vw
-            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-            GROUP BY 1
-        """
-        status_df = run_query(status_sql)
-        if status_df.empty:
-            status_df = pd.DataFrame([
-                {"status": "Paid", "cnt": 450},
-                {"status": "Pending", "cnt": 180},
-                {"status": "Disputed", "cnt": 33},
-                {"status": "Other", "cnt": 30}
-            ])
-        total = status_df["cnt"].sum()
-        status_df["percentage"] = (status_df["cnt"] / total * 100).round(1)
+        with st.container(border=True):
+            st.markdown("<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
+            status_sql = f"""
+                SELECT
+                    CASE
+                        WHEN UPPER(invoice_status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 'Paid'
+                        WHEN UPPER(invoice_status) IN ('OPEN','PENDING','ON HOLD','PARKED','IN PROGRESS') THEN 'Pending'
+                        WHEN UPPER(invoice_status) IN ('DISPUTE','DISPUTED','BLOCKED','CONTESTED') THEN 'Disputed'
+                        ELSE 'Other'
+                    END AS status,
+                    COUNT(*) AS cnt
+                FROM {DATABASE}.fact_all_sources_vw
+                WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+                GROUP BY 1
+            """
+            status_df = run_query(status_sql)
+            if status_df.empty:
+                status_df = pd.DataFrame([
+                    {"status": "Paid", "cnt": 450},
+                    {"status": "Pending", "cnt": 180},
+                    {"status": "Disputed", "cnt": 33},
+                    {"status": "Other", "cnt": 30}
+                ])
+            total = status_df["cnt"].sum()
+            status_df["percentage"] = (status_df["cnt"] / total * 100).round(1)
 
-        color_scale = alt.Scale(domain=["Paid","Pending","Disputed","Other"], range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
-        donut = alt.Chart(status_df).mark_arc(innerRadius=60, outerRadius=100).encode(
-            theta=alt.Theta("cnt:Q"),
-            color=alt.Color("status:N", scale=color_scale, legend=alt.Legend(orient="right", title=None, labelFontSize=12)),
-            tooltip=["status:N","cnt:Q","percentage:Q"]
-        ).properties(height=280)
-        center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=28, fontWeight="bold", color="#111827").encode(text="text:N")
-        center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
-        chart = donut + center_text + center_label
-        st.altair_chart(chart, use_container_width=True)
+            color_scale = alt.Scale(domain=["Paid","Pending","Disputed","Other"], range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
+            donut = alt.Chart(status_df).mark_arc(innerRadius=60, outerRadius=100).encode(
+                theta=alt.Theta("cnt:Q"),
+                color=alt.Color("status:N", scale=color_scale, legend=alt.Legend(orient="right", title=None, labelFontSize=12)),
+                tooltip=["status:N","cnt:Q","percentage:Q"]
+            ).properties(height=280)
+            center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=28, fontWeight="bold", color="#111827").encode(text="text:N")
+            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
+            chart = donut + center_text + center_label
+            st.altair_chart(chart, use_container_width=True)
 
     with col2:
-        st.markdown("<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
-        top_vendors_sql = f"""
-            SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
-            FROM {DATABASE}.fact_all_sources_vw f
-            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-            {vendor_where}
-            GROUP BY 1 ORDER BY spend DESC LIMIT 10
-        """
-        top_df = run_query(top_vendors_sql)
-        if top_df.empty:
-            top_df = pd.DataFrame([
-                {"vendor_name": "Caterpillar Inc", "spend": 220000},
-                {"vendor_name": "Emerson Electric", "spend": 195000},
-                {"vendor_name": "Honeywell Intl", "spend": 180000},
-                {"vendor_name": "Brenntag SE", "spend": 165000},
-                {"vendor_name": "Eaton Corp", "spend": 150000},
-                {"vendor_name": "Univar Solutions", "spend": 140000},
-                {"vendor_name": "Wolseley plc", "spend": 125000},
-                {"vendor_name": "W.W. Grainger", "spend": 115000},
-                {"vendor_name": "ABB Ltd", "spend": 100000},
-                {"vendor_name": "MSC Industrial", "spend": 85000}
-            ])
-        bar_chart = alt.Chart(top_df).mark_bar(color="#22c55e", cornerRadiusEnd=4).encode(
-            x=alt.X("spend:Q", title=None, axis=alt.Axis(format="~s")),
-            y=alt.Y("vendor_name:N", sort="-x", title=None),
-            tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
-        ).properties(height=280)
-        st.altair_chart(bar_chart, use_container_width=True)
+        with st.container(border=True):
+            st.markdown("<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
+            top_vendors_sql = f"""
+                SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
+                FROM {DATABASE}.fact_all_sources_vw f
+                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+                WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+                {vendor_where}
+                GROUP BY 1 ORDER BY spend DESC LIMIT 10
+            """
+            top_df = run_query(top_vendors_sql)
+            if top_df.empty:
+                top_df = pd.DataFrame([
+                    {"vendor_name": "Caterpillar Inc", "spend": 220000},
+                    {"vendor_name": "Emerson Electric", "spend": 195000},
+                    {"vendor_name": "Honeywell Intl", "spend": 180000},
+                    {"vendor_name": "Brenntag SE", "spend": 165000},
+                    {"vendor_name": "Eaton Corp", "spend": 150000},
+                    {"vendor_name": "Univar Solutions", "spend": 140000},
+                    {"vendor_name": "Wolseley plc", "spend": 125000},
+                    {"vendor_name": "W.W. Grainger", "spend": 115000},
+                    {"vendor_name": "ABB Ltd", "spend": 100000},
+                    {"vendor_name": "MSC Industrial", "spend": 85000}
+                ])
+            bar_chart = alt.Chart(top_df).mark_bar(color="#22c55e", cornerRadiusEnd=4).encode(
+                x=alt.X("spend:Q", title=None, axis=alt.Axis(format="~s")),
+                y=alt.Y("vendor_name:N", sort="-x", title=None),
+                tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
+            ).properties(height=280)
+            st.altair_chart(bar_chart, use_container_width=True)
 
     with col3:
-        st.markdown("<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
-        trend_sql = f"""
-            SELECT
-                DATE_TRUNC('month', posting_date) AS month,
-                SUM(COALESCE(invoice_amount_local,0)) AS actual_spend
-            FROM {DATABASE}.fact_all_sources_vw
-            WHERE posting_date >= DATE_ADD('month', -6, {end_lit})
-              AND UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED')
-            GROUP BY 1 ORDER BY 1
-        """
-        trend_df = run_query(trend_sql)
-        if trend_df.empty:
-            trend_df = pd.DataFrame([
-                {"month": "2026-01", "actual_spend": 2200000, "forecast_spend": 2500000},
-                {"month": "2026-02", "actual_spend": 2100000, "forecast_spend": 3200000}
-            ])
-        else:
-            trend_df["month"] = pd.to_datetime(trend_df["month"]).dt.strftime("%Y-%m")
-            trend_df["forecast_spend"] = trend_df["actual_spend"].rolling(2, min_periods=1).mean().shift(-1)
-            trend_df["forecast_spend"] = trend_df["forecast_spend"].fillna(trend_df["actual_spend"] * 1.1)
+        with st.container(border=True):
+            st.markdown("<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
+            trend_sql = f"""
+                SELECT
+                    DATE_TRUNC('month', posting_date) AS month,
+                    SUM(COALESCE(invoice_amount_local,0)) AS actual_spend
+                FROM {DATABASE}.fact_all_sources_vw
+                WHERE posting_date >= DATE_ADD('month', -6, {end_lit})
+                  AND UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED')
+                GROUP BY 1 ORDER BY 1
+            """
+            trend_df = run_query(trend_sql)
+            if trend_df.empty:
+                trend_df = pd.DataFrame([
+                    {"month": "2026-01", "actual_spend": 2200000, "forecast_spend": 2500000},
+                    {"month": "2026-02", "actual_spend": 2100000, "forecast_spend": 3200000}
+                ])
+            else:
+                trend_df["month"] = pd.to_datetime(trend_df["month"]).dt.strftime("%Y-%m")
+                trend_df["forecast_spend"] = trend_df["actual_spend"].rolling(2, min_periods=1).mean().shift(-1)
+                trend_df["forecast_spend"] = trend_df["forecast_spend"].fillna(trend_df["actual_spend"] * 1.1)
 
-        trend_melted = trend_df.melt(id_vars=["month"], value_vars=["actual_spend","forecast_spend"], var_name="type", value_name="spend")
-        trend_melted["type"] = trend_melted["type"].map({"actual_spend":"ACTUAL","forecast_spend":"FORECAST"})
-        bar_chart = alt.Chart(trend_melted).mark_bar(cornerRadiusEnd=4).encode(
-            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0)),
-            y=alt.Y("spend:Q", title=None, axis=alt.Axis(format="~s")),
-            color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"], range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
-            xOffset="type:N",
-            tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
-        ).properties(height=280)
-        st.altair_chart(bar_chart, use_container_width=True)
+            trend_melted = trend_df.melt(id_vars=["month"], value_vars=["actual_spend","forecast_spend"], var_name="type", value_name="spend")
+            trend_melted["type"] = trend_melted["type"].map({"actual_spend":"ACTUAL","forecast_spend":"FORECAST"})
+            bar_chart = alt.Chart(trend_melted).mark_bar(cornerRadiusEnd=4).encode(
+                x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("spend:Q", title=None, axis=alt.Axis(format="~s")),
+                color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"], range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
+                xOffset="type:N",
+                tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
+            ).properties(height=280)
+            st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
     inject_dashboard_css()
