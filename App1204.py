@@ -506,45 +506,55 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 # ------------------------------------------------------------
 # dashboard.py
 # ------------------------------------------------------------
-def inject_dashboard_css():
-    st.markdown("""
+def inject_dashboard_css(bg_color: str = "#ffffff"):
+    """Inject dashboard CSS with optional dynamic background color."""
+    st.markdown(f"""
 <style>
-    .stDateInput, .stSelectbox { width: 100%; }
-    div[data-testid="stSelectbox"] div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .kpi-card {
+    .stDateInput, .stSelectbox {{ width: 100%; }}
+    div[data-testid="stSelectbox"] div {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+    .kpi-card {{
         border-radius: 16px;
         padding: 1.2rem 1.5rem;
         min-height: 120px;
         display: flex;
         flex-direction: column;
         justify-content: center;
-    }
-    .kpi-card-yellow { background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }
-    .kpi-card-cyan { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }
-    .kpi-card-pink { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
-    .kpi-card-purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
-    .kpi-card-green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
-    .kpi-title { font-size: 0.75rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
-    .kpi-value { font-size: 2.5rem; font-weight: 800; color: #111827; line-height: 1.1; }
-    .kpi-delta { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
-    .kpi-delta-negative { color: #dc2626; }
-    .kpi-delta-positive { color: #16a34a; }
-    .kpi-arrow { font-size: 1.2rem; margin-left: 0.25rem; }
-    .attention-header { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }
-    button[data-testid^="baseButton-na_btn_"] { border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }
-    button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] { background: #e5e7eb !important; color: #111827 !important; }
-    button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover { background: #2563eb !important; color: white !important; }
-    button[data-testid^="baseButton-na_card_"] { background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }
-    button[data-testid^="baseButton-na_card_"]:hover { color: #1d4ed8 !important; text-decoration: underline !important; }
-    .chart-title { font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }
-    .pagination-info { text-align: center; color: #6b7280; font-size: 0.9rem; }
-    div[data-testid="stHorizontalBlock"] button[kind="primary"], div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] { background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; }
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] { background-color: #f1f5f9 !important; background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #e2e8f0 !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
-    button[data-testid^="baseButton-preset_"] { border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }
-    button[data-testid="baseButton-proceed_pay_btn"], button[data-testid="baseButton-back_invoices_btn"] { background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }
-    button[data-testid="baseButton-proceed_pay_btn"]:hover, button[data-testid="baseButton-back_invoices_btn"]:hover { background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
+    }}
+    .kpi-card-yellow {{ background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }}
+    .kpi-card-cyan {{ background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }}
+    .kpi-card-pink {{ background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }}
+    .kpi-card-purple {{ background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }}
+    .kpi-card-green {{ background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }}
+    .kpi-title {{ font-size: 0.75rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }}
+    .kpi-value {{ font-size: 2.5rem; font-weight: 800; color: #111827; line-height: 1.1; }}
+    .kpi-delta {{ font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }}
+    .kpi-delta-negative {{ color: #dc2626; }}
+    .kpi-delta-positive {{ color: #16a34a; }}
+    .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
+    .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+    button[data-testid^="baseButton-na_btn_"] {{ border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }}
+    button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] {{ background: #e5e7eb !important; color: #111827 !important; }}
+    button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
+    button[data-testid^="baseButton-na_card_"] {{ background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }}
+    button[data-testid^="baseButton-na_card_"]:hover {{ color: #1d4ed8 !important; text-decoration: underline !important; }}
+    .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+    .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"], div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {{ background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{ background-color: #f1f5f9 !important; background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{ background-color: #e2e8f0 !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }}
+    button[data-testid^="baseButton-preset_"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
+    button[data-testid="baseButton-proceed_pay_btn"], button[data-testid="baseButton-back_invoices_btn"] {{ background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }}
+    button[data-testid="baseButton-proceed_pay_btn"]:hover, button[data-testid="baseButton-back_invoices_btn"]:hover {{ background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }}
+    /* Dashboard dynamic background */
+    .main > .block-container {{
+        background-color: {bg_color} !important;
+        transition: background-color 0.2s ease;
+    }}
+    /* Override any conflicting backgrounds */
+    .stApp {{
+        background-color: {bg_color} !important;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -586,7 +596,7 @@ def render_filters():
     selected_vendor = st.session_state.selected_vendor
     current_preset = st.session_state.preset
 
-    col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.6], gap="small")
+    col_date, col_vendor, col_preset, col_bg = st.columns([1.2, 1.2, 2.2, 0.8], gap="small")
 
     with col_date:
         date_range = st.date_input(
@@ -641,6 +651,27 @@ def render_filters():
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
                     st.rerun()
+
+    with col_bg:
+        # BG Button with popover for color selection
+        with st.popover("🎨 BG"):
+            st.markdown("### Choose background color")
+            # Color picker
+            new_color = st.color_picker("Pick a color", value=st.session_state.get("dashboard_bg_color", "#ffffff"))
+            if new_color != st.session_state.get("dashboard_bg_color", "#ffffff"):
+                st.session_state.dashboard_bg_color = new_color
+                st.rerun()
+            st.markdown("---")
+            st.markdown("**Presets**")
+            preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
+            preset_cols = st.columns(6)
+            for i, color in enumerate(preset_colors):
+                with preset_cols[i]:
+                    if st.button(" ", key=f"bg_preset_{color}", help=color):
+                        st.session_state.dashboard_bg_color = color
+                        st.rerun()
+                    # Display small colored square
+                    st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
 
     st.markdown(f"""
     <style>
@@ -1033,7 +1064,11 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
-    inject_dashboard_css()
+    # Ensure background color state
+    if "dashboard_bg_color" not in st.session_state:
+        st.session_state.dashboard_bg_color = "#ffffff"
+
+    inject_dashboard_css(st.session_state.dashboard_bg_color)
 
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
@@ -1360,7 +1395,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - Summarize appears full width, icons removed
+# genie.py - Summarize appears inside the right container
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2799,16 +2834,6 @@ def render_genie():
 
     st.markdown("---")
 
-    # Show conversation summary if available (full width)
-    if st.session_state.show_summary and st.session_state.conversation_summary:
-        with st.container(border=True):
-            st.markdown("### Conversation Summary")
-            st.markdown(st.session_state.conversation_summary)
-            if st.button("Dismiss Summary", key="dismiss_summary"):
-                st.session_state.show_summary = False
-                st.rerun()
-        st.markdown("---")
-
     # Left column: grouped container with expanders, Right column: chat area with wrapper and buttons
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
 
@@ -2846,6 +2871,15 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
+            # Show conversation summary inside this container, before the buttons
+            if st.session_state.show_summary and st.session_state.conversation_summary:
+                st.markdown("### Conversation Summary")
+                st.markdown(st.session_state.conversation_summary)
+                if st.button("Dismiss Summary", key="dismiss_summary_inside", use_container_width=True):
+                    st.session_state.show_summary = False
+                    st.rerun()
+                st.markdown("---")
+
             # Buttons row - no icons
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
