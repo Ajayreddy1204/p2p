@@ -253,6 +253,14 @@ def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
         return chart.interactive()
     return None
 
+def safe_dataframe_display(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert all object columns to string to avoid Arrow serialization errors."""
+    if df.empty:
+        return df
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].astype(str)
+    return df
+
 # ------------------------------------------------------------
 # athena_client.py
 # ------------------------------------------------------------
@@ -310,7 +318,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS chat_sessions (
         session_id TEXT PRIMARY KEY, session_label TEXT, created_at TIMESTAMP, last_updated TIMESTAMP, user_name TEXT
     )''')
-    # Add user_name column if not exists (for backward compatibility)
     try:
         c.execute("ALTER TABLE chat_sessions ADD COLUMN user_name TEXT")
     except sqlite3.OperationalError:
@@ -471,15 +478,10 @@ def get_frequent_questions_all_cached(limit=10):
 # GLOBAL MEMORY: last 20 messages from last 2 days
 # ------------------------------------------------------------
 def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> str:
-    """
-    Fetch the most recent limit messages (user and assistant) from the last max_age_days days,
-    ordered by timestamp ascending. Returns a formatted string for LLM context.
-    """
     user = get_current_user()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     cutoff = datetime.now() - timedelta(days=max_age_days)
-    # Join with chat_sessions to filter by user
     c.execute('''
         SELECT m.role, m.content, m.timestamp
         FROM chat_messages m
@@ -492,7 +494,6 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
     conn.close()
     if not rows:
         return ""
-    # Reverse to chronological order
     rows.reverse()
     context_parts = []
     for role, content, ts in rows:
@@ -508,17 +509,8 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 def inject_dashboard_css():
     st.markdown("""
 <style>
-    /* Fix for filter alignment */
-    .stDateInput, .stSelectbox {
-        width: 100%;
-    }
-    /* Ensure vendor selectbox doesn't wrap */
-    div[data-testid="stSelectbox"] div {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    /* KPI Cards */
+    .stDateInput, .stSelectbox { width: 100%; }
+    div[data-testid="stSelectbox"] div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .kpi-card {
         border-radius: 16px;
         padding: 1.2rem 1.5rem;
@@ -527,158 +519,32 @@ def inject_dashboard_css():
         flex-direction: column;
         justify-content: center;
     }
-    .kpi-card-yellow {
-        background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
-    }
-    .kpi-card-cyan {
-        background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
-    }
-    .kpi-card-pink {
-        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    }
-    .kpi-card-purple {
-        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-    }
-    .kpi-card-green {
-        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-    }
-    .kpi-title {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #374151;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-    .kpi-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #111827;
-        line-height: 1.1;
-    }
-    .kpi-delta {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-top: 0.25rem;
-    }
-    .kpi-delta-negative {
-        color: #dc2626;
-    }
-    .kpi-delta-positive {
-        color: #16a34a;
-    }
-    .kpi-arrow {
-        font-size: 1.2rem;
-        margin-left: 0.25rem;
-    }
-    .attention-header {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 1rem;
-    }
-    
-    /* NA Tab Buttons - Blue active */
-    button[data-testid^="baseButton-na_btn_"] {
-        border-radius: 999px !important;
-        font-weight: 600 !important;
-        transition: all 0.18s ease !important;
-    }
-    button[data-testid="baseButton-na_btn_overdue"],
-    button[data-testid="baseButton-na_btn_disputed"],
-    button[data-testid="baseButton-na_btn_due30d"] {
-        background: #e5e7eb !important;
-        color: #111827 !important;
-    }
-    button[data-testid="baseButton-na_btn_overdue"]:hover,
-    button[data-testid="baseButton-na_btn_disputed"]:hover,
-    button[data-testid="baseButton-na_btn_due30d"]:hover {
-        background: #2563eb !important;
-        color: white !important;
-    }
-
-    /* NA Card Click Button - Blue */
-    button[data-testid^="baseButton-na_card_"] {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: #2563eb !important;
-        font-weight: 500 !important;
-        font-size: 13px !important;
-        padding: 4px 0 0 0 !important;
-        margin-top: 2px !important;
-        text-decoration: none !important;
-        cursor: pointer !important;
-    }
-    button[data-testid^="baseButton-na_card_"]:hover {
-        color: #1d4ed8 !important;
-        text-decoration: underline !important;
-    }
-    
-    .chart-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 1rem;
-    }
-    .pagination-info {
-        text-align: center;
-        color: #6b7280;
-        font-size: 0.9rem;
-    }
-    
-    /* BLUE NAVIGATION BUTTONS */
-    div[data-testid="stHorizontalBlock"] button[kind="primary"],
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    /* Active navigation button - Blue */
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-    }
-    
-    /* Inactive navigation button */
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background-color: #f1f5f9 !important;
-        background: #f1f5f9 !important;
-        color: #475569 !important;
-        border: 1px solid #e2e8f0 !important;
-    }
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
-        background-color: #e2e8f0 !important;
-        background: #e2e8f0 !important;
-        border-color: #cbd5e1 !important;
-    }
-    
-    /* BLUE PRESET BUTTONS */
-    button[data-testid^="baseButton-preset_"] {
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    /* Blue Invoice buttons */
-    button[data-testid="baseButton-proceed_pay_btn"],
-    button[data-testid="baseButton-back_invoices_btn"] {
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }
-    button[data-testid="baseButton-proceed_pay_btn"]:hover,
-    button[data-testid="baseButton-back_invoices_btn"]:hover {
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
-    }
+    .kpi-card-yellow { background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }
+    .kpi-card-cyan { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }
+    .kpi-card-pink { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
+    .kpi-card-purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+    .kpi-card-green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
+    .kpi-title { font-size: 0.75rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+    .kpi-value { font-size: 2.5rem; font-weight: 800; color: #111827; line-height: 1.1; }
+    .kpi-delta { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
+    .kpi-delta-negative { color: #dc2626; }
+    .kpi-delta-positive { color: #16a34a; }
+    .kpi-arrow { font-size: 1.2rem; margin-left: 0.25rem; }
+    .attention-header { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }
+    button[data-testid^="baseButton-na_btn_"] { border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }
+    button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] { background: #e5e7eb !important; color: #111827 !important; }
+    button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover { background: #2563eb !important; color: white !important; }
+    button[data-testid^="baseButton-na_card_"] { background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }
+    button[data-testid^="baseButton-na_card_"]:hover { color: #1d4ed8 !important; text-decoration: underline !important; }
+    .chart-title { font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }
+    .pagination-info { text-align: center; color: #6b7280; font-size: 0.9rem; }
+    div[data-testid="stHorizontalBlock"] button[kind="primary"], div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] { background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; }
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] { background-color: #f1f5f9 !important; background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #e2e8f0 !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }
+    button[data-testid^="baseButton-preset_"] { border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }
+    button[data-testid="baseButton-proceed_pay_btn"], button[data-testid="baseButton-back_invoices_btn"] { background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }
+    button[data-testid="baseButton-proceed_pay_btn"]:hover, button[data-testid="baseButton-back_invoices_btn"]:hover { background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -720,7 +586,6 @@ def render_filters():
     selected_vendor = st.session_state.selected_vendor
     current_preset = st.session_state.preset
 
-    # Use more balanced column widths: date picker, vendor, preset buttons
     col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.6], gap="small")
 
     with col_date:
@@ -777,10 +642,8 @@ def render_filters():
                         st.session_state.preset = p
                     st.rerun()
 
-    # Inject dynamic CSS for blue preset buttons
     st.markdown(f"""
     <style>
-    /* Blue active preset button */
     button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
         background-color: #2563eb !important;
         background: #2563eb !important;
@@ -831,6 +694,10 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
     auto_proc = safe_int(auto_df.loc[0, "auto_processed"]) if not auto_df.empty else 0
     auto_rate = (auto_proc / total_cleared * 100) if total_cleared > 0 else 0.0
 
+    # For AUTOPROCESSED INVOICES % card, always show a positive delta (green up arrow) with 0.0% if value is zero
+    auto_delta = f"{auto_rate:.1f}%"
+    auto_up = True  # always green
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         render_kpi_card("TOTAL SPEND", abbr_currency(cur_spend), spend_delta, spend_up, "yellow")
@@ -851,7 +718,8 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
     with col3:
         render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
     with col4:
-        render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", None, True, "green")
+        # Show green delta even if 0.0%
+        render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", auto_delta, auto_up, "green")
 
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
@@ -873,7 +741,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
-    # Fetch Overdue invoices
     overdue_sql = f"""
         SELECT f.invoice_number AS ref_no,
                f.invoice_amount_local AS amount,
@@ -895,7 +762,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             {"ref_no": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date.today() - timedelta(days=8), "aging_days": 8},
         ])
 
-    # Fetch Disputed invoices
     disputed_sql = f"""
         SELECT f.invoice_number AS ref_no,
                f.invoice_amount_local AS amount,
@@ -915,7 +781,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             {"ref_no": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2), "aging_days": 2},
         ])
 
-    # Fetch Due (next 30 days) invoices
     due_sql = f"""
         SELECT f.invoice_number AS ref_no,
                f.invoice_amount_local AS amount,
@@ -945,7 +810,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     due_count = len(due_df)
     urgent_count = overdue_count + disputed_count + due_count
 
-    # Section container with border
     with st.container(border=True):
         st.markdown(f"""
         <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; padding-left: 1.5rem; padding-right: 1.5rem;'>
@@ -954,7 +818,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         </div>
         """, unsafe_allow_html=True)
 
-        # Tab buttons with blue active state
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
             if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
@@ -972,7 +835,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_page = 0
                 st.rerun()
 
-        # Force active tab button to blue + white text
         st.markdown(f"""
         <style>
         {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
@@ -983,7 +845,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
-        # Select data based on tab
         if current_tab == 'Overdue':
             df = overdue_df
             status_label = "Overdue"
@@ -994,9 +855,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             df = due_df
             status_label = "Due soon"
 
-        # Plain neutral styling for status badge
-        tag_bg = "#f3f4f6"      # light gray
-        tag_color = "#1f2937"    # dark gray
+        tag_bg = "#f3f4f6"
+        tag_color = "#1f2937"
 
         if df.empty:
             st.markdown('<div class="na-empty">No items in this category</div>', unsafe_allow_html=True)
@@ -1014,7 +874,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
-                        # Use st.container(border=True) to add border to each card
                         with st.container(border=True):
                             left, right = st.columns([2, 1], gap="small")
                             with left:
@@ -1045,7 +904,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
             st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
 
-            # Pagination
             pag_cols = st.columns([1, 1, 1], gap="small")
             with pag_cols[0]:
                 if page > 0:
@@ -1402,7 +1260,7 @@ def render_forecast():
         st.markdown("---")
         st.markdown("#### Obligations by time bucket")
         if not cf_df.empty:
-            st.dataframe(cf_df, use_container_width=True, hide_index=True)
+            st.dataframe(safe_dataframe_display(cf_df), use_container_width=True, hide_index=True)
             csv = cf_df.to_csv(index=False).encode('utf-8')
             st.download_button("Download forecast (CSV)", data=csv, file_name="cash_flow_forecast.csv", mime="text/csv")
         else:
@@ -1482,8 +1340,7 @@ def render_forecast():
             trend_df = run_query(trend_sql)
             if not trend_df.empty:
                 st.markdown("**GR/IR outstanding trend (last 24 months)**")
-                # Display as table instead of line chart
-                st.dataframe(trend_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(trend_df), use_container_width=True, hide_index=True)
         else:
             st.info("No GR/IR data found.")
 
@@ -1503,7 +1360,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - UPDATED with wrapper and buttons (removed icons)
+# genie.py - Summarize appears full width, icons removed
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2402,7 +2259,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (all unchanged)
+# Response renderers (all unchanged, with safe_dataframe_display)
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -2425,7 +2282,7 @@ def render_cash_flow_response(result: dict):
         st.subheader("Cash Outflow by Time Bucket")
         alt_bar(chart_df, x="forecast_bucket", y="total_amount", horizontal=True, height=300, color="#3b82f6")
     st.subheader("Forecast Details")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2446,7 +2303,7 @@ def render_early_payment_response(result: dict):
         with col2:
             st.metric("High‑Priority Invoices", high_priority)
         st.subheader("Top Candidates for Early Payment")
-        st.dataframe(df.head(10), use_container_width=True, hide_index=True)
+        st.dataframe(safe_dataframe_display(df.head(10)), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2459,7 +2316,7 @@ def render_payment_timing_response(result: dict):
         st.error("No payment timing data.")
         return
     st.subheader("Payment Timing Summary")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2481,7 +2338,7 @@ def render_late_payment_trend_response(result: dict):
             st.subheader("Average Days Late")
             alt_line_monthly(days_df, month_col="month_str", value_col="VALUE", height=300, title="Avg Days Late")
     st.subheader("Payment Performance Data")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2497,7 +2354,7 @@ def render_grir_hotspots(result: dict):
     chart_df = df.head(12).copy()
     chart_df['year_month'] = chart_df['year'].astype(str) + '-' + chart_df['month'].astype(str).str.zfill(2)
     alt_bar(chart_df, x="year_month", y="total_grir_balance", title="Top months with highest GR/IR", horizontal=False, height=300, color="#ef4444")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2509,10 +2366,10 @@ def render_grir_root_causes(result: dict):
     extra_df = pd.DataFrame(result.get("extra_df", []))
     if not df.empty:
         st.subheader("GR/IR Aging (Last 6 Months)")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(safe_dataframe_display(df), use_container_width=True)
     if not extra_df.empty:
         st.subheader("Outstanding Balances (Last 6 Months)")
-        st.dataframe(extra_df, use_container_width=True)
+        st.dataframe(safe_dataframe_display(extra_df), use_container_width=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2529,7 +2386,7 @@ def render_grir_working_capital(result: dict):
     df = pd.DataFrame(result["df"])
     if not df.empty:
         st.subheader("GR/IR Balance by Month (with aging estimates)")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2540,7 +2397,7 @@ def render_grir_vendor_followup(result: dict):
     df = pd.DataFrame(result["df"])
     if not df.empty:
         st.subheader("Top Vendors with Outstanding GR/IR Items")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
         st.markdown(result["analyst_response"])
@@ -2662,23 +2519,23 @@ def render_quick_analysis_response(result: dict):
             monthly_df = pd.DataFrame(result.get("monthly_df", []))
             if not monthly_df.empty:
                 st.subheader("Monthly trend")
-                st.dataframe(monthly_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(monthly_df), use_container_width=True, hide_index=True)
             vendors_df = pd.DataFrame(result.get("vendors_df", []))
             if not vendors_df.empty:
                 st.subheader("Top vendors")
-                st.dataframe(vendors_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(vendors_df), use_container_width=True, hide_index=True)
         elif analysis_type == "vendor_analysis":
             vendors_df = pd.DataFrame(result.get("vendors_df", []))
             if not vendors_df.empty:
-                st.dataframe(vendors_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(vendors_df), use_container_width=True, hide_index=True)
         elif analysis_type == "payment_performance":
             payment_df = pd.DataFrame(result.get("payment_df", []))
             if not payment_df.empty:
-                st.dataframe(payment_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(payment_df), use_container_width=True, hide_index=True)
         elif analysis_type == "invoice_aging":
             aging_df = pd.DataFrame(result.get("aging_df", []))
             if not aging_df.empty:
-                st.dataframe(aging_df, use_container_width=True, hide_index=True)
+                st.dataframe(safe_dataframe_display(aging_df), use_container_width=True, hide_index=True)
     with st.expander("Show SQL used"):
         if isinstance(sql_queries, dict):
             for name, q in sql_queries.items():
@@ -2704,7 +2561,6 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, source="cache", sql_used=sql_used)
             save_question(user_question, "custom")
         else:
-            # Use global conversation memory (last 20 messages, last 2 days)
             history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             lower_q = user_question.lower()
             
@@ -2768,7 +2624,6 @@ def summarize_conversation():
     if not st.session_state.current_messages:
         st.warning("No conversation to summarize.")
         return
-    # Build conversation text
     conv_text = ""
     for msg in st.session_state.current_messages:
         role = "User" if msg["role"] == "user" else "Assistant"
@@ -2777,10 +2632,8 @@ def summarize_conversation():
     prompt = f"Summarize the following conversation concisely, highlighting key questions, findings, and recommendations:\n\n{conv_text}"
     summary = ask_bedrock(prompt, system_prompt="You are a helpful assistant that summarizes conversations.")
     if summary:
-        # Use a full-width bordered container to display the summary
-        with st.container(border=True):
-            st.markdown("### Conversation Summary")
-            st.markdown(summary)
+        st.session_state.conversation_summary = summary
+        st.session_state.show_summary = True
     else:
         st.error("Could not generate summary at this time.")
 
@@ -2866,11 +2719,14 @@ def render_genie():
         st.session_state.current_messages = []
     if "genie_prefill" not in st.session_state:
         st.session_state.genie_prefill = ""
+    if "show_summary" not in st.session_state:
+        st.session_state.show_summary = False
+    if "conversation_summary" not in st.session_state:
+        st.session_state.conversation_summary = ""
 
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            # Use global memory for auto-run queries as well
             history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
                 result = process_grir_hotspots(auto_query, history_context)
@@ -2943,11 +2799,20 @@ def render_genie():
 
     st.markdown("---")
 
+    # Show conversation summary if available (full width)
+    if st.session_state.show_summary and st.session_state.conversation_summary:
+        with st.container(border=True):
+            st.markdown("### Conversation Summary")
+            st.markdown(st.session_state.conversation_summary)
+            if st.button("Dismiss Summary", key="dismiss_summary"):
+                st.session_state.show_summary = False
+                st.rerun()
+        st.markdown("---")
+
     # Left column: grouped container with expanders, Right column: chat area with wrapper and buttons
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
 
     with left_info:
-        # Group the three expanders in a single bordered container
         with st.container(border=True):
             with st.expander("Saved insights"):
                 insights = get_saved_insights_cached(page="genie")
@@ -2980,9 +2845,8 @@ def render_genie():
                     st.caption("No questions yet")
 
     with right_chat:
-        # Wrap the entire chat area (including buttons, messages, input) in a bordered container
         with st.container(border=True):
-            # Buttons row - removed icons
+            # Buttons row - no icons
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button("Export MD", use_container_width=True, key="export_md_top"):
@@ -2994,6 +2858,7 @@ def render_genie():
                 if st.button("Summarize", use_container_width=True, key="summarize_top"):
                     if st.session_state.current_messages:
                         summarize_conversation()
+                        st.rerun()
                     else:
                         st.warning("No conversation to summarize.")
             with btn_col3:
@@ -3003,7 +2868,6 @@ def render_genie():
 
             # Chat area
             if not st.session_state.current_messages:
-                # Show the start conversation placeholder
                 st.markdown("""
                 <div class="start-conversation">
                     <div class="plus-button"><span>+</span></div>
@@ -3045,7 +2909,7 @@ def render_genie():
                                 df = pd.DataFrame(resp["df"])
                                 if not df.empty:
                                     st.subheader("Supporting Data")
-                                    st.dataframe(df, use_container_width=True, hide_index=True)
+                                    st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
                                     chart = auto_chart(df)
                                     if chart:
                                         st.altair_chart(chart, use_container_width=True)
@@ -3057,7 +2921,7 @@ def render_genie():
                             st.markdown(msg["content"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # Input form (always visible)
+            # Input form
             with st.form(key="genie_chat_form", clear_on_submit=True):
                 col_in, col_btn = st.columns([0.85, 0.15])
                 with col_in:
@@ -3069,7 +2933,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - UPDATED with tabular horizontal layout for Invoice Summary and Vendor/Company Info
+# invoices.py - UPDATED with tabular format for Invoice Summary, Vendor Info, Company Info
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3101,24 +2965,19 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    # Horizontal layout using columns
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Invoice Number", inv_num)
-    col2.metric("Invoice Date", get_val("invoice_date", ""))
-    col3.metric("Invoice Amount", abbr_currency(get_val("invoice_amount", 0)))
-    col4.metric("PO Number", get_val("po_number", ""))
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("PO Amount", abbr_currency(get_val("po_amount", 0)))
-    col2.metric("Due Date", get_val("due_date", ""))
-    status = get_val("invoice_status", "").upper()
-    status_color = "#dc2626" if status == "OVERDUE" else "#16a34a" if status == "PAID" else "#f59e0b"
-    col3.markdown(f"""
-    <div style="background-color: #f8f9fa; border-radius: 12px; padding: 12px 8px; text-align: center;">
-        <div style="font-size: 0.9rem; color: #6c757d;">Invoice Status</div>
-        <div style="font-size: 1.5rem; font-weight: 700; color: {status_color};">{status}</div>
-    </div>
-    """, unsafe_allow_html=True)
-    col4.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
+    # Tabular format like Status History
+    summary_data = {
+        "Invoice Number": inv_num,
+        "Invoice Date": get_val("invoice_date", ""),
+        "Invoice Amount": abbr_currency(get_val("invoice_amount", 0)),
+        "PO Number": get_val("po_number", ""),
+        "PO Amount": abbr_currency(get_val("po_amount", 0)),
+        "Due Date": get_val("due_date", ""),
+        "Invoice Status": get_val("invoice_status", "").upper(),
+        "Aging (Days)": f"{aging_days} days" if aging_days > 0 else "0 days"
+    }
+    summary_df = pd.DataFrame(list(summary_data.items()), columns=["Field", "Value"])
+    st.dataframe(safe_dataframe_display(summary_df), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("### Status History")
@@ -3147,14 +3006,14 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             new_row = pd.DataFrame([{"status": "PAID", "effective_date": date.today().strftime("%Y-%m-%d"), "status_notes": "Processed via ProcureSpendIQ app"}])
             hist_df = pd.concat([hist_df, new_row], ignore_index=True)
     hist_df["effective_date"] = hist_df["effective_date"].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x, (date, datetime)) else str(x))
-    st.dataframe(hist_df[["status","effective_date","status_notes"]], use_container_width=True, hide_index=True, column_config={
+    st.dataframe(safe_dataframe_display(hist_df[["status","effective_date","status_notes"]]), use_container_width=True, hide_index=True, column_config={
         "status": st.column_config.TextColumn("Status", width="small"),
         "effective_date": st.column_config.TextColumn("Effective Date", width="small"),
         "status_notes": st.column_config.TextColumn("Status Notes", width="large"),
     })
 
     st.markdown("---")
-    st.markdown("### Vendor Information")  # Changed from "Party Information"
+    st.markdown("### Vendor Information")
     tab1, tab2 = st.tabs(["Vendor Info", "Company Info"])
 
     with tab1:
@@ -3194,17 +3053,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "Postal Code": "13607",
                 "Street": "Tech Center 611"
             }
-        # Display vendor info horizontally (2 rows of columns)
-        col1, col2 = st.columns(2)
-        col1.metric("Vendor ID", vendor_info["Vendor ID"])
-        col2.metric("Vendor Name", vendor_info["Vendor Name"])
-        col1, col2 = st.columns(2)
-        col1.metric("Alias/Name 2", vendor_info["Alias/Name 2"])
-        col2.metric("Country", vendor_info["Country"])
-        col1, col2 = st.columns(2)
-        col1.metric("City", vendor_info["City"])
-        col2.metric("Postal Code", vendor_info["Postal Code"])
-        st.metric("Street", vendor_info["Street"])
+        vendor_df_display = pd.DataFrame(list(vendor_info.items()), columns=["Attribute", "Value"])
+        st.dataframe(safe_dataframe_display(vendor_df_display), use_container_width=True, hide_index=True)
 
     with tab2:
         company_sql = f"""
@@ -3244,17 +3094,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "City": "New York",
                 "Postal Code": "10001"
             }
-        # Display company info horizontally
-        col1, col2 = st.columns(2)
-        col1.metric("Company Code", company_info["Company Code"])
-        col2.metric("Company Name", company_info["Company Name"])
-        col1, col2 = st.columns(2)
-        col1.metric("Plant Code", company_info["Plant Code"])
-        col2.metric("Plant Name", company_info["Plant Name"])
-        col1, col2 = st.columns(2)
-        col1.metric("Street", company_info["Street"])
-        col2.metric("City", company_info["City"])
-        st.metric("Postal Code", company_info["Postal Code"])
+        company_df_display = pd.DataFrame(list(company_info.items()), columns=["Attribute", "Value"])
+        st.dataframe(safe_dataframe_display(company_df_display), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
@@ -3380,7 +3221,7 @@ def render_invoices():
             'po_number': 'PO NUMBER',
             'status': 'STATUS'
         })
-        st.dataframe(df_display, use_container_width=True, height=400)
+        st.dataframe(safe_dataframe_display(df_display), use_container_width=True, height=400)
     else:
         st.info("No invoices found. Try a different search term.")
 
@@ -3391,7 +3232,6 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
     
-    # Global CSS for blue buttons
     st.markdown("""
 <style>
 .block-container {
@@ -3436,8 +3276,6 @@ def main():
     padding-left: 0 !important;
     padding-right: 0.5rem !important;
 }
-
-/* BLUE PRIMARY BUTTONS */
 button[kind="primary"] {
     background-color: #2563eb !important;
     background: #2563eb !important;
@@ -3451,8 +3289,6 @@ button[kind="primary"]:hover {
     background: #1d4ed8 !important;
     border-color: #1d4ed8 !important;
 }
-
-/* Invoice page blue buttons */
 button[data-testid="baseButton-proceed_pay_btn"],
 button[data-testid="baseButton-back_invoices_btn"] {
     background-color: #2563eb !important;
