@@ -1163,25 +1163,29 @@ def render_dashboard():
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
-    # Floating BG button (circular)
+    # Floating BG button (circular) - toggles a color picker panel
     st.markdown('<div class="bg-fab">', unsafe_allow_html=True)
-    with st.popover("🎨"):
-        st.markdown("### Choose background color")
-        new_color = st.color_picker("Pick a color", value=st.session_state.dashboard_bg_color)
-        if new_color != st.session_state.dashboard_bg_color:
-            st.session_state.dashboard_bg_color = new_color
-            st.rerun()
-        st.markdown("---")
-        st.markdown("**Presets**")
-        preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
-        preset_cols = st.columns(6)
-        for i, color in enumerate(preset_colors):
-            with preset_cols[i]:
-                if st.button(" ", key=f"bg_preset_{color}", help=color):
-                    st.session_state.dashboard_bg_color = color
-                    st.rerun()
-                st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
+    if st.button("🎨", key="bg_fab_button", help="Change dashboard background"):
+        st.session_state.show_bg_picker = not st.session_state.get("show_bg_picker", False)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    if st.session_state.get("show_bg_picker", False):
+        with st.container(border=True):
+            st.markdown("### Choose background color")
+            new_color = st.color_picker("Pick a color", value=st.session_state.dashboard_bg_color)
+            if new_color != st.session_state.dashboard_bg_color:
+                st.session_state.dashboard_bg_color = new_color
+                st.rerun()
+            st.markdown("---")
+            st.markdown("**Presets**")
+            preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
+            preset_cols = st.columns(6)
+            for i, color in enumerate(preset_colors):
+                with preset_cols[i]:
+                    if st.button(" ", key=f"bg_preset_{color}", help=color):
+                        st.session_state.dashboard_bg_color = color
+                        st.rerun()
+                    st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
 
 # ------------------------------------------------------------
 # forecast.py (unchanged)
