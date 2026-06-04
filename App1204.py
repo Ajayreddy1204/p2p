@@ -555,6 +555,30 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .stApp {{
         background-color: {bg_color} !important;
     }}
+    /* Floating BG button styles */
+    .bg-fab {{
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+    }}
+    .bg-fab button {{
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: #2563eb;
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }}
+    .bg-fab button:hover {{
+        background-color: #1d4ed8;
+        transform: scale(1.05);
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -596,7 +620,7 @@ def render_filters():
     selected_vendor = st.session_state.selected_vendor
     current_preset = st.session_state.preset
 
-    col_date, col_vendor, col_preset, col_bg = st.columns([1.2, 1.2, 2.2, 0.8], gap="small")
+    col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.8], gap="small")
 
     with col_date:
         date_range = st.date_input(
@@ -652,27 +676,6 @@ def render_filters():
                         st.session_state.preset = p
                     st.rerun()
 
-    with col_bg:
-        # BG Button with popover for color selection
-        with st.popover("🎨 BG"):
-            st.markdown("### Choose background color")
-            # Color picker
-            new_color = st.color_picker("Pick a color", value=st.session_state.get("dashboard_bg_color", "#ffffff"))
-            if new_color != st.session_state.get("dashboard_bg_color", "#ffffff"):
-                st.session_state.dashboard_bg_color = new_color
-                st.rerun()
-            st.markdown("---")
-            st.markdown("**Presets**")
-            preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
-            preset_cols = st.columns(6)
-            for i, color in enumerate(preset_colors):
-                with preset_cols[i]:
-                    if st.button(" ", key=f"bg_preset_{color}", help=color):
-                        st.session_state.dashboard_bg_color = color
-                        st.rerun()
-                    # Display small colored square
-                    st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
-
     st.markdown(f"""
     <style>
     button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
@@ -725,9 +728,8 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
     auto_proc = safe_int(auto_df.loc[0, "auto_processed"]) if not auto_df.empty else 0
     auto_rate = (auto_proc / total_cleared * 100) if total_cleared > 0 else 0.0
 
-    # For AUTOPROCESSED INVOICES % card, always show a positive delta (green up arrow) with 0.0% if value is zero
     auto_delta = f"{auto_rate:.1f}%"
-    auto_up = True  # always green
+    auto_up = True
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -749,7 +751,6 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
     with col3:
         render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
     with col4:
-        # Show green delta even if 0.0%
         render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", auto_delta, auto_up, "green")
 
 def navigate_to_invoice(invoice_number):
@@ -1161,6 +1162,26 @@ def render_dashboard():
     render_needs_attention(rng_start, rng_end, vendor_where)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
+
+    # Floating BG button (circular)
+    st.markdown('<div class="bg-fab">', unsafe_allow_html=True)
+    with st.popover("🎨"):
+        st.markdown("### Choose background color")
+        new_color = st.color_picker("Pick a color", value=st.session_state.dashboard_bg_color)
+        if new_color != st.session_state.dashboard_bg_color:
+            st.session_state.dashboard_bg_color = new_color
+            st.rerun()
+        st.markdown("---")
+        st.markdown("**Presets**")
+        preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
+        preset_cols = st.columns(6)
+        for i, color in enumerate(preset_colors):
+            with preset_cols[i]:
+                if st.button(" ", key=f"bg_preset_{color}", help=color):
+                    st.session_state.dashboard_bg_color = color
+                    st.rerun()
+                st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------------------------
 # forecast.py (unchanged)
@@ -2967,7 +2988,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - UPDATED with tabular format for Invoice Summary, Vendor Info, Company Info
+# invoices.py - UPDATED with simple horizontal tables for all sections
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -2999,7 +3020,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    # Tabular format like Status History
+    # Simple horizontal table (Field | Value) as per attached image
     summary_data = {
         "Invoice Number": inv_num,
         "Invoice Date": get_val("invoice_date", ""),
@@ -3028,8 +3049,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     hist_df = run_query(hist_sql)
     if hist_df.empty:
         hist_df = pd.DataFrame([
-            {"status": "OPEN", "effective_date": get_val("invoice_date", "2026-01-02"), "status_notes": "Invoice opened and assigned for processing. Pending verification of delivery confirmation, invoice accuracy, and appropriate cost center allocation."},
-            {"status": "OVERDUE", "effective_date": get_val("due_date", "2026-02-01") if get_val("due_date") else "2026-02-16", "status_notes": "Invoice overdue following standard payment term expiry. Finance team has been notified for priority action. Vendor relations team informed to manage supplier expectations."}
+            {"status": "OPEN", "effective_date": get_val("invoice_date", "2026-01-02"), "status_notes": "Invoice opened and assigned for processing."},
+            {"status": "OVERDUE", "effective_date": get_val("due_date", "2026-02-01") if get_val("due_date") else "2026-02-16", "status_notes": "Invoice overdue following standard payment term expiry."}
         ])
     else:
         hist_df.columns = [c.lower() for c in hist_df.columns]
