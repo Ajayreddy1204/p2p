@@ -1503,7 +1503,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - UPDATED with wrapper and buttons
+# genie.py - UPDATED with wrapper and buttons (removed icons)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2777,7 +2777,10 @@ def summarize_conversation():
     prompt = f"Summarize the following conversation concisely, highlighting key questions, findings, and recommendations:\n\n{conv_text}"
     summary = ask_bedrock(prompt, system_prompt="You are a helpful assistant that summarizes conversations.")
     if summary:
-        st.info(f"**Conversation Summary:**\n\n{summary}")
+        # Use a full-width bordered container to display the summary
+        with st.container(border=True):
+            st.markdown("### Conversation Summary")
+            st.markdown(summary)
     else:
         st.error("Could not generate summary at this time.")
 
@@ -2979,23 +2982,22 @@ def render_genie():
     with right_chat:
         # Wrap the entire chat area (including buttons, messages, input) in a bordered container
         with st.container(border=True):
-            # Buttons row
+            # Buttons row - removed icons
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
-                # Export MD button triggers download directly
-                if st.button("📄 Export MD", use_container_width=True, key="export_md_top"):
+                if st.button("Export MD", use_container_width=True, key="export_md_top"):
                     if st.session_state.current_messages:
                         export_conversation_md()
                     else:
                         st.warning("No conversation to export.")
             with btn_col2:
-                if st.button("📝 Summarize", use_container_width=True, key="summarize_top"):
+                if st.button("Summarize", use_container_width=True, key="summarize_top"):
                     if st.session_state.current_messages:
                         summarize_conversation()
                     else:
                         st.warning("No conversation to summarize.")
             with btn_col3:
-                if st.button("🗑️ Clear", use_container_width=True, key="clear_top"):
+                if st.button("Clear", use_container_width=True, key="clear_top"):
                     start_new_session()
                     st.rerun()
 
@@ -3067,7 +3069,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - UPDATED with tabular invoice summary and vendor info tabular
+# invoices.py - UPDATED with tabular horizontal layout for Invoice Summary and Vendor/Company Info
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3099,19 +3101,24 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    # Convert to tabular format (2 columns)
-    summary_data = {
-        "Invoice Number": inv_num,
-        "Invoice Date": get_val("invoice_date", ""),
-        "Invoice Amount": abbr_currency(get_val("invoice_amount", 0)),
-        "PO Number": get_val("po_number", ""),
-        "PO Amount": abbr_currency(get_val("po_amount", 0)),
-        "Due Date": get_val("due_date", ""),
-        "Invoice Status": get_val("invoice_status", "").upper(),
-        "Aging (Days)": f"{aging_days} days" if aging_days > 0 else "0 days"
-    }
-    summary_df = pd.DataFrame(list(summary_data.items()), columns=["Field", "Value"])
-    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+    # Horizontal layout using columns
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Invoice Number", inv_num)
+    col2.metric("Invoice Date", get_val("invoice_date", ""))
+    col3.metric("Invoice Amount", abbr_currency(get_val("invoice_amount", 0)))
+    col4.metric("PO Number", get_val("po_number", ""))
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("PO Amount", abbr_currency(get_val("po_amount", 0)))
+    col2.metric("Due Date", get_val("due_date", ""))
+    status = get_val("invoice_status", "").upper()
+    status_color = "#dc2626" if status == "OVERDUE" else "#16a34a" if status == "PAID" else "#f59e0b"
+    col3.markdown(f"""
+    <div style="background-color: #f8f9fa; border-radius: 12px; padding: 12px 8px; text-align: center;">
+        <div style="font-size: 0.9rem; color: #6c757d;">Invoice Status</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: {status_color};">{status}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    col4.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
 
     st.markdown("---")
     st.markdown("### Status History")
@@ -3187,8 +3194,17 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "Postal Code": "13607",
                 "Street": "Tech Center 611"
             }
-        vendor_df_display = pd.DataFrame(list(vendor_info.items()), columns=["Attribute", "Value"])
-        st.dataframe(vendor_df_display, use_container_width=True, hide_index=True)
+        # Display vendor info horizontally (2 rows of columns)
+        col1, col2 = st.columns(2)
+        col1.metric("Vendor ID", vendor_info["Vendor ID"])
+        col2.metric("Vendor Name", vendor_info["Vendor Name"])
+        col1, col2 = st.columns(2)
+        col1.metric("Alias/Name 2", vendor_info["Alias/Name 2"])
+        col2.metric("Country", vendor_info["Country"])
+        col1, col2 = st.columns(2)
+        col1.metric("City", vendor_info["City"])
+        col2.metric("Postal Code", vendor_info["Postal Code"])
+        st.metric("Street", vendor_info["Street"])
 
     with tab2:
         company_sql = f"""
@@ -3228,8 +3244,17 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "City": "New York",
                 "Postal Code": "10001"
             }
-        company_df_display = pd.DataFrame(list(company_info.items()), columns=["Attribute", "Value"])
-        st.dataframe(company_df_display, use_container_width=True, hide_index=True)
+        # Display company info horizontally
+        col1, col2 = st.columns(2)
+        col1.metric("Company Code", company_info["Company Code"])
+        col2.metric("Company Name", company_info["Company Name"])
+        col1, col2 = st.columns(2)
+        col1.metric("Plant Code", company_info["Plant Code"])
+        col2.metric("Plant Name", company_info["Plant Name"])
+        col1, col2 = st.columns(2)
+        col1.metric("Street", company_info["Street"])
+        col2.metric("City", company_info["City"])
+        st.metric("Postal Code", company_info["Postal Code"])
 
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
