@@ -3067,7 +3067,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - BLUE BUTTONS (unchanged)
+# invoices.py - UPDATED with tabular invoice summary and vendor info tabular
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3077,6 +3077,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if isinstance(val, (date, datetime)):
             return val.strftime("%Y-%m-%d")
         return val
+
     aging_days = get_val("aging_days", 0)
     try:
         due_date = inv_row.get("due_date")
@@ -3084,6 +3085,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             aging_days = (date.today() - due_date).days
     except:
         pass
+
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
@@ -3095,32 +3097,22 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         </div>
     </div>
     """, unsafe_allow_html=True)
+
     st.markdown("### Invoice Summary")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Invoice Number", inv_num)
-    with col2:
-        st.metric("Invoice Date", get_val("invoice_date", ""))
-    with col3:
-        st.metric("Invoice Amount", abbr_currency(get_val("invoice_amount", 0)))
-    with col4:
-        st.metric("PO Number", get_val("po_number", ""))
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("PO Amount", abbr_currency(get_val("po_amount", 0)))
-    with col2:
-        st.metric("Due Date", get_val("due_date", ""))
-    with col3:
-        status = get_val("invoice_status", "").upper()
-        status_color = "#dc2626" if status == "OVERDUE" else "#16a34a" if status == "PAID" else "#f59e0b"
-        st.markdown(f"""
-        <div style="background-color: #f8f9fa; border-radius: 12px; padding: 12px 8px; text-align: center;">
-            <div style="font-size: 0.9rem; color: #6c757d;">Invoice Status</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: {status_color};">{status}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col4:
-        st.metric("Aging (Days)", f"{aging_days} days" if aging_days > 0 else "0 days")
+    # Convert to tabular format (2 columns)
+    summary_data = {
+        "Invoice Number": inv_num,
+        "Invoice Date": get_val("invoice_date", ""),
+        "Invoice Amount": abbr_currency(get_val("invoice_amount", 0)),
+        "PO Number": get_val("po_number", ""),
+        "PO Amount": abbr_currency(get_val("po_amount", 0)),
+        "Due Date": get_val("due_date", ""),
+        "Invoice Status": get_val("invoice_status", "").upper(),
+        "Aging (Days)": f"{aging_days} days" if aging_days > 0 else "0 days"
+    }
+    summary_df = pd.DataFrame(list(summary_data.items()), columns=["Field", "Value"])
+    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
     st.markdown("---")
     st.markdown("### Status History")
     hist_sql = f"""
@@ -3153,9 +3145,11 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         "effective_date": st.column_config.TextColumn("Effective Date", width="small"),
         "status_notes": st.column_config.TextColumn("Status Notes", width="large"),
     })
+
     st.markdown("---")
-    st.markdown("### Party Information")
+    st.markdown("### Vendor Information")  # Changed from "Party Information"
     tab1, tab2 = st.tabs(["Vendor Info", "Company Info"])
+
     with tab1:
         vendor_sql = f"""
             SELECT DISTINCT
@@ -3174,41 +3168,28 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         vendor_df = run_query(vendor_sql)
         if not vendor_df.empty:
             row = vendor_df.iloc[0]
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Vendor ID**")
-                st.info(row.get("vendor_id", ""))
-                st.markdown("**Vendor Name**")
-                st.info(row.get("vendor_name", ""))
-                st.markdown("**Alias/Name 2**")
-                st.info(row.get("vendor_name_2", ""))
-            with col2:
-                st.markdown("**Country**")
-                st.info(row.get("country_code", ""))
-                st.markdown("**City**")
-                st.info(row.get("city", ""))
-                st.markdown("**Postal Code**")
-                st.info(row.get("postal_code", ""))
-                st.markdown("**Street**")
-                st.info(row.get("street", ""))
+            vendor_info = {
+                "Vendor ID": row.get("vendor_id", ""),
+                "Vendor Name": row.get("vendor_name", ""),
+                "Alias/Name 2": row.get("vendor_name_2", ""),
+                "Country": row.get("country_code", ""),
+                "City": row.get("city", ""),
+                "Postal Code": row.get("postal_code", ""),
+                "Street": row.get("street", "")
+            }
         else:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Vendor ID**")
-                st.info("0001000007")
-                st.markdown("**Vendor Name**")
-                st.info("McMaster-Carr")
-                st.markdown("**Alias/Name 2**")
-                st.info("VN-03608")
-            with col2:
-                st.markdown("**Country**")
-                st.info("NL")
-                st.markdown("**City**")
-                st.info("Bangalore")
-                st.markdown("**Postal Code**")
-                st.info("13607")
-                st.markdown("**Street**")
-                st.info("Tech Center 611")
+            vendor_info = {
+                "Vendor ID": "0001000007",
+                "Vendor Name": "McMaster-Carr",
+                "Alias/Name 2": "VN-03608",
+                "Country": "NL",
+                "City": "Bangalore",
+                "Postal Code": "13607",
+                "Street": "Tech Center 611"
+            }
+        vendor_df_display = pd.DataFrame(list(vendor_info.items()), columns=["Attribute", "Value"])
+        st.dataframe(vendor_df_display, use_container_width=True, hide_index=True)
+
     with tab2:
         company_sql = f"""
             SELECT DISTINCT
@@ -3228,35 +3209,28 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         company_df = run_query(company_sql)
         if not company_df.empty:
             row = company_df.iloc[0]
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Company Code**")
-                st.info(row.get("company_code", ""))
-                st.markdown("**Company Name**")
-                st.info(row.get("company_name", ""))
-                st.markdown("**Plant Code**")
-                st.info(row.get("plant_code", ""))
-            with col2:
-                st.markdown("**Plant Name**")
-                st.info(row.get("plant_name", ""))
-                addr_parts = [row.get("street", ""), row.get("city", ""), row.get("postal_code", "")]
-                addr = ", ".join([p for p in addr_parts if p])
-                st.markdown("**Company Address**")
-                st.info(addr)
+            company_info = {
+                "Company Code": row.get("company_code", ""),
+                "Company Name": row.get("company_name", ""),
+                "Plant Code": row.get("plant_code", ""),
+                "Plant Name": row.get("plant_name", ""),
+                "Street": row.get("street", ""),
+                "City": row.get("city", ""),
+                "Postal Code": row.get("postal_code", "")
+            }
         else:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Company Code**")
-                st.info("1000")
-                st.markdown("**Company Name**")
-                st.info("Alpha Manufacturing Inc.")
-                st.markdown("**Plant Code**")
-                st.info("1000")
-            with col2:
-                st.markdown("**Plant Name**")
-                st.info("Main Production Plant")
-                st.markdown("**Company Address**")
-                st.info("350 Fifth Avenue, New York 10001")
+            company_info = {
+                "Company Code": "1000",
+                "Company Name": "Alpha Manufacturing Inc.",
+                "Plant Code": "1000",
+                "Plant Name": "Main Production Plant",
+                "Street": "350 Fifth Avenue",
+                "City": "New York",
+                "Postal Code": "10001"
+            }
+        company_df_display = pd.DataFrame(list(company_info.items()), columns=["Attribute", "Value"])
+        st.dataframe(company_df_display, use_container_width=True, hide_index=True)
+
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
     if st.session_state.get(paid_key, False):
