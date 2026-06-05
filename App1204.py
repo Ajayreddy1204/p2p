@@ -1464,7 +1464,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - Summarize appears inside the right container
+# genie.py - Summarize appears inside the right container, buttons top, summary below
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -2940,15 +2940,7 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
-            # Show conversation summary inside this container, below the buttons row
-            if st.session_state.show_summary and st.session_state.conversation_summary:
-                st.markdown("### Conversation Summary")
-                st.markdown(st.session_state.conversation_summary)
-                if st.button("Dismiss Summary", key="dismiss_summary_inside", use_container_width=True):
-                    st.session_state.show_summary = False
-                    st.rerun()
-                st.markdown("---")
-
+            # ========== FIX: BUTTONS FIRST ==========
             # Buttons row - Export MD, Summarize, Clear
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
@@ -2968,6 +2960,15 @@ def render_genie():
                 if st.button("Clear", use_container_width=True, key="clear_top"):
                     start_new_session()
                     st.rerun()
+
+            # Show conversation summary (if any) directly below the buttons
+            if st.session_state.show_summary and st.session_state.conversation_summary:
+                st.markdown("### Conversation Summary")
+                st.markdown(st.session_state.conversation_summary)
+                if st.button("Dismiss Summary", key="dismiss_summary_inside", use_container_width=True):
+                    st.session_state.show_summary = False
+                    st.rerun()
+                st.markdown("---")
 
             # Chat area
             if not st.session_state.current_messages:
