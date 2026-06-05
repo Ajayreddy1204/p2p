@@ -3037,7 +3037,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - UPDATED with simple horizontal tables for all sections
+# invoices.py - UPDATED with horizontal tables (two rows: headers then values)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3069,19 +3069,36 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    # Simple horizontal table (Field | Value)
-    summary_data = {
-        "Invoice Number": inv_num,
-        "Invoice Date": get_val("invoice_date", ""),
-        "Invoice Amount": abbr_currency(get_val("invoice_amount", 0)),
-        "PO Number": get_val("po_number", ""),
-        "PO Amount": abbr_currency(get_val("po_amount", 0)),
-        "Due Date": get_val("due_date", ""),
-        "Invoice Status": get_val("invoice_status", "").upper(),
-        "Aging (Days)": f"{aging_days} days" if aging_days > 0 else "0 days"
-    }
-    summary_df = pd.DataFrame(list(summary_data.items()), columns=["Field", "Value"])
-    st.dataframe(safe_dataframe_display(summary_df), use_container_width=True, hide_index=True)
+
+    # Build horizontal table: first row field names, second row values
+    summary_fields = [
+        "Invoice Number", "Invoice Date", "Invoice Amount", "PO Number",
+        "PO Amount", "Due Date", "Invoice Status", "Aging (Days)"
+    ]
+    summary_values = [
+        inv_num,
+        get_val("invoice_date", ""),
+        abbr_currency(get_val("invoice_amount", 0)),
+        get_val("po_number", ""),
+        abbr_currency(get_val("po_amount", 0)),
+        get_val("due_date", ""),
+        get_val("invoice_status", "").upper(),
+        f"{aging_days} days" if aging_days > 0 else "0 days"
+    ]
+    # Create HTML table with two rows
+    html_table = '<table style="width:100%; border-collapse: collapse; margin-bottom: 1rem;">'
+    # Header row
+    html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+    for field in summary_fields:
+        html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
+    html_table += '</tr>'
+    # Values row
+    html_table += '<tr>'
+    for val in summary_values:
+        html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
+    html_table += '</tr>'
+    html_table += '</table>'
+    st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### Status History")
@@ -3138,27 +3155,31 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         vendor_df = run_query(vendor_sql)
         if not vendor_df.empty:
             row = vendor_df.iloc[0]
-            vendor_info = {
-                "Vendor ID": row.get("vendor_id", ""),
-                "Vendor Name": row.get("vendor_name", ""),
-                "Alias/Name 2": row.get("vendor_name_2", ""),
-                "Country": row.get("country_code", ""),
-                "City": row.get("city", ""),
-                "Postal Code": row.get("postal_code", ""),
-                "Street": row.get("street", "")
-            }
+            vendor_fields = ["Vendor ID", "Vendor Name", "Alias/Name 2", "Country", "City", "Postal Code", "Street"]
+            vendor_values = [
+                row.get("vendor_id", ""),
+                row.get("vendor_name", ""),
+                row.get("vendor_name_2", ""),
+                row.get("country_code", ""),
+                row.get("city", ""),
+                row.get("postal_code", ""),
+                row.get("street", "")
+            ]
         else:
-            vendor_info = {
-                "Vendor ID": "0001000007",
-                "Vendor Name": "McMaster-Carr",
-                "Alias/Name 2": "VN-03608",
-                "Country": "NL",
-                "City": "Bangalore",
-                "Postal Code": "13607",
-                "Street": "Tech Center 611"
-            }
-        vendor_df_display = pd.DataFrame(list(vendor_info.items()), columns=["Attribute", "Value"])
-        st.dataframe(safe_dataframe_display(vendor_df_display), use_container_width=True, hide_index=True)
+            vendor_fields = ["Vendor ID", "Vendor Name", "Alias/Name 2", "Country", "City", "Postal Code", "Street"]
+            vendor_values = [
+                "0001000007", "McMaster-Carr", "VN-03608", "NL", "Bangalore", "13607", "Tech Center 611"
+            ]
+        # Create horizontal table
+        html_vendor = '<table style="width:100%; border-collapse: collapse;">'
+        html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+        for f in vendor_fields:
+            html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
+        html_vendor += '</tr><tr>'
+        for v in vendor_values:
+            html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
+        html_vendor += '</tr></table>'
+        st.markdown(html_vendor, unsafe_allow_html=True)
 
     with tab2:
         company_sql = f"""
@@ -3179,27 +3200,31 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         company_df = run_query(company_sql)
         if not company_df.empty:
             row = company_df.iloc[0]
-            company_info = {
-                "Company Code": row.get("company_code", ""),
-                "Company Name": row.get("company_name", ""),
-                "Plant Code": row.get("plant_code", ""),
-                "Plant Name": row.get("plant_name", ""),
-                "Street": row.get("street", ""),
-                "City": row.get("city", ""),
-                "Postal Code": row.get("postal_code", "")
-            }
+            company_fields = ["Company Code", "Company Name", "Plant Code", "Plant Name", "Street", "City", "Postal Code"]
+            company_values = [
+                row.get("company_code", ""),
+                row.get("company_name", ""),
+                row.get("plant_code", ""),
+                row.get("plant_name", ""),
+                row.get("street", ""),
+                row.get("city", ""),
+                row.get("postal_code", "")
+            ]
         else:
-            company_info = {
-                "Company Code": "1000",
-                "Company Name": "Alpha Manufacturing Inc.",
-                "Plant Code": "1000",
-                "Plant Name": "Main Production Plant",
-                "Street": "350 Fifth Avenue",
-                "City": "New York",
-                "Postal Code": "10001"
-            }
-        company_df_display = pd.DataFrame(list(company_info.items()), columns=["Attribute", "Value"])
-        st.dataframe(safe_dataframe_display(company_df_display), use_container_width=True, hide_index=True)
+            company_fields = ["Company Code", "Company Name", "Plant Code", "Plant Name", "Street", "City", "Postal Code"]
+            company_values = [
+                "1000", "Alpha Manufacturing Inc.", "1000", "Main Production Plant",
+                "350 Fifth Avenue", "New York", "10001"
+            ]
+        html_company = '<table style="width:100%; border-collapse: collapse;">'
+        html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+        for f in company_fields:
+            html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
+        html_company += '</tr><tr>'
+        for v in company_values:
+            html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
+        html_company += '</tr></table>'
+        st.markdown(html_company, unsafe_allow_html=True)
 
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
