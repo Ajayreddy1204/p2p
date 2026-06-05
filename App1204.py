@@ -555,53 +555,6 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .stApp {{
         background-color: {bg_color} !important;
     }}
-    /* Floating BG button styles - left side */
-    .bg-fab {{
-        position: fixed;
-        bottom: 2rem;
-        left: 2rem;
-        z-index: 1000;
-    }}
-    .bg-fab button {{
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background-color: #2563eb;
-        color: white;
-        font-size: 1.5rem;
-        font-weight: bold;
-        border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }}
-    .bg-fab button:hover {{
-        background-color: #1d4ed8;
-        transform: scale(1.05);
-    }}
-    /* Color swatch row */
-    .color-palette {{
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        margin-top: 16px;
-        padding: 12px;
-        background: rgba(255,255,255,0.8);
-        border-radius: 40px;
-        backdrop-filter: blur(4px);
-    }}
-    .color-swatch {{
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        cursor: pointer;
-        border: 2px solid white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        transition: transform 0.1s ease;
-    }}
-    .color-swatch:hover {{
-        transform: scale(1.1);
-    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1088,13 +1041,8 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
-    # Ensure background color state
-    if "dashboard_bg_color" not in st.session_state:
-        st.session_state.dashboard_bg_color = "#ffffff"
-    if "show_color_panel" not in st.session_state:
-        st.session_state.show_color_panel = False
-
-    inject_dashboard_css(st.session_state.dashboard_bg_color)
+    # Fixed background color (white) - no floating button
+    inject_dashboard_css("#ffffff")
 
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
@@ -1188,48 +1136,7 @@ def render_dashboard():
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
-    # Floating BG button (circular) - left side
-    st.markdown('<div class="bg-fab">', unsafe_allow_html=True)
-    if st.button("🎨", key="bg_fab_button", help="Change dashboard background"):
-        st.session_state.show_color_panel = not st.session_state.show_color_panel
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Show color palette row when toggled
-    if st.session_state.get("show_color_panel", False):
-        # Define preset colors as a horizontal line
-        preset_colors = [
-            "#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5",
-            "#f3e8ff", "#fce7f3", "#fef9c3", "#e0f2fe"
-        ]
-        st.markdown('<div class="color-palette">', unsafe_allow_html=True)
-        cols = st.columns(len(preset_colors))
-        for idx, color in enumerate(preset_colors):
-            with cols[idx]:
-                # Create a clickable color swatch using HTML/JS via markdown and st.button trick
-                # Use a button with custom styling
-                btn_label = " "  # empty label
-                if st.button(btn_label, key=f"color_swatch_{color}", help=color):
-                    st.session_state.dashboard_bg_color = color
-                    st.rerun()
-                # Override button style to be a circle
-                st.markdown(f"""
-                <style>
-                div[data-testid="stButton"] button[key="color_swatch_{color}"] {{
-                    background-color: {color} !important;
-                    width: 40px !important;
-                    height: 40px !important;
-                    padding: 0 !important;
-                    border-radius: 50% !important;
-                    border: 2px solid white !important;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-                    min-width: unset !important;
-                }}
-                div[data-testid="stButton"] button[key="color_swatch_{color}"]:hover {{
-                    transform: scale(1.05);
-                }}
-                </style>
-                """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Removed floating button and color panel
 
 # ------------------------------------------------------------
 # forecast.py (unchanged)
@@ -3090,7 +2997,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
+    html_table += '<tr>'
     # Values row
     html_table += '<tr>'
     for val in summary_values:
@@ -3174,7 +3081,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '<tr>'
+        html_vendor += '</tr>'
         html_vendor += '<tr>'
         for v in vendor_values:
             html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3221,7 +3128,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '<tr>'
+        html_company += '</tr>'
         html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3390,7 +3297,7 @@ def main():
 /* New top bar layout */
 .title-section {
     text-align: left;
-    margin-top: -0.5rem;
+    margin-top: 0.5rem;  /* moved down a little */
 }
 .nav-section {
     display: flex;
@@ -3438,7 +3345,7 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
 
-    # New layout: three columns
+    # Three-column layout: title (left), nav (center), logo (right)
     col_title, col_nav, col_logo = st.columns([1.2, 2.5, 1], gap="medium")
 
     with col_title:
@@ -3449,7 +3356,6 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
 
     with col_nav:
         st.markdown('<div class="nav-section">', unsafe_allow_html=True)
-        # Create four buttons horizontally using st.columns
         nav_cols = st.columns(4, gap="small")
         current_page = st.session_state.page
 
