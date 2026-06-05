@@ -555,11 +555,11 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .stApp {{
         background-color: {bg_color} !important;
     }}
-    /* Floating BG button styles */
+    /* Floating BG button styles - left side */
     .bg-fab {{
         position: fixed;
         bottom: 2rem;
-        right: 2rem;
+        left: 2rem;
         z-index: 1000;
     }}
     .bg-fab button {{
@@ -578,6 +578,29 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .bg-fab button:hover {{
         background-color: #1d4ed8;
         transform: scale(1.05);
+    }}
+    /* Color swatch row */
+    .color-palette {{
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 16px;
+        padding: 12px;
+        background: rgba(255,255,255,0.8);
+        border-radius: 40px;
+        backdrop-filter: blur(4px);
+    }}
+    .color-swatch {{
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: transform 0.1s ease;
+    }}
+    .color-swatch:hover {{
+        transform: scale(1.1);
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -1068,6 +1091,8 @@ def render_dashboard():
     # Ensure background color state
     if "dashboard_bg_color" not in st.session_state:
         st.session_state.dashboard_bg_color = "#ffffff"
+    if "show_color_panel" not in st.session_state:
+        st.session_state.show_color_panel = False
 
     inject_dashboard_css(st.session_state.dashboard_bg_color)
 
@@ -1163,29 +1188,48 @@ def render_dashboard():
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
-    # Floating BG button (circular) - toggles a color picker panel
+    # Floating BG button (circular) - left side
     st.markdown('<div class="bg-fab">', unsafe_allow_html=True)
     if st.button("🎨", key="bg_fab_button", help="Change dashboard background"):
-        st.session_state.show_bg_picker = not st.session_state.get("show_bg_picker", False)
+        st.session_state.show_color_panel = not st.session_state.show_color_panel
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.session_state.get("show_bg_picker", False):
-        with st.container(border=True):
-            st.markdown("### Choose background color")
-            new_color = st.color_picker("Pick a color", value=st.session_state.dashboard_bg_color)
-            if new_color != st.session_state.dashboard_bg_color:
-                st.session_state.dashboard_bg_color = new_color
-                st.rerun()
-            st.markdown("---")
-            st.markdown("**Presets**")
-            preset_colors = ["#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5", "#f3e8ff", "#fce7f3"]
-            preset_cols = st.columns(6)
-            for i, color in enumerate(preset_colors):
-                with preset_cols[i]:
-                    if st.button(" ", key=f"bg_preset_{color}", help=color):
-                        st.session_state.dashboard_bg_color = color
-                        st.rerun()
-                    st.markdown(f'<div style="width:24px;height:24px;background-color:{color};border-radius:4px;margin-top:-10px;"></div>', unsafe_allow_html=True)
+    # Show color palette row when toggled
+    if st.session_state.get("show_color_panel", False):
+        # Define preset colors as a horizontal line
+        preset_colors = [
+            "#ffffff", "#f0f9ff", "#fef3c7", "#ecfdf5",
+            "#f3e8ff", "#fce7f3", "#fef9c3", "#e0f2fe"
+        ]
+        st.markdown('<div class="color-palette">', unsafe_allow_html=True)
+        cols = st.columns(len(preset_colors))
+        for idx, color in enumerate(preset_colors):
+            with cols[idx]:
+                # Create a clickable color swatch using HTML/JS via markdown and st.button trick
+                # Use a button with custom styling
+                btn_label = " "  # empty label
+                if st.button(btn_label, key=f"color_swatch_{color}", help=color):
+                    st.session_state.dashboard_bg_color = color
+                    st.rerun()
+                # Override button style to be a circle
+                st.markdown(f"""
+                <style>
+                div[data-testid="stButton"] button[key="color_swatch_{color}"] {{
+                    background-color: {color} !important;
+                    width: 40px !important;
+                    height: 40px !important;
+                    padding: 0 !important;
+                    border-radius: 50% !important;
+                    border: 2px solid white !important;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+                    min-width: unset !important;
+                }}
+                div[data-testid="stButton"] button[key="color_swatch_{color}"]:hover {{
+                    transform: scale(1.05);
+                }}
+                </style>
+                """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------------------------
 # forecast.py (unchanged)
@@ -2896,7 +2940,7 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
-            # Show conversation summary inside this container, before the buttons
+            # Show conversation summary inside this container, below the buttons row
             if st.session_state.show_summary and st.session_state.conversation_summary:
                 st.markdown("### Conversation Summary")
                 st.markdown(st.session_state.conversation_summary)
@@ -2905,7 +2949,7 @@ def render_genie():
                     st.rerun()
                 st.markdown("---")
 
-            # Buttons row - no icons
+            # Buttons row - Export MD, Summarize, Clear
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button("Export MD", use_container_width=True, key="export_md_top"):
@@ -3024,7 +3068,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    # Simple horizontal table (Field | Value) as per attached image
+    # Simple horizontal table (Field | Value)
     summary_data = {
         "Invoice Number": inv_num,
         "Invoice Date": get_val("invoice_date", ""),
