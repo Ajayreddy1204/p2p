@@ -1136,8 +1136,6 @@ def render_dashboard():
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
-    # Removed floating button and color panel
-
 # ------------------------------------------------------------
 # forecast.py (unchanged)
 # ------------------------------------------------------------
@@ -3128,7 +3126,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</tr>'
+        html_company += '</table>'
         html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3274,7 +3272,7 @@ def main():
     st.markdown("""
 <style>
 .block-container {
-    padding-top: 0rem !important;
+    padding-top: 2rem !important;  /* Increased top padding for better visibility */
     padding-bottom: 0rem !important;
 }
 .kpi {
@@ -3294,22 +3292,23 @@ def main():
     font-weight: 900;
     margin-top: 6px;
 }
-/* New top bar layout */
+/* Top bar layout - improved spacing */
 .title-section {
     text-align: left;
-    margin-top: 0.5rem;  /* moved down a little */
+    margin-top: 1rem;  /* Moved down */
 }
 .nav-section {
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 0.2rem;
+    margin-top: 1rem;
 }
 .logo-container {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     height: 100%;
+    margin-top: 1rem;
 }
 button[kind="primary"] {
     background-color: #2563eb !important;
