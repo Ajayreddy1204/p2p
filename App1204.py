@@ -2940,7 +2940,6 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
-            # ========== FIX: BUTTONS FIRST ==========
             # Buttons row - Export MD, Summarize, Clear
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
@@ -3037,7 +3036,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - UPDATED with horizontal tables (two rows: headers then values)
+# invoices.py - Updated with horizontal two-row tables
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3175,10 +3174,12 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '</tr><tr>'
+        html_vendor += '<tr>'
+        html_vendor += '<tr>'
         for v in vendor_values:
             html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_vendor += '</tr></table>'
+        html_vendor += '</tr>'
+        html_vendor += '</table>'
         st.markdown(html_vendor, unsafe_allow_html=True)
 
     with tab2:
@@ -3220,10 +3221,12 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</tr><tr>'
+        html_company += '<tr>'
+        html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_company += '</tr></table>'
+        html_company += '</tr>'
+        html_company += '</table>'
         st.markdown(html_company, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -3384,26 +3387,22 @@ def main():
     font-weight: 900;
     margin-top: 6px;
 }
+/* New top bar layout */
 .title-section {
     text-align: left;
-    margin-top: -1rem;
-    margin-bottom: 0rem;
-    padding-left: 0rem;
+    margin-top: -0.5rem;
 }
 .nav-section {
-    margin-top: 0.5rem;
-    margin-bottom: 0rem;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
 }
 .logo-container {
     display: flex;
     justify-content: flex-end;
-    align-items: flex-start;
+    align-items: center;
     height: 100%;
-}
-.stColumn:first-child {
-    padding-left: 0 !important;
-    padding-right: 0.5rem !important;
 }
 button[kind="primary"] {
     background-color: #2563eb !important;
@@ -3439,7 +3438,8 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
 
-    col_title, col_nav, col_logo = st.columns([1.6, 2.4, 1])
+    # New layout: three columns
+    col_title, col_nav, col_logo = st.columns([1.2, 2.5, 1], gap="medium")
 
     with col_title:
         st.markdown('<div class="title-section">', unsafe_allow_html=True)
@@ -3449,7 +3449,8 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
 
     with col_nav:
         st.markdown('<div class="nav-section">', unsafe_allow_html=True)
-        nav_cols = st.columns(4)
+        # Create four buttons horizontally using st.columns
+        nav_cols = st.columns(4, gap="small")
         current_page = st.session_state.page
 
         def set_page(page_name):
