@@ -627,10 +627,13 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
+        # FIX: Use empty label and collapsed visibility to prevent duplicate "All Vendors" text
         selected = st.selectbox(
-            "Vendor", st.session_state[vendor_cache_key],
+            "",  # empty label
+            st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
-            label_visibility="collapsed", key="vendor_selectbox"
+            label_visibility="collapsed",
+            key="vendor_selectbox_unique"
         )
         if selected != selected_vendor:
             st.session_state.selected_vendor = selected
@@ -2995,7 +2998,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr>'
+    html_table += '</tr>'
     # Values row
     html_table += '<tr>'
     for val in summary_values:
@@ -3079,7 +3082,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '</tr>'
+        html_vendor += '</table>'
         html_vendor += '<tr>'
         for v in vendor_values:
             html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
