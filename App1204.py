@@ -537,6 +537,17 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
     button[data-testid^="baseButton-na_card_"] {{ background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }}
     button[data-testid^="baseButton-na_card_"]:hover {{ color: #1d4ed8 !important; text-decoration: underline !important; }}
+    /* Prev/Next buttons blue styling */
+    button[data-testid="baseButton-na_prev_bottom"], button[data-testid="baseButton-na_next_bottom"] {{
+        background-color: #2563eb !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }}
+    button[data-testid="baseButton-na_prev_bottom"]:hover, button[data-testid="baseButton-na_next_bottom"]:hover {{
+        background-color: #1d4ed8 !important;
+    }}
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     div[data-testid="stHorizontalBlock"] button[kind="primary"], div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
@@ -1140,7 +1151,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged)
+# forecast.py - Modified GR/IR cards
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1331,11 +1342,64 @@ def render_forecast():
             year = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
 
-            grir_cols = st.columns(4)
-            grir_cols[0].metric("TOTAL GR/IR", abbr_currency(total_grir))
-            grir_cols[1].metric("% > 60 DAYS", f"{pct_over_60:.1f}%")
-            grir_cols[2].metric("> 60 DAYS AMOUNT", abbr_currency(amount_over_60))
-            grir_cols[3].metric("> 60 DAYS ITEMS", f"{cnt_over_60:,}")
+            # Use styled cards instead of st.metric
+            st.markdown("""
+            <style>
+            .grir-card {
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                border-radius: 16px;
+                padding: 1.2rem 1rem;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+                border: 1px solid #e2e8f0;
+                height: 100%;
+            }
+            .grir-card-title {
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #475569;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 0.5rem;
+            }
+            .grir-card-value {
+                font-size: 2rem;
+                font-weight: 800;
+                color: #0f172a;
+                line-height: 1.2;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">TOTAL GR/IR</div>
+                    <div class="grir-card-value">{abbr_currency(total_grir)}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">% > 60 DAYS</div>
+                    <div class="grir-card-value">{pct_over_60:.1f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col3:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">> 60 DAYS AMOUNT</div>
+                    <div class="grir-card-value">{abbr_currency(amount_over_60)}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col4:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">> 60 DAYS ITEMS</div>
+                    <div class="grir-card-value">{cnt_over_60:,}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
             st.caption(f"GR/IR position for {year:04d}-{month:02d}: {grir_items:,} items outstanding; {pct_over_60:.1f}% of balance and {cnt_over_60:,} items are older than 60 days.")
 
@@ -1372,7 +1436,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - Summarize appears inside the right container, buttons top, summary below
+# genie.py - Added off-topic detection
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1518,7 +1582,35 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
+def is_off_topic(question: str) -> bool:
+    """Detect off-topic questions (greetings, small talk)."""
+    q_lower = question.lower().strip()
+    off_topic_patterns = [
+        r"^(hi|hello|hey|greetings)(\s|$)",
+        r"^(how are you|how are you doing|what's up|how's it going)(\s|$)",
+        r"^(what are you doing|what can you do|who are you|what is your name)(\s|$)",
+        r"^(good morning|good afternoon|good evening)(\s|$)",
+        r"^(thank|thanks)(\s|$)",
+        r"^(tell me a joke|tell me something fun)(\s|$)"
+    ]
+    for pattern in off_topic_patterns:
+        if re.search(pattern, q_lower):
+            return True
+    return False
+
+def get_off_topic_response(question: str) -> dict:
+    """Return static response for off-topic questions."""
+    return {
+        "layout": "off_topic",
+        "message": "This is not a correct answer. Please ask questions related to dashboard or data (e.g., spend, vendors, invoices, payment performance, GR/IR reconciliation, etc.)",
+        "question": question
+    }
+
 def process_custom_query(query: str, history: str = "") -> dict:
+    # Check for off-topic first
+    if is_off_topic(query):
+        return get_off_topic_response(query)
+
     sql = generate_sql_from_semantic(query)
     if not sql or not is_safe_sql(sql):
         return {"layout": "error", "message": "Could not generate safe SQL for this question."}
@@ -1564,6 +1656,8 @@ Respond in plain text using markdown for headings and bullet points. Do not incl
     }
 
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     cf_sql = f"""
         SELECT
             forecast_bucket,
@@ -1667,6 +1761,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_early_payment(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     ep_sql_fallback = f"""
         SELECT
             CAST(f.invoice_number AS VARCHAR) AS document_number,
@@ -1728,6 +1824,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_payment_timing(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT
@@ -1782,6 +1880,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_late_payment_trend(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     trend_sql = f"""
         SELECT
             DATE_TRUNC('month', payment_date) AS month,
@@ -1824,6 +1924,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     sql = f"""
         SELECT
             year,
@@ -1870,6 +1972,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_root_causes(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     aging_sql = f"""
         SELECT
             year,
@@ -1928,6 +2032,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     sql = f"""
         SELECT
             year,
@@ -1980,6 +2086,8 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
+    if is_off_topic(question):
+        return get_off_topic_response(question)
     sql = f"""
         SELECT
             v.vendor_name,
@@ -2029,8 +2137,10 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-# Quick analysis functions (unchanged)
+# Quick analysis functions (unchanged, but add off-topic check inside each? they are only called from specific buttons, but we'll add check anyway)
 def _quick_spending_overview():
+    if is_off_topic("Spending Overview"):  # not needed but for consistency
+        return get_off_topic_response("Spending Overview")
     monthly_sql = f"""
         SELECT
             DATE_TRUNC('month', posting_date) AS month,
@@ -2102,6 +2212,8 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_vendor_analysis():
+    if is_off_topic("Vendor Analysis"):
+        return get_off_topic_response("Vendor Analysis")
     vendors_sql = f"""
         SELECT
             COALESCE(v.vendor_name, 'Unknown') AS vendor_name,
@@ -2163,6 +2275,8 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_payment_performance():
+    if is_off_topic("Payment Performance"):
+        return get_off_topic_response("Payment Performance")
     sql = f"""
         SELECT
             DATE_FORMAT(payment_date, '%Y-%m') AS month,
@@ -2214,6 +2328,8 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_invoice_aging():
+    if is_off_topic("Invoice Aging"):
+        return get_off_topic_response("Invoice Aging")
     sql = f"""
         SELECT
             CASE
@@ -2271,7 +2387,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (all unchanged, with safe_dataframe_display)
+# Response renderers (unchanged except added off_topic handling)
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -2417,6 +2533,9 @@ def render_grir_vendor_followup(result: dict):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
 def render_quick_analysis_response(result: dict):
+    if result.get("layout") == "off_topic":
+        st.error(result.get("message", "Question is not related to procurement data."))
+        return
     analysis_type = result.get("analysis_type", "spending_overview")
     metrics = result.get("metrics", {})
     analyst_response = result.get("analyst_response", "")
@@ -2558,9 +2677,21 @@ def render_quick_analysis_response(result: dict):
             st.caption("No SQL available.")
 
 # ------------------------------------------------------------
-# User question processing and Genie UI (with wrapper and buttons)
+# User question processing and Genie UI
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
+    # First, check for off-topic (cached or not)
+    if is_off_topic(user_question):
+        result = get_off_topic_response(user_question)
+        st.session_state.current_messages = []
+        st.session_state.current_messages.append({"role": "user", "content": user_question, "timestamp": datetime.now()})
+        st.session_state.current_messages.append({"role": "assistant", "content": result["message"], "response": result, "timestamp": datetime.now()})
+        save_chat_message(st.session_state.genie_session_id, 0, "user", user_question)
+        save_chat_message(st.session_state.genie_session_id, 1, "assistant", result["message"], source="off_topic")
+        save_question(user_question, "off_topic")
+        st.rerun()
+        return
+
     with st.spinner("Generating insights..."):
         cached = get_cache(user_question)
         if cached:
@@ -2739,46 +2870,55 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            history_context = get_recent_conversation_context(limit=20, max_age_days=2)
-            if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
-                result = process_grir_hotspots(auto_query, history_context)
-            elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
-                result = process_grir_root_causes(auto_query, history_context)
-            elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
-                result = process_grir_working_capital(auto_query, history_context)
-            elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
-                result = process_grir_vendor_followup(auto_query, history_context)
-            elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
-                result = process_cash_flow_forecast(auto_query, history_context)
-            elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
-                result = process_early_payment(auto_query, history_context)
-            elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
-                result = process_payment_timing(auto_query, history_context)
-            elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
-                result = process_late_payment_trend(auto_query, history_context)
-            elif auto_query == "Spending Overview":
-                result = _quick_spending_overview()
-            elif auto_query == "Vendor Analysis":
-                result = _quick_vendor_analysis()
-            elif auto_query == "Payment Performance":
-                result = _quick_payment_performance()
-            elif auto_query == "Invoice Aging":
-                result = _quick_invoice_aging()
-            else:
-                result = process_custom_query(auto_query, history_context)
-            st.session_state.current_messages = []
-            st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
-            if result.get("layout") != "error":
-                assistant_content = result.get('analyst_response', 'Analysis complete.')
-                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+            if is_off_topic(auto_query):
+                result = get_off_topic_response(auto_query)
+                st.session_state.current_messages = []
+                st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
+                st.session_state.current_messages.append({"role": "assistant", "content": result["message"], "response": result, "timestamp": datetime.now()})
                 save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
-                sql_used = _safe_sql_string(result.get("sql"))
-                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=sql_used)
-                save_question(auto_query, "forecast")
-                set_cache(auto_query, result)
+                save_chat_message(st.session_state.genie_session_id, 1, "assistant", result["message"], source="off_topic")
+                st.rerun()
             else:
-                st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
-            st.rerun()
+                history_context = get_recent_conversation_context(limit=20, max_age_days=2)
+                if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
+                    result = process_grir_hotspots(auto_query, history_context)
+                elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
+                    result = process_grir_root_causes(auto_query, history_context)
+                elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
+                    result = process_grir_working_capital(auto_query, history_context)
+                elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
+                    result = process_grir_vendor_followup(auto_query, history_context)
+                elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
+                    result = process_cash_flow_forecast(auto_query, history_context)
+                elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
+                    result = process_early_payment(auto_query, history_context)
+                elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
+                    result = process_payment_timing(auto_query, history_context)
+                elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
+                    result = process_late_payment_trend(auto_query, history_context)
+                elif auto_query == "Spending Overview":
+                    result = _quick_spending_overview()
+                elif auto_query == "Vendor Analysis":
+                    result = _quick_vendor_analysis()
+                elif auto_query == "Payment Performance":
+                    result = _quick_payment_performance()
+                elif auto_query == "Invoice Aging":
+                    result = _quick_invoice_aging()
+                else:
+                    result = process_custom_query(auto_query, history_context)
+                st.session_state.current_messages = []
+                st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
+                if result.get("layout") != "error":
+                    assistant_content = result.get('analyst_response', 'Analysis complete.')
+                    st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+                    save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
+                    sql_used = _safe_sql_string(result.get("sql"))
+                    save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=sql_used)
+                    save_question(auto_query, "forecast")
+                    set_cache(auto_query, result)
+                else:
+                    st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
+                st.rerun()
 
     # Left-aligned welcome header
     st.markdown("""
@@ -2896,7 +3036,9 @@ def render_genie():
                         if "response" in msg and msg["response"]:
                             resp = msg["response"]
                             layout = resp.get("layout")
-                            if layout == "cash_flow":
+                            if layout == "off_topic":
+                                st.error(resp.get("message", "Question not related to procurement data."))
+                            elif layout == "cash_flow":
                                 render_cash_flow_response(resp)
                             elif layout == "early_payment":
                                 render_early_payment_response(resp)
@@ -3082,7 +3224,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '</table>'
+        html_vendor += '</tr>'
         html_vendor += '<tr>'
         for v in vendor_values:
             html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3129,7 +3271,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</table>'
+        html_company += '</tr>'
         html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3275,7 +3417,7 @@ def main():
     st.markdown("""
 <style>
 .block-container {
-    padding-top: 2rem !important;  /* Increased top padding for better visibility */
+    padding-top: 2rem !important;
     padding-bottom: 0rem !important;
 }
 .kpi {
@@ -3298,7 +3440,7 @@ def main():
 /* Top bar layout - improved spacing */
 .title-section {
     text-align: left;
-    margin-top: 1rem;  /* Moved down */
+    margin-top: 1rem;
 }
 .nav-section {
     display: flex;
