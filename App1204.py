@@ -537,7 +537,6 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
     button[data-testid^="baseButton-na_card_"] {{ background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }}
     button[data-testid^="baseButton-na_card_"]:hover {{ color: #1d4ed8 !important; text-decoration: underline !important; }}
-    /* Prev/Next buttons blue styling */
     button[data-testid="baseButton-na_prev_bottom"], button[data-testid="baseButton-na_next_bottom"] {{
         background-color: #2563eb !important;
         color: white !important;
@@ -557,12 +556,10 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid^="baseButton-preset_"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
     button[data-testid="baseButton-proceed_pay_btn"], button[data-testid="baseButton-back_invoices_btn"] {{ background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }}
     button[data-testid="baseButton-proceed_pay_btn"]:hover, button[data-testid="baseButton-back_invoices_btn"]:hover {{ background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }}
-    /* Dashboard dynamic background */
     .main > .block-container {{
         background-color: {bg_color} !important;
         transition: background-color 0.2s ease;
     }}
-    /* Override any conflicting backgrounds */
     .stApp {{
         background-color: {bg_color} !important;
     }}
@@ -638,9 +635,8 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
-        # FIX: Use empty label and collapsed visibility to prevent duplicate "All Vendors" text
         selected = st.selectbox(
-            "",  # empty label
+            "",
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -1055,7 +1051,6 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
 
 def render_dashboard():
-    # Fixed background color (white) - no floating button
     inject_dashboard_css("#ffffff")
 
     if "date_range" not in st.session_state:
@@ -1151,7 +1146,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py - Modified GR/IR cards
+# forecast.py - Updated with coloured GR/IR cards
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1342,22 +1337,24 @@ def render_forecast():
             year = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
 
-            # Use styled cards instead of st.metric
+            # Coloured GR/IR cards with distinct gradients
             st.markdown("""
             <style>
             .grir-card {
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-radius: 16px;
                 padding: 1.2rem 1rem;
                 text-align: center;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-                border: 1px solid #e2e8f0;
+                border: 1px solid rgba(0,0,0,0.05);
                 height: 100%;
+                transition: transform 0.1s ease;
+            }
+            .grir-card:hover {
+                transform: translateY(-2px);
             }
             .grir-card-title {
                 font-size: 0.75rem;
                 font-weight: 600;
-                color: #475569;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 margin-bottom: 0.5rem;
@@ -1365,7 +1362,6 @@ def render_forecast():
             .grir-card-value {
                 font-size: 2rem;
                 font-weight: 800;
-                color: #0f172a;
                 line-height: 1.2;
             }
             </style>
@@ -1374,30 +1370,30 @@ def render_forecast():
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.markdown(f"""
-                <div class="grir-card">
-                    <div class="grir-card-title">TOTAL GR/IR</div>
-                    <div class="grir-card-value">{abbr_currency(total_grir)}</div>
+                <div class="grir-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);">
+                    <div class="grir-card-title" style="color: #1e40af;">TOTAL GR/IR</div>
+                    <div class="grir-card-value" style="color: #1e3a8a;">{abbr_currency(total_grir)}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
                 st.markdown(f"""
-                <div class="grir-card">
-                    <div class="grir-card-title">% > 60 DAYS</div>
-                    <div class="grir-card-value">{pct_over_60:.1f}%</div>
+                <div class="grir-card" style="background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);">
+                    <div class="grir-card-title" style="color: #9a3412;">% > 60 DAYS</div>
+                    <div class="grir-card-value" style="color: #7c2d12;">{pct_over_60:.1f}%</div>
                 </div>
                 """, unsafe_allow_html=True)
             with col3:
                 st.markdown(f"""
-                <div class="grir-card">
-                    <div class="grir-card-title">> 60 DAYS AMOUNT</div>
-                    <div class="grir-card-value">{abbr_currency(amount_over_60)}</div>
+                <div class="grir-card" style="background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);">
+                    <div class="grir-card-title" style="color: #991b1b;">> 60 DAYS AMOUNT</div>
+                    <div class="grir-card-value" style="color: #7f1d1d;">{abbr_currency(amount_over_60)}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with col4:
                 st.markdown(f"""
-                <div class="grir-card">
-                    <div class="grir-card-title">> 60 DAYS ITEMS</div>
-                    <div class="grir-card-value">{cnt_over_60:,}</div>
+                <div class="grir-card" style="background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);">
+                    <div class="grir-card-title" style="color: #5b21b6;">> 60 DAYS ITEMS</div>
+                    <div class="grir-card-value" style="color: #4c1d95;">{cnt_over_60:,}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1436,7 +1432,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py - Added off-topic detection
+# genie.py - Professional off-topic response
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1599,15 +1595,18 @@ def is_off_topic(question: str) -> bool:
     return False
 
 def get_off_topic_response(question: str) -> dict:
-    """Return static response for off-topic questions."""
+    """Return professional static response for off-topic questions."""
     return {
         "layout": "off_topic",
-        "message": "This is not a correct answer. Please ask questions related to dashboard or data (e.g., spend, vendors, invoices, payment performance, GR/IR reconciliation, etc.)",
+        "message": (
+            "I'm designed to answer questions related to your procurement data, such as spend analysis, "
+            "vendor performance, invoice aging, payment trends, GR/IR reconciliation, and cash flow forecasting. "
+            "Could you please rephrase your question in the context of your procurement data?"
+        ),
         "question": question
     }
 
 def process_custom_query(query: str, history: str = "") -> dict:
-    # Check for off-topic first
     if is_off_topic(query):
         return get_off_topic_response(query)
 
@@ -2137,9 +2136,9 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-# Quick analysis functions (unchanged, but add off-topic check inside each? they are only called from specific buttons, but we'll add check anyway)
+# Quick analysis functions (unchanged)
 def _quick_spending_overview():
-    if is_off_topic("Spending Overview"):  # not needed but for consistency
+    if is_off_topic("Spending Overview"):
         return get_off_topic_response("Spending Overview")
     monthly_sql = f"""
         SELECT
@@ -2387,7 +2386,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (unchanged except added off_topic handling)
+# Response renderers (all unchanged, added off_topic handling)
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -2534,7 +2533,7 @@ def render_grir_vendor_followup(result: dict):
 
 def render_quick_analysis_response(result: dict):
     if result.get("layout") == "off_topic":
-        st.error(result.get("message", "Question is not related to procurement data."))
+        st.info(result.get("message", "Question is not related to procurement data."))
         return
     analysis_type = result.get("analysis_type", "spending_overview")
     metrics = result.get("metrics", {})
@@ -2680,7 +2679,6 @@ def render_quick_analysis_response(result: dict):
 # User question processing and Genie UI
 # ------------------------------------------------------------
 def process_user_question(user_question: str):
-    # First, check for off-topic (cached or not)
     if is_off_topic(user_question):
         result = get_off_topic_response(user_question)
         st.session_state.current_messages = []
@@ -2920,7 +2918,6 @@ def render_genie():
                     st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
                 st.rerun()
 
-    # Left-aligned welcome header
     st.markdown("""
     <div class="welcome-header-left">
         <h1>Welcome to ProcureIQ Genie</h1>
@@ -2928,7 +2925,6 @@ def render_genie():
     </div>
     """, unsafe_allow_html=True)
 
-    # Quick analysis cards (4 columns)
     cards_data = [
         {"icon": "📊", "title": "Spending Overview", "description": "Track total spend, monthly trends and major changes"},
         {"icon": "🏭", "title": "Vendor Analysis", "description": "Understand vendor-wise spend, concentration, and dependency"},
@@ -2951,7 +2947,6 @@ def render_genie():
 
     st.markdown("---")
 
-    # Left column: grouped container with expanders, Right column: chat area with wrapper and buttons
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
 
     with left_info:
@@ -2988,7 +2983,6 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
-            # Buttons row - Export MD, Summarize, Clear
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button("Export MD", use_container_width=True, key="export_md_top"):
@@ -3008,7 +3002,6 @@ def render_genie():
                     start_new_session()
                     st.rerun()
 
-            # Show conversation summary (if any) directly below the buttons
             if st.session_state.show_summary and st.session_state.conversation_summary:
                 st.markdown("### Conversation Summary")
                 st.markdown(st.session_state.conversation_summary)
@@ -3017,7 +3010,6 @@ def render_genie():
                     st.rerun()
                 st.markdown("---")
 
-            # Chat area
             if not st.session_state.current_messages:
                 st.markdown("""
                 <div class="start-conversation">
@@ -3037,7 +3029,7 @@ def render_genie():
                             resp = msg["response"]
                             layout = resp.get("layout")
                             if layout == "off_topic":
-                                st.error(resp.get("message", "Question not related to procurement data."))
+                                st.info(resp.get("message", "Question not related to procurement data."))
                             elif layout == "cash_flow":
                                 render_cash_flow_response(resp)
                             elif layout == "early_payment":
@@ -3074,7 +3066,6 @@ def render_genie():
                             st.markdown(msg["content"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # Input form
             with st.form(key="genie_chat_form", clear_on_submit=True):
                 col_in, col_btn = st.columns([0.85, 0.15])
                 with col_in:
@@ -3086,7 +3077,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - Updated with horizontal two-row tables
+# invoices.py
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3119,7 +3110,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 
     st.markdown("### Invoice Summary")
 
-    # Build horizontal table: first row field names, second row values
     summary_fields = [
         "Invoice Number", "Invoice Date", "Invoice Amount", "PO Number",
         "PO Amount", "Due Date", "Invoice Status", "Aging (Days)"
@@ -3134,14 +3124,11 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         get_val("invoice_status", "").upper(),
         f"{aging_days} days" if aging_days > 0 else "0 days"
     ]
-    # Create HTML table with two rows
     html_table = '<table style="width:100%; border-collapse: collapse; margin-bottom: 1rem;">'
-    # Header row
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
-    # Values row
+    html_table += '<tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
@@ -3219,7 +3206,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             vendor_values = [
                 "0001000007", "McMaster-Carr", "VN-03608", "NL", "Bangalore", "13607", "Tech Center 611"
             ]
-        # Create horizontal table
         html_vendor = '<table style="width:100%; border-collapse: collapse;">'
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
@@ -3437,7 +3423,6 @@ def main():
     font-weight: 900;
     margin-top: 6px;
 }
-/* Top bar layout - improved spacing */
 .title-section {
     text-align: left;
     margin-top: 1rem;
@@ -3489,7 +3474,6 @@ button[data-testid="baseButton-back_invoices_btn"]:hover {
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
 
-    # Three-column layout: title (left), nav (center), logo (right)
     col_title, col_nav, col_logo = st.columns([1.2, 2.5, 1], gap="medium")
 
     with col_title:
