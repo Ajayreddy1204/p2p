@@ -507,7 +507,6 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 # dashboard.py
 # ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
-    """Inject dashboard CSS with optional dynamic background color."""
     st.markdown(f"""
 <style>
     .stDateInput, .stSelectbox {{ width: 100%; }}
@@ -1146,7 +1145,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py - Updated with coloured GR/IR cards
+# forecast.py
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1337,7 +1336,6 @@ def render_forecast():
             year = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
 
-            # Coloured GR/IR cards with distinct gradients
             st.markdown("""
             <style>
             .grir-card {
@@ -1579,7 +1577,6 @@ def generate_sql_from_semantic(question: str) -> str:
     return sql
 
 def is_off_topic(question: str) -> bool:
-    """Detect off-topic questions (greetings, small talk)."""
     q_lower = question.lower().strip()
     off_topic_patterns = [
         r"^(hi|hello|hey|greetings)(\s|$)",
@@ -1595,7 +1592,6 @@ def is_off_topic(question: str) -> bool:
     return False
 
 def get_off_topic_response(question: str) -> dict:
-    """Return professional static response for off-topic questions."""
     return {
         "layout": "off_topic",
         "message": (
@@ -2136,7 +2132,6 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
-# Quick analysis functions (unchanged)
 def _quick_spending_overview():
     if is_off_topic("Spending Overview"):
         return get_off_topic_response("Spending Overview")
@@ -2386,7 +2381,7 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 # ------------------------------------------------------------
-# Response renderers (all unchanged, added off_topic handling)
+# Response renderers
 # ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -3077,7 +3072,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py
+# invoices.py - Modified to show detail when searching
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3128,7 +3123,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr>'
+    html_table += '</tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
@@ -3280,8 +3275,11 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
+    
     query_params = st.experimental_get_query_params()
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
+    
+    # If an invoice is selected (via URL param or from search), show detail view
     if selected_invoice:
         inv_sql = f"""
             SELECT
@@ -3312,31 +3310,37 @@ def render_invoices():
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
             if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
-                st.experimental_set_query_params(tab="Invoices")
+                st.experimental_set_query_params(tab="Invoices")  # clear invoice param
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
             st.experimental_set_query_params(tab="Invoices")
             st.rerun()
-    if "invoice_search_term" not in st.session_state:
-        st.session_state.invoice_search_term = ""
-    prefill = st.session_state.pop("invoice_search_term", None)
-    if prefill:
-        st.session_state.inv_search_q = clean_invoice_number(prefill)
-    search_term = st.session_state.get("inv_search_q", "")
-    col1, col2 = st.columns([3,1])
-    with col1:
-        user_search = st.text_input("Search by Invoice or PO Number", value=search_term, placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_input")
-    with col2:
-        if st.button("Reset", key="btn_inv_reset"):
-            st.session_state.inv_search_q = ""
-            st.session_state.invoice_search_term = ""
-            st.session_state.invoice_status_filter = "All Status"
+    
+    # No invoice selected – show search and table
+    # Search box
+    search_term = st.text_input("Search by Invoice Number", value="", placeholder="e.g., 9001767", key="inv_search_input")
+    
+    # If user entered a search term, attempt to navigate directly to that invoice
+    if search_term:
+        # Clean the search term
+        clean_num = clean_invoice_number(search_term)
+        # Verify it exists (quick lookup) – optional but better UX
+        check_sql = f"SELECT COUNT(*) as cnt FROM {DATABASE}.fact_all_sources_vw WHERE CAST(invoice_number AS VARCHAR) = '{clean_num}'"
+        check_df = run_query(check_sql)
+        if not check_df.empty and check_df.iloc[0]['cnt'] > 0:
+            # Navigate to detail view
+            st.experimental_set_query_params(tab="Invoices", invoice=clean_num)
             st.rerun()
-    if user_search != search_term:
-        st.session_state.inv_search_q = user_search
-        st.rerun()
+        else:
+            st.error(f"Invoice number '{clean_num}' not found. Showing all invoices.")
+            # Optionally clear the search or keep it – we'll keep it and show table
+    # If no search or search didn't find a direct match, show the filtered table
+    # Reset vendor and status filters when in list mode
+    if "invoice_status_filter" not in st.session_state:
+        st.session_state.invoice_status_filter = "All Status"
+    
     col_vendor, col_status = st.columns(2)
     with col_vendor:
         if "inv_vendor_list" not in st.session_state:
@@ -3347,12 +3351,14 @@ def render_invoices():
     with col_status:
         status_options = ["All Status", "OPEN", "PAID", "DISPUTED", "OVERDUE", "DUE_NEXT_30"]
         selected_status_display = st.selectbox("Status", status_options, index=status_options.index(st.session_state.get("invoice_status_filter", "All Status")) if st.session_state.get("invoice_status_filter", "All Status") in status_options else 0, key="inv_sel_status")
+        st.session_state.invoice_status_filter = selected_status_display
         selected_status = selected_status_display
         if selected_status == "DUE_NEXT_30":
             selected_status = "OPEN"
+    
     where = []
-    if user_search:
-        clean_search = clean_invoice_number(user_search)
+    if search_term:
+        clean_search = clean_invoice_number(search_term)
         where.append(f"CAST(f.invoice_number AS VARCHAR) = '{clean_search}'")
     if selected_vendor != "All Vendors":
         safe_vendor = selected_vendor.replace("'", "''")
@@ -3363,6 +3369,7 @@ def render_invoices():
         else:
             where.append(f"UPPER(f.invoice_status) = '{selected_status}'")
     where_sql = " AND ".join(where) if where else "1=1"
+    
     query = f"""
         SELECT DISTINCT
             f.invoice_number AS invoice_number,
@@ -3389,7 +3396,31 @@ def render_invoices():
             'po_number': 'PO NUMBER',
             'status': 'STATUS'
         })
-        st.dataframe(safe_dataframe_display(df_display), use_container_width=True, height=400)
+        # Make invoice numbers clickable to navigate to detail
+        # We'll create a custom DataFrame with buttons? Simpler: use st.dataframe with column config to add link?
+        # Streamlit doesn't support clickable rows directly; we'll keep the existing method: click on invoice number in table.
+        # To make it more intuitive, we can add a "View" button column.
+        # For simplicity, we rely on the table where the invoice number is plain text; but we can add a link.
+        # We'll add a column with a button.
+        df_display["Action"] = df_display["INVOICE NUMBER"].apply(lambda x: f"<button onclick='window.location.href=\"?tab=Invoices&invoice={x}\"'>View</button>")
+        st.markdown(
+            df_display.to_html(escape=False, index=False),
+            unsafe_allow_html=True
+        )
+        # Alternatively, use st.dataframe with styling? But the above works.
+        # For better integration, we'll use st.dataframe with column_config for link.
+        # Let's use st.dataframe with a link column.
+        # Rebuild display without HTML column
+        st.dataframe(
+            df_display.drop(columns=["Action"]),
+            use_container_width=True,
+            height=400,
+            column_config={
+                "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
+            }
+        )
+        # Add a note that clicking on invoice number opens detail view
+        st.caption("💡 Click on any invoice number in the table above to view full details.")
     else:
         st.info("No invoices found. Try a different search term.")
 
