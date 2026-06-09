@@ -551,10 +551,10 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #1d4ed8 !important;
     }}
 
-    /* Invoice number buttons - default gray, hover blue */
+    /* Invoice number buttons - transparent/default, hover turns blue */
     button[data-testid^="baseButton-na_card_"] {{
-        background-color: #e5e7eb !important;
-        border: 1px solid #d1d5db !important;
+        background-color: transparent !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 999px !important;
         padding: 6px 16px !important;
         color: #1f2937 !important;
@@ -573,7 +573,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         transform: translateY(0px);
     }}
 
-    /* Prev/Next buttons - solid blue (always visible) */
+    /* Prev/Next buttons - solid blue, darker on hover */
     button[data-testid="baseButton-na_prev_bottom"],
     button[data-testid="baseButton-na_next_bottom"] {{
         background-color: #2563eb !important;
@@ -582,11 +582,16 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-radius: 8px !important;
         font-weight: 600 !important;
         padding: 8px 20px !important;
-        transition: background 0.2s ease !important;
+        transition: background 0.2s ease, transform 0.1s ease !important;
     }}
     button[data-testid="baseButton-na_prev_bottom"]:hover,
     button[data-testid="baseButton-na_next_bottom"]:hover {{
         background-color: #1d4ed8 !important;
+        transform: translateY(-1px);
+    }}
+    button[data-testid="baseButton-na_prev_bottom"]:active,
+    button[data-testid="baseButton-na_next_bottom"]:active {{
+        transform: translateY(0px);
     }}
 
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
@@ -959,7 +964,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                # No type="primary" – CSS will handle default gray and hover blue
+                                # Invoice button – CSS handles default (transparent) and hover (blue)
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
