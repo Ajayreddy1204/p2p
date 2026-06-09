@@ -531,6 +531,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-delta-positive {{ color: #16a34a; }}
     .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
     .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+
     /* Category buttons (Overdue, Disputed, Due) */
     button[data-testid^="baseButton-na_btn_"] {{
         border-radius: 999px !important;
@@ -545,6 +546,90 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border: 2px solid #2563eb !important;
     }}
     button[kind="primary"]:hover {{
+        background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+    }}
+
+    /* Invoice number buttons - default gray, hover blue */
+    button[data-testid^="baseButton-na_card_"] {{
+        background-color: #e5e7eb !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 999px !important;
+        padding: 6px 16px !important;
+        color: #1f2937 !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }}
+    button[data-testid^="baseButton-na_card_"]:hover {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-1px);
+    }}
+    button[data-testid^="baseButton-na_card_"]:active {{
+        transform: translateY(0px);
+    }}
+
+    /* Prev/Next buttons - solid blue (always visible) */
+    button[data-testid="baseButton-na_prev_bottom"],
+    button[data-testid="baseButton-na_next_bottom"] {{
+        background-color: #2563eb !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 8px 20px !important;
+        transition: background 0.2s ease !important;
+    }}
+    button[data-testid="baseButton-na_prev_bottom"]:hover,
+    button[data-testid="baseButton-na_next_bottom"]:hover {{
+        background-color: #1d4ed8 !important;
+    }}
+
+    .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+    .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"],
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {{
+        background-color: #2563eb !important;
+        background: #2563eb !important;
+        color: white !important;
+        border: 2px solid #2563eb !important;
+    }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
+        background-color: #f1f5f9 !important;
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        border: 1px solid #e2e8f0 !important;
+    }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{
+        background-color: #e2e8f0 !important;
+        background: #e2e8f0 !important;
+        border-color: #cbd5e1 !important;
+    }}
+    button[data-testid^="baseButton-preset_"] {{
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }}
+    button[data-testid="baseButton-proceed_pay_btn"],
+    button[data-testid="baseButton-back_invoices_btn"] {{
+        background-color: #2563eb !important;
+        background: #2563eb !important;
+        color: white !important;
+        border: 2px solid #2563eb !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }}
+    button[data-testid="baseButton-proceed_pay_btn"]:hover,
+    button[data-testid="baseButton-back_invoices_btn"]:hover {{
         background-color: #1d4ed8 !important;
         background: #1d4ed8 !important;
         border-color: #1d4ed8 !important;
@@ -874,8 +959,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                # Use type="primary" for blue button
-                                if st.button(ref, key=btn_key, type="primary"):
+                                # No type="primary" – CSS will handle default gray and hover blue
+                                if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
                                     try:
@@ -3104,7 +3189,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr>'
+    html_table += '</tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
