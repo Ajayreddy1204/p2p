@@ -534,8 +534,36 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid^="baseButton-na_btn_"] {{ border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }}
     button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] {{ background: #e5e7eb !important; color: #111827 !important; }}
     button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
-    button[data-testid^="baseButton-na_card_"] {{ background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }}
-    button[data-testid^="baseButton-na_card_"]:hover {{ color: #1d4ed8 !important; text-decoration: underline !important; }}
+    /* Active (clicked) state for the category buttons - turn blue */
+    button[data-testid="baseButton-na_btn_overdue"][aria-pressed="true"],
+    button[data-testid="baseButton-na_btn_disputed"][aria-pressed="true"],
+    button[data-testid="baseButton-na_btn_due30d"][aria-pressed="true"],
+    button.kind-primary {{
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+    }}
+    button[data-testid^="baseButton-na_card_"] {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #2563eb !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+        padding: 4px 0 0 0 !important;
+        margin-top: 2px !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+        transition: color 0.1s ease;
+    }}
+    button[data-testid^="baseButton-na_card_"]:hover {{
+        color: #1d4ed8 !important;
+        text-decoration: underline !important;
+    }}
+    /* Clicked invoice button - turn blue */
+    button[data-testid^="baseButton-na_card_"]:active {{
+        color: #0b2b7a !important;
+    }}
     button[data-testid="baseButton-na_prev_bottom"], button[data-testid="baseButton-na_next_bottom"] {{
         background-color: #2563eb !important;
         color: white !important;
@@ -635,7 +663,7 @@ def render_filters():
             st.session_state[vendor_cache_key] = vendor_list
 
         selected = st.selectbox(
-            "Select vendor",  # Non-empty label
+            "Select vendor",
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -746,7 +774,7 @@ def navigate_to_invoice(invoice_number):
     try:
         st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     except:
-        pass  # experimental function may raise during init
+        pass
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
@@ -840,28 +868,24 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
+            # Use type="primary" to indicate active tab, and use a unique key to capture click
+            btn_type = "primary" if current_tab == 'Overdue' else "secondary"
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type=btn_type):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[1]:
-            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True):
+            btn_type = "primary" if current_tab == 'Disputed' else "secondary"
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True, type=btn_type):
                 st.session_state.na_tab = 'Disputed'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[2]:
-            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True):
+            btn_type = "primary" if current_tab == 'Due' else "secondary"
+            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True, type=btn_type):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
-
-        st.markdown(f"""
-        <style>
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
-        </style>
-        """, unsafe_allow_html=True)
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
@@ -900,6 +924,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
+                                # Use a button; it will have default styling, but we add a class for active state via CSS
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
@@ -3078,7 +3103,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - Modified to show detail when searching
+# invoices.py - Removed extra buttons and caption
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3129,7 +3154,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
+    html_table += '<tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
@@ -3258,7 +3283,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</tr>'
+        html_company += '</table>'
         html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3419,18 +3444,7 @@ def render_invoices():
                 "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
             }
         )
-        st.caption("💡 Click on any invoice number in the table above to view full details.")
-        # Add a small button to view details for each row - simplest: use the search box approach.
-        # We'll rely on the fact that clicking the invoice number in the table is not clickable, so we add a button column.
-        # Better: add a "View" button next to each invoice number.
-        for idx, row in df_display.iterrows():
-            inv_num = row["INVOICE NUMBER"]
-            if st.button(f"View {inv_num}", key=f"view_inv_{inv_num}"):
-                try:
-                    st.experimental_set_query_params(tab="Invoices", invoice=inv_num)
-                except:
-                    pass
-                st.rerun()
+        # No extra buttons or caption – just the table
     else:
         st.info("No invoices found. Try a different search term.")
 
