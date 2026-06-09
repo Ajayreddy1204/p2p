@@ -560,9 +560,14 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         color: #1d4ed8 !important;
         text-decoration: underline !important;
     }}
-    /* Clicked invoice button - turn blue */
+    /* Clicked invoice button - turn blue (active state) */
     button[data-testid^="baseButton-na_card_"]:active {{
         color: #0b2b7a !important;
+    }}
+    /* Ensure the button text remains blue after click (focus/active) */
+    button[data-testid^="baseButton-na_card_"]:focus {{
+        color: #2563eb !important;
+        outline: none;
     }}
     button[data-testid="baseButton-na_prev_bottom"], button[data-testid="baseButton-na_next_bottom"] {{
         background-color: #2563eb !important;
@@ -662,8 +667,9 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
+        # Use a selectbox with a hidden label to avoid duplicate "All Vendors" text
         selected = st.selectbox(
-            "Select vendor",
+            "Select vendor",  # Non-empty label (hidden via visibility)
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -3152,12 +3158,12 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
+    html_table += '<tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
     html_table += '</tr>'
-    html_table += '</table>'
+    html_table += '</tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -3230,7 +3236,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             vendor_values = [
                 "0001000007", "McMaster-Carr", "VN-03608", "NL", "Bangalore", "13607", "Tech Center 611"
             ]
-        # Use a proper DataFrame to display vendor info
         vendor_df_display = pd.DataFrame([vendor_values], columns=vendor_fields)
         st.dataframe(safe_dataframe_display(vendor_df_display), use_container_width=True, hide_index=True)
 
@@ -3269,7 +3274,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "1000", "Alpha Manufacturing Inc.", "1000", "Main Production Plant",
                 "350 Fifth Avenue", "New York", "10001"
             ]
-        # Use DataFrame for company info
         company_df_display = pd.DataFrame([company_values], columns=company_fields)
         st.dataframe(safe_dataframe_display(company_df_display), use_container_width=True, hide_index=True)
 
@@ -3289,7 +3293,6 @@ def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
     
-    # Get query parameters safely
     query_params = {}
     try:
         query_params = st.experimental_get_query_params()
@@ -3297,7 +3300,6 @@ def render_invoices():
         pass
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
     
-    # If an invoice is selected (via URL param or from search), show detail view
     if selected_invoice:
         inv_sql = f"""
             SELECT
@@ -3342,10 +3344,8 @@ def render_invoices():
                 pass
             st.rerun()
     
-    # No invoice selected – show search and table
     search_term = st.text_input("Search by Invoice Number", value="", placeholder="e.g., 9001767", key="inv_search_input")
     
-    # If user entered a search term, attempt to navigate directly to that invoice
     if search_term:
         clean_num = clean_invoice_number(search_term)
         check_sql = f"SELECT COUNT(*) as cnt FROM {DATABASE}.fact_all_sources_vw WHERE CAST(invoice_number AS VARCHAR) = '{clean_num}'"
@@ -3359,7 +3359,6 @@ def render_invoices():
         else:
             st.error(f"Invoice number '{clean_num}' not found. Showing all invoices.")
     
-    # Filters for the table view
     if "invoice_status_filter" not in st.session_state:
         st.session_state.invoice_status_filter = "All Status"
     
@@ -3426,7 +3425,6 @@ def render_invoices():
                 "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
             }
         )
-        # No extra buttons or caption – only the table
     else:
         st.info("No invoices found. Try a different search term.")
 
