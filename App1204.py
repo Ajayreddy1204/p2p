@@ -609,6 +609,24 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         transform: translateY(0px);
     }}
 
+    /* Equal height for chart containers */
+    .chart-container {{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }}
+    .chart-container > div {{
+        flex: 1;
+    }}
+    /* Make the three chart columns equal height */
+    .stColumn {{
+        display: flex;
+        flex-direction: column;
+    }}
+    .stColumn > div {{
+        height: 100%;
+    }}
+
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     div[data-testid="stHorizontalBlock"] button[kind="primary"],
@@ -1030,11 +1048,12 @@ def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
+    # Use columns with equal height CSS
     col1, col2, col3 = st.columns(3)
 
     with col1:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
             status_sql = f"""
                 SELECT
                     CASE
@@ -1069,10 +1088,11 @@ def render_charts(rng_start, rng_end, vendor_where):
             center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
             chart = donut + center_text + center_label
             st.altair_chart(chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
             top_vendors_sql = f"""
                 SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
                 FROM {DATABASE}.fact_all_sources_vw f
@@ -1101,10 +1121,11 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with col3:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
             trend_sql = f"""
                 SELECT
                     DATE_TRUNC('month', posting_date) AS month,
@@ -1135,6 +1156,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 def render_dashboard():
     inject_dashboard_css("#ffffff")
@@ -3210,7 +3232,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</table>'
+    html_table += '</tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
