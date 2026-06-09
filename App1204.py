@@ -543,40 +543,42 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         color: white !important;
         border-color: #2563eb !important;
     }}
+    /* BLUE INVOICE NUMBER BUTTONS IN CARDS */
     button[data-testid^="baseButton-na_card_"] {{
-        background: transparent !important;
+        background: #2563eb !important;
         border: none !important;
-        box-shadow: none !important;
-        color: #2563eb !important;
-        font-weight: 500 !important;
+        border-radius: 999px !important;
+        padding: 8px 16px !important;
+        color: white !important;
+        font-weight: 600 !important;
         font-size: 13px !important;
-        padding: 4px 0 0 0 !important;
-        margin-top: 2px !important;
-        text-decoration: none !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
         cursor: pointer !important;
-        transition: color 0.1s ease;
+        transition: background 0.2s ease, transform 0.1s ease !important;
+        width: auto !important;
+        display: inline-block !important;
+        margin: 4px 0 !important;
     }}
     button[data-testid^="baseButton-na_card_"]:hover {{
-        color: #1d4ed8 !important;
-        text-decoration: underline !important;
+        background: #1d4ed8 !important;
+        transform: translateY(-1px);
     }}
-    /* Clicked invoice button - turn blue (active state) */
     button[data-testid^="baseButton-na_card_"]:active {{
-        color: #0b2b7a !important;
+        transform: translateY(0px);
     }}
-    /* Ensure the button text remains blue after click (focus/active) */
-    button[data-testid^="baseButton-na_card_"]:focus {{
-        color: #2563eb !important;
-        outline: none;
-    }}
-    button[data-testid="baseButton-na_prev_bottom"], button[data-testid="baseButton-na_next_bottom"] {{
+    /* Prev/Next buttons styling - solid blue */
+    button[data-testid="baseButton-na_prev_bottom"], 
+    button[data-testid="baseButton-na_next_bottom"] {{
         background-color: #2563eb !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
+        padding: 8px 16px !important;
+        transition: background 0.2s ease !important;
     }}
-    button[data-testid="baseButton-na_prev_bottom"]:hover, button[data-testid="baseButton-na_next_bottom"]:hover {{
+    button[data-testid="baseButton-na_prev_bottom"]:hover, 
+    button[data-testid="baseButton-na_next_bottom"]:hover {{
         background-color: #1d4ed8 !important;
     }}
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
@@ -667,9 +669,8 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
-        # Use a selectbox with a hidden label to avoid duplicate "All Vendors" text
         selected = st.selectbox(
-            "Select vendor",  # Non-empty label (hidden via visibility)
+            "Select vendor",
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -929,6 +930,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
+                                # Blue button for invoice number
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
@@ -3158,12 +3160,12 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr>'
+    html_table += '</tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
     html_table += '</tr>'
-    html_table += '</tr>'
+    html_table += '</table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
