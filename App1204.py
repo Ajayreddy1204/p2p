@@ -997,7 +997,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                # Invoice button – CSS handles default gray and hover/active blue
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
@@ -1028,7 +1027,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             pag_cols = st.columns([1, 1, 1], gap="small")
             with pag_cols[0]:
                 if page > 0:
-                    # No type="primary" – CSS will style it as gray, turning blue on hover/active
                     if st.button("← Prev", key="na_prev_bottom", use_container_width=True):
                         st.session_state.na_page = max(0, page - 1)
                         st.rerun()
@@ -1048,7 +1046,6 @@ def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
-    # Use columns with equal height CSS
     col1, col2, col3 = st.columns(3)
 
     with col1:
