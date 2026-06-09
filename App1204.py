@@ -531,124 +531,20 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-delta-positive {{ color: #16a34a; }}
     .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
     .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
-
     /* Category buttons (Overdue, Disputed, Due) */
     button[data-testid^="baseButton-na_btn_"] {{
         border-radius: 999px !important;
         font-weight: 600 !important;
         transition: all 0.18s ease !important;
     }}
-    button[data-testid="baseButton-na_btn_overdue"],
-    button[data-testid="baseButton-na_btn_disputed"],
-    button[data-testid="baseButton-na_btn_due30d"] {{
-        background: #e5e7eb !important;
-        color: #111827 !important;
-    }}
-    button[data-testid="baseButton-na_btn_overdue"]:hover,
-    button[data-testid="baseButton-na_btn_disputed"]:hover,
-    button[data-testid="baseButton-na_btn_due30d"]:hover {{
-        background: #2563eb !important;
-        color: white !important;
-    }}
-    /* Active (clicked) state for category buttons */
-    button[data-testid="baseButton-na_btn_overdue"][aria-pressed="true"],
-    button[data-testid="baseButton-na_btn_disputed"][aria-pressed="true"],
-    button[data-testid="baseButton-na_btn_due30d"][aria-pressed="true"],
-    button.kind-primary {{
-        background: #2563eb !important;
-        color: white !important;
-        border-color: #2563eb !important;
-    }}
-
-    /* ========= INVOICE NUMBER BUTTONS - ALWAYS BLUE ========= */
-    button[data-testid^="baseButton-na_card_"] {{
-        background: #2563eb !important;
-        border: none !important;
-        border-radius: 999px !important;
-        padding: 6px 16px !important;
-        color: white !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        width: auto !important;
-        display: inline-block !important;
-        margin: 4px 0 !important;
-    }}
-    button[data-testid^="baseButton-na_card_"]:hover {{
-        background: #1d4ed8 !important;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }}
-    button[data-testid^="baseButton-na_card_"]:active {{
-        background: #0b2b7a !important;
-        transform: translateY(0px);
-    }}
-
-    /* ========= PREV / NEXT BUTTONS - SOLID BLUE ========= */
-    button[data-testid="baseButton-na_prev_bottom"],
-    button[data-testid="baseButton-na_next_bottom"] {{
-        background-color: #2563eb !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        padding: 8px 20px !important;
-        transition: background 0.2s ease, transform 0.1s ease !important;
-    }}
-    button[data-testid="baseButton-na_prev_bottom"]:hover,
-    button[data-testid="baseButton-na_next_bottom"]:hover {{
-        background-color: #1d4ed8 !important;
-        transform: translateY(-1px);
-    }}
-    button[data-testid="baseButton-na_prev_bottom"]:active,
-    button[data-testid="baseButton-na_next_bottom"]:active {{
-        background-color: #0b2b7a !important;
-        transform: translateY(0px);
-    }}
-
-    .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
-    .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
-    div[data-testid="stHorizontalBlock"] button[kind="primary"],
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] {{
+    /* Ensure primary buttons (active category) are blue */
+    button[kind="primary"] {{
         background-color: #2563eb !important;
         background: #2563eb !important;
         color: white !important;
         border: 2px solid #2563eb !important;
     }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
-        background-color: #f1f5f9 !important;
-        background: #f1f5f9 !important;
-        color: #475569 !important;
-        border: 1px solid #e2e8f0 !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{
-        background-color: #e2e8f0 !important;
-        background: #e2e8f0 !important;
-        border-color: #cbd5e1 !important;
-    }}
-    button[data-testid^="baseButton-preset_"] {{
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"],
-    button[data-testid="baseButton-back_invoices_btn"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"]:hover,
-    button[data-testid="baseButton-back_invoices_btn"]:hover {{
+    button[kind="primary"]:hover {{
         background-color: #1d4ed8 !important;
         background: #1d4ed8 !important;
         border-color: #1d4ed8 !important;
@@ -758,21 +654,6 @@ def render_filters():
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
                     st.rerun()
-
-    st.markdown(f"""
-    <style>
-    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-    }}
-    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"]:hover {{
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
@@ -993,8 +874,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                # BLUE INVOICE BUTTON (CSS handles the style)
-                                if st.button(ref, key=btn_key):
+                                # Use type="primary" for blue button
+                                if st.button(ref, key=btn_key, type="primary"):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
                                     try:
@@ -1024,7 +905,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             pag_cols = st.columns([1, 1, 1], gap="small")
             with pag_cols[0]:
                 if page > 0:
-                    if st.button("← Prev", key="na_prev_bottom", use_container_width=True):
+                    if st.button("← Prev", key="na_prev_bottom", use_container_width=True, type="primary"):
                         st.session_state.na_page = max(0, page - 1)
                         st.rerun()
                 else:
@@ -1033,7 +914,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.markdown(f"<div style='text-align:center;font-weight:500;color:#6b7280;font-size:14px;padding:10px;'>{page + 1} of {total_pages}</div>", unsafe_allow_html=True)
             with pag_cols[2]:
                 if page < total_pages - 1:
-                    if st.button("Next →", key="na_next_bottom", use_container_width=True):
+                    if st.button("Next →", key="na_next_bottom", use_container_width=True, type="primary"):
                         st.session_state.na_page = min(total_pages - 1, page + 1)
                         st.rerun()
                 else:
@@ -3223,10 +3104,10 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
+    html_table += '<tr>'
     html_table += '<tr>'
     for val in summary_values:
-        html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</tr>'
+        html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
     html_table += '</tr>'
     html_table += '</table>'
     st.markdown(html_table, unsafe_allow_html=True)
