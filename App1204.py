@@ -868,7 +868,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            # Use type="primary" to indicate active tab, and use a unique key to capture click
             btn_type = "primary" if current_tab == 'Overdue' else "secondary"
             if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type=btn_type):
                 st.session_state.na_tab = 'Overdue'
@@ -924,7 +923,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = str(r.get("ref_no", "")).strip() or "—"
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
-                                # Use a button; it will have default styling, but we add a class for active state via CSS
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
@@ -3103,7 +3101,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - Removed extra buttons and caption
+# invoices.py - Fixed Company Info table and removed extra buttons
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3154,7 +3152,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr>'
+    html_table += '</tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
@@ -3232,17 +3230,9 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             vendor_values = [
                 "0001000007", "McMaster-Carr", "VN-03608", "NL", "Bangalore", "13607", "Tech Center 611"
             ]
-        html_vendor = '<table style="width:100%; border-collapse: collapse;">'
-        html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
-        for f in vendor_fields:
-            html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '</tr>'
-        html_vendor += '<tr>'
-        for v in vendor_values:
-            html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_vendor += '</tr>'
-        html_vendor += '</table>'
-        st.markdown(html_vendor, unsafe_allow_html=True)
+        # Use a proper DataFrame to display vendor info
+        vendor_df_display = pd.DataFrame([vendor_values], columns=vendor_fields)
+        st.dataframe(safe_dataframe_display(vendor_df_display), use_container_width=True, hide_index=True)
 
     with tab2:
         company_sql = f"""
@@ -3279,17 +3269,9 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "1000", "Alpha Manufacturing Inc.", "1000", "Main Production Plant",
                 "350 Fifth Avenue", "New York", "10001"
             ]
-        html_company = '<table style="width:100%; border-collapse: collapse;">'
-        html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
-        for f in company_fields:
-            html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</table>'
-        html_company += '<tr>'
-        for v in company_values:
-            html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_company += '</tr>'
-        html_company += '</table>'
-        st.markdown(html_company, unsafe_allow_html=True)
+        # Use DataFrame for company info
+        company_df_display = pd.DataFrame([company_values], columns=company_fields)
+        st.dataframe(safe_dataframe_display(company_df_display), use_container_width=True, hide_index=True)
 
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
@@ -3444,7 +3426,7 @@ def render_invoices():
                 "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
             }
         )
-        # No extra buttons or caption – just the table
+        # No extra buttons or caption – only the table
     else:
         st.info("No invoices found. Try a different search term.")
 
