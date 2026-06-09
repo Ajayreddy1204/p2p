@@ -1316,10 +1316,10 @@ def render_forecast():
         st.markdown("### Action Playbook")
         st.markdown("Use these guided analyses to turn the forecast into decisions: who to pay now, who to pay early, and where we are at risk of paying late.")
         actions = [
-            ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
-            ("⏰ Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
-            ("⚠️ Late payment trend and risk", "Show late payment trend for forecasting")
+            ("Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
+            ("Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
+            ("Late payment trend and risk", "Show late payment trend for forecasting")
         ]
         for label, question in actions:
             if st.button(label, use_container_width=True):
