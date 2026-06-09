@@ -635,7 +635,7 @@ def render_filters():
             st.session_state[vendor_cache_key] = vendor_list
 
         selected = st.selectbox(
-            "",
+            "Select vendor",  # Non-empty label
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -743,7 +743,10 @@ def navigate_to_invoice(invoice_number):
     st.session_state.selected_invoice = inv_str
     st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
-    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
+    try:
+        st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
+    except:
+        pass  # experimental function may raise during init
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
@@ -900,7 +903,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 if st.button(ref, key=btn_key):
                                     st.session_state["invoice_search_from_card"] = ref
                                     st.session_state["page"] = "Invoices"
-                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                    try:
+                                        st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                    except:
+                                        pass
                                     st.rerun()
                                 vendor_nm = str(r.get("vendor_name", "—"))
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
@@ -3276,7 +3282,12 @@ def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
     
-    query_params = st.experimental_get_query_params()
+    # Get query parameters safely
+    query_params = {}
+    try:
+        query_params = st.experimental_get_query_params()
+    except:
+        pass
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
     
     # If an invoice is selected (via URL param or from search), show detail view
@@ -3310,34 +3321,38 @@ def render_invoices():
         if not inv_df.empty:
             render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
             if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
-                st.experimental_set_query_params(tab="Invoices")  # clear invoice param
+                try:
+                    st.experimental_set_query_params(tab="Invoices")
+                except:
+                    pass
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
-            st.experimental_set_query_params(tab="Invoices")
+            try:
+                st.experimental_set_query_params(tab="Invoices")
+            except:
+                pass
             st.rerun()
     
     # No invoice selected – show search and table
-    # Search box
     search_term = st.text_input("Search by Invoice Number", value="", placeholder="e.g., 9001767", key="inv_search_input")
     
     # If user entered a search term, attempt to navigate directly to that invoice
     if search_term:
-        # Clean the search term
         clean_num = clean_invoice_number(search_term)
-        # Verify it exists (quick lookup) – optional but better UX
         check_sql = f"SELECT COUNT(*) as cnt FROM {DATABASE}.fact_all_sources_vw WHERE CAST(invoice_number AS VARCHAR) = '{clean_num}'"
         check_df = run_query(check_sql)
         if not check_df.empty and check_df.iloc[0]['cnt'] > 0:
-            # Navigate to detail view
-            st.experimental_set_query_params(tab="Invoices", invoice=clean_num)
+            try:
+                st.experimental_set_query_params(tab="Invoices", invoice=clean_num)
+            except:
+                pass
             st.rerun()
         else:
             st.error(f"Invoice number '{clean_num}' not found. Showing all invoices.")
-            # Optionally clear the search or keep it – we'll keep it and show table
-    # If no search or search didn't find a direct match, show the filtered table
-    # Reset vendor and status filters when in list mode
+    
+    # Filters for the table view
     if "invoice_status_filter" not in st.session_state:
         st.session_state.invoice_status_filter = "All Status"
     
@@ -3396,31 +3411,26 @@ def render_invoices():
             'po_number': 'PO NUMBER',
             'status': 'STATUS'
         })
-        # Make invoice numbers clickable to navigate to detail
-        # We'll create a custom DataFrame with buttons? Simpler: use st.dataframe with column config to add link?
-        # Streamlit doesn't support clickable rows directly; we'll keep the existing method: click on invoice number in table.
-        # To make it more intuitive, we can add a "View" button column.
-        # For simplicity, we rely on the table where the invoice number is plain text; but we can add a link.
-        # We'll add a column with a button.
-        df_display["Action"] = df_display["INVOICE NUMBER"].apply(lambda x: f"<button onclick='window.location.href=\"?tab=Invoices&invoice={x}\"'>View</button>")
-        st.markdown(
-            df_display.to_html(escape=False, index=False),
-            unsafe_allow_html=True
-        )
-        # Alternatively, use st.dataframe with styling? But the above works.
-        # For better integration, we'll use st.dataframe with column_config for link.
-        # Let's use st.dataframe with a link column.
-        # Rebuild display without HTML column
         st.dataframe(
-            df_display.drop(columns=["Action"]),
+            safe_dataframe_display(df_display),
             use_container_width=True,
             height=400,
             column_config={
                 "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
             }
         )
-        # Add a note that clicking on invoice number opens detail view
         st.caption("💡 Click on any invoice number in the table above to view full details.")
+        # Add a small button to view details for each row - simplest: use the search box approach.
+        # We'll rely on the fact that clicking the invoice number in the table is not clickable, so we add a button column.
+        # Better: add a "View" button next to each invoice number.
+        for idx, row in df_display.iterrows():
+            inv_num = row["INVOICE NUMBER"]
+            if st.button(f"View {inv_num}", key=f"view_inv_{inv_num}"):
+                try:
+                    st.experimental_set_query_params(tab="Invoices", invoice=inv_num)
+                except:
+                    pass
+                st.rerun()
     else:
         st.info("No invoices found. Try a different search term.")
 
