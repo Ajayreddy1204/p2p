@@ -532,6 +532,77 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-delta-positive {{ color: #16a34a; }}
     .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
     .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+    
+    /* Invoice Number Buttons & Nav Buttons (Prev/Next) */
+    button[data-testid^="baseButton-na_card_"],
+    button[data-testid^="baseButton-prev_inv_btn"],
+    button[data-testid^="baseButton-next_inv_btn"],
+    button[data-testid="na_prev_bottom"],
+    button[data-testid="na_next_bottom"] {{
+        background-color: #f3f4f6 !important;
+        border: 1px solid #d1d5db !important;
+        color: #1f2937 !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }}
+    button[data-testid^="baseButton-na_card_"]:hover,
+    button[data-testid^="baseButton-prev_inv_btn"]:hover,
+    button[data-testid^="baseButton-next_inv_btn"]:hover,
+    button[data-testid="na_prev_bottom"]:hover,
+    button[data-testid="na_next_bottom"]:hover {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }}
+    
+    /* Tab buttons (Overdue, Disputed, Due) */
+    .tab-button {{
+        background-color: #f3f4f6 !important;
+        border: 1px solid #d1d5db !important;
+        color: #1f2937 !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s ease !important;
+    }}
+    .tab-button-active {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-1px);
+    }}
+    .tab-button:hover {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }}
+    
+    /* Equal height chart containers */
+    .chart-container {{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }}
+    .chart-container > div {{
+        flex: 1;
+    }}
+    /* Ensure columns stretch equally */
+    div[data-testid="column"] {{
+        display: flex;
+        flex-direction: column;
+    }}
+    
+    /* General smooth transitions */
+    button, .stButton button, div[data-testid="stButton"] button {{
+        transition: all 0.2s ease !important;
+    }}
+    
+    /* Existing dashboard styles */
     button[data-testid^="baseButton-na_btn_"] {{ border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }}
     button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] {{ background: #e5e7eb !important; color: #111827 !important; }}
     button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
@@ -551,7 +622,6 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         background-color: {bg_color} !important;
         transition: background-color 0.2s ease;
     }}
-    /* Override any conflicting backgrounds */
     .stApp {{
         background-color: {bg_color} !important;
     }}
@@ -627,9 +697,8 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
-        # FIX: Use empty label and collapsed visibility to prevent duplicate "All Vendors" text
         selected = st.selectbox(
-            "",  # empty label
+            "",
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -831,6 +900,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
+            btn_class = "tab-button-active" if current_tab == 'Overdue' else "tab-button"
             if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
@@ -848,9 +918,45 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         st.markdown(f"""
         <style>
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
-        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] {{
+            background: {'#2563eb' if current_tab == 'Overdue' else '#f3f4f6'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Overdue' else '#d1d5db'} !important;
+            color: {'white' if current_tab == 'Overdue' else '#1f2937'} !important;
+            transition: all 0.2s ease !important;
+        }}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue']:hover {{
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] {{
+            background: {'#2563eb' if current_tab == 'Disputed' else '#f3f4f6'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Disputed' else '#d1d5db'} !important;
+            color: {'white' if current_tab == 'Disputed' else '#1f2937'} !important;
+            transition: all 0.2s ease !important;
+        }}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed']:hover {{
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] {{
+            background: {'#2563eb' if current_tab == 'Due' else '#f3f4f6'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Due' else '#d1d5db'} !important;
+            color: {'white' if current_tab == 'Due' else '#1f2937'} !important;
+            transition: all 0.2s ease !important;
+        }}
+        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d']:hover {{
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
         </style>
         """, unsafe_allow_html=True)
 
@@ -941,7 +1047,7 @@ def render_charts(rng_start, rng_end, vendor_where):
 
     with col1:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
             status_sql = f"""
                 SELECT
                     CASE
@@ -976,10 +1082,11 @@ def render_charts(rng_start, rng_end, vendor_where):
             center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
             chart = donut + center_text + center_label
             st.altair_chart(chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
             top_vendors_sql = f"""
                 SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
                 FROM {DATABASE}.fact_all_sources_vw f
@@ -1008,10 +1115,11 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with col3:
         with st.container(border=True):
-            st.markdown("<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
             trend_sql = f"""
                 SELECT
                     DATE_TRUNC('month', posting_date) AS month,
@@ -1042,6 +1150,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 def render_dashboard():
     # Fixed background color (white) - no floating button
@@ -2998,7 +3107,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr>'
+    html_table += '<tr>'
     # Values row
     html_table += '<tr>'
     for val in summary_values:
@@ -3082,7 +3191,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_vendor += '</table>'
+        html_vendor += '</tr>'
         html_vendor += '<tr>'
         for v in vendor_values:
             html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
@@ -3129,7 +3238,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_company += '</table>'
+        html_company += '</tr>'
         html_company += '<tr>'
         for v in company_values:
             html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
