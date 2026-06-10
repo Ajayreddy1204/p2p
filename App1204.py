@@ -533,15 +533,15 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
     .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
     
-    /* Invoice Number Buttons & Nav Buttons (Prev/Next) */
+    /* Invoice Number Buttons & Nav Buttons (Prev/Next) - default state no background */
     button[data-testid^="baseButton-na_card_"],
     button[data-testid^="baseButton-prev_inv_btn"],
     button[data-testid^="baseButton-next_inv_btn"],
     button[data-testid="na_prev_bottom"],
     button[data-testid="na_next_bottom"] {{
-        background-color: #f3f4f6 !important;
-        border: 1px solid #d1d5db !important;
-        color: #1f2937 !important;
+        background-color: transparent !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
@@ -562,9 +562,9 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'],
     div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'],
     div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] {{
-        background-color: #f3f4f6 !important;
-        border: 1px solid #d1d5db !important;
-        color: #1f2937 !important;
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
@@ -597,6 +597,9 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     div[data-testid="column"] {{
         display: flex;
         flex-direction: column;
+    }}
+    div[data-testid="column"] > div {{
+        height: 100%;
     }}
     
     /* General smooth transitions */
@@ -916,21 +919,21 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         st.markdown(f"""
         <style>
         div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] {{
-            background: {'#2563eb' if current_tab == 'Overdue' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Overdue' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Overdue' else '#1f2937'} !important;
+            background: {'#2563eb' if current_tab == 'Overdue' else '#f1f5f9'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Overdue' else '#cbd5e1'} !important;
+            color: {'white' if current_tab == 'Overdue' else '#1e293b'} !important;
             transform: {'translateY(-1px)' if current_tab == 'Overdue' else 'none'} !important;
         }}
         div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] {{
-            background: {'#2563eb' if current_tab == 'Disputed' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Disputed' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Disputed' else '#1f2937'} !important;
+            background: {'#2563eb' if current_tab == 'Disputed' else '#f1f5f9'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Disputed' else '#cbd5e1'} !important;
+            color: {'white' if current_tab == 'Disputed' else '#1e293b'} !important;
             transform: {'translateY(-1px)' if current_tab == 'Disputed' else 'none'} !important;
         }}
         div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] {{
-            background: {'#2563eb' if current_tab == 'Due' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Due' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Due' else '#1f2937'} !important;
+            background: {'#2563eb' if current_tab == 'Due' else '#f1f5f9'} !important;
+            border: 1px solid {'#2563eb' if current_tab == 'Due' else '#cbd5e1'} !important;
+            color: {'white' if current_tab == 'Due' else '#1e293b'} !important;
             transform: {'translateY(-1px)' if current_tab == 'Due' else 'none'} !important;
         }}
         </style>
@@ -1224,7 +1227,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py (unchanged)
+# forecast.py - Updated with GR/IR cards
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1379,7 +1382,7 @@ def render_forecast():
 
     with tab2:
         st.markdown("#### GR/IR Reconciliation")
-
+        # Updated: GR/IR metrics as custom cards (similar to dashboard KPI cards but without delta)
         grir_summary_sql = f"""
             WITH latest AS (
                 SELECT year, month, invoice_count, total_grir_blnc
@@ -1415,11 +1418,62 @@ def render_forecast():
             year = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
 
-            grir_cols = st.columns(4)
-            grir_cols[0].metric("TOTAL GR/IR", abbr_currency(total_grir))
-            grir_cols[1].metric("% > 60 DAYS", f"{pct_over_60:.1f}%")
-            grir_cols[2].metric("> 60 DAYS AMOUNT", abbr_currency(amount_over_60))
-            grir_cols[3].metric("> 60 DAYS ITEMS", f"{cnt_over_60:,}")
+            # Custom card styling
+            st.markdown("""
+            <style>
+            .grir-card {
+                border-radius: 16px;
+                padding: 1rem 1.2rem;
+                background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                text-align: left;
+            }
+            .grir-card-title {
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #374151;
+                margin-bottom: 0.5rem;
+            }
+            .grir-card-value {
+                font-size: 2rem;
+                font-weight: 800;
+                color: #111827;
+                line-height: 1.1;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">TOTAL GR/IR</div>
+                    <div class="grir-card-value">{abbr_currency(total_grir)}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">% &gt; 60 DAYS</div>
+                    <div class="grir-card-value">{pct_over_60:.1f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col3:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">60 DAYS AMOUNT</div>
+                    <div class="grir-card-value">{abbr_currency(amount_over_60)}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col4:
+                st.markdown(f"""
+                <div class="grir-card">
+                    <div class="grir-card-title">60 DAYS ITEMS</div>
+                    <div class="grir-card-value">{cnt_over_60:,}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
             st.caption(f"GR/IR position for {year:04d}-{month:02d}: {grir_items:,} items outstanding; {pct_over_60:.1f}% of balance and {cnt_over_60:,} items are older than 60 days.")
 
@@ -1456,7 +1510,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py
+# genie.py - (unchanged, kept as original for brevity, same as provided)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -3080,7 +3134,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</table>'
+    html_table += '<tr>'
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
