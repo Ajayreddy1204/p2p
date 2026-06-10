@@ -1,8 +1,3 @@
-
-
-
-
-
 import streamlit as st
 import boto3
 import awswrangler as wr
@@ -465,11 +460,10 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-delta-positive {{ color: #16a34a; }}
     .kpi-arrow  {{ font-size: 1.2rem; margin-left: 0.25rem; }}
 
-    /* ── GR/IR metric cards (rendered as cards) ── */
+    /* ── GR/IR metric cards (rendered as cards with custom background) ── */
     .grir-card {{
         border-radius: 14px;
         padding: 1.1rem 1.3rem;
-        background: #ffffff;
         border: 1px solid #e2e8f0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         display: flex;
@@ -588,10 +582,10 @@ def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yel
 </div>
 """, unsafe_allow_html=True)
 
-def render_grir_metric_card(title: str, value: str):
-    """GR/IR metric rendered as a styled card."""
+def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
+    """GR/IR metric rendered as a styled card with custom background color."""
     st.markdown(f"""
-<div class="grir-card">
+<div class="grir-card" style="background-color: {bg_color};">
     <div class="grir-card-title">{title}</div>
     <div class="grir-card-value">{value}</div>
 </div>
@@ -1006,7 +1000,6 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.markdown("</div></div>", unsafe_allow_html=True)
 
 def render_dashboard():
-    # CSS already injected globally, but we ensure state variables
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
     if "selected_vendor" not in st.session_state:
@@ -1227,7 +1220,6 @@ def render_forecast():
         """
         grir_df = run_query(grir_summary_sql)
 
-        # Fallback to the exact values required by the user
         if not grir_df.empty:
             row = grir_df.iloc[0]
             total_grir     = safe_number(row.get("total_grir_balance", 0))
@@ -1238,7 +1230,6 @@ def render_forecast():
             year  = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
         else:
-            # Exactly what the user requested
             total_grir     = 6_200_000
             grir_items     = 319
             pct_over_60    = 0.0
@@ -1246,22 +1237,21 @@ def render_forecast():
             cnt_over_60    = 0
             year, month    = 2026, 2
 
-        # Render the 4 GR/IR cards
+        # Render the 4 GR/IR cards with different colors
         grir_cols = st.columns(4)
+        card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]   # light blue, light cyan, light orange, light purple
         with grir_cols[0]:
-            render_grir_metric_card("TOTAL GR/IR", abbr_currency(total_grir))
+            render_grir_metric_card("TOTAL GR/IR", abbr_currency(total_grir), bg_color=card_colors[0])
         with grir_cols[1]:
-            render_grir_metric_card("% > 60 DAYS", f"{pct_over_60:.1f}%")
+            render_grir_metric_card("% > 60 DAYS", f"{pct_over_60:.1f}%", bg_color=card_colors[1])
         with grir_cols[2]:
-            render_grir_metric_card("60 DAYS AMOUNT", abbr_currency(amount_over_60))
+            render_grir_metric_card("60 DAYS AMOUNT", abbr_currency(amount_over_60), bg_color=card_colors[2])
         with grir_cols[3]:
-            render_grir_metric_card("60 DAYS ITEMS", f"{cnt_over_60:,}")
+            render_grir_metric_card("60 DAYS ITEMS", f"{cnt_over_60:,}", bg_color=card_colors[3])
 
-        # Caption line
         st.caption(f"GR/IR position for {year:04d}-{month:02d}: {grir_items:,} items outstanding; "
                    f"{pct_over_60:.1f}% of balance and {cnt_over_60:,} items are older than 60 days.")
 
-        # Optional trend table
         if not grir_df.empty:
             trend_sql = f"""
                 SELECT year, month, invoice_count, total_grir_blnc
@@ -1291,7 +1281,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (shortened for brevity, same as original but with full implementation)
+# genie.py (shortened for brevity – full implementation from original)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1602,7 +1592,7 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
         analyst_text = "**Sample follow-up:** Subject: Missing GR/IR documents. Please provide missing goods receipts or invoices."
     return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
-# Quick analysis functions (shortened for brevity – same as original)
+# Quick analysis functions
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT DATE_TRUNC('month', posting_date) AS month, SUM(COALESCE(invoice_amount_local, 0)) AS monthly_spend,
@@ -1723,7 +1713,7 @@ def _quick_invoice_aging():
     analyst_text = ask_bedrock(f"Invoice aging:\n{df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on accounts payable.")
     return {"layout": "quick", "analysis_type": "invoice_aging", "metrics": metrics, "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.", "sql": sql, "question": "Invoice Aging"}
 
-# Response renderers (shortened for brevity – kept as in original)
+# Response renderers
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2277,7 +2267,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</table></tr>'
+    html_table += '</tr></table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2344,7 +2334,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</tr></tr>'
+        html_c += '<tr></table>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
