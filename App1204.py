@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 import boto3
 import awswrangler as wr
@@ -480,78 +478,68 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .grir-card-title {{ font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
     .grir-card-value {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
 
-    /* ════════════════════════════════════════════════════════════
-       INVOICE NUMBER BUTTONS  &  PREV / NEXT NAV BUTTONS
-       Default: NO background colour (transparent), subtle border
-       Hover / active: BLUE bg, blue border, white text, lift + shadow
-       ════════════════════════════════════════════════════════════ */
-    button[data-testid^="baseButton-na_card_"],
-    button[data-testid^="baseButton-prev_inv_btn"],
-    button[data-testid^="baseButton-next_inv_btn"],
-    button[data-testid="baseButton-na_prev_bottom"],
-    button[data-testid="baseButton-na_next_bottom"] {{
-        background-color: transparent !important;
-        background: transparent !important;
-        border: 1px solid #d1d5db !important;
-        color: #1f2937 !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: background-color 0.2s ease, border-color 0.2s ease,
-                    color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
-    }}
+    /* ========== GLOBAL BUTTON HOVER RULE ==========
+       Every button (Streamlit native, custom, primary, secondary)
+       turns BLUE on hover with a subtle lift and shadow.
+    */
+    button:hover,
+    .stButton button:hover,
+    div[data-testid="stButton"] button:hover,
+    button[data-testid^="baseButton"]:hover,
+    button[data-testid^="baseButton"]:active,
+    button[data-testid^="baseButton"]:focus,
+    button[kind="primary"]:hover,
+    button[kind="secondary"]:hover,
+    button[data-testid^="baseButton-preset_"]:hover,
+    button[data-testid^="baseButton-na_btn_"]:hover,
     button[data-testid^="baseButton-na_card_"]:hover,
     button[data-testid^="baseButton-prev_inv_btn"]:hover,
     button[data-testid^="baseButton-next_inv_btn"]:hover,
     button[data-testid="baseButton-na_prev_bottom"]:hover,
     button[data-testid="baseButton-na_next_bottom"]:hover,
-    button[data-testid^="baseButton-na_card_"]:active,
-    button[data-testid^="baseButton-prev_inv_btn"]:active,
-    button[data-testid^="baseButton-next_inv_btn"]:active,
-    button[data-testid="baseButton-na_prev_bottom"]:active,
-    button[data-testid="baseButton-na_next_bottom"]:active,
-    button[data-testid^="baseButton-na_card_"]:focus,
-    button[data-testid="baseButton-na_prev_bottom"]:focus,
-    button[data-testid="baseButton-na_next_bottom"]:focus {{
+    button[data-testid="baseButton-proceed_pay_btn"]:hover,
+    button[data-testid="baseButton-back_invoices_btn"]:hover,
+    button[data-testid^="baseButton-card_"]:hover,
+    button[data-testid^="baseButton-export_"]:hover,
+    button[data-testid^="baseButton-summarize_"]:hover,
+    button[data-testid^="baseButton-clear_"]:hover,
+    button[data-testid="baseButton-submit"]:hover,
+    button[data-testid^="baseButton-search_"]:hover,
+    button[data-testid^="baseButton-reset_"]:hover {{
         background-color: #2563eb !important;
         background: #2563eb !important;
         border-color: #2563eb !important;
         color: #ffffff !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.30) !important;
-    }}
-
-    /* ════════════════════════════════════════════════════════════
-       CATEGORY TABS (Overdue / Disputed / Due)
-       Inactive: gray   |   Hover: blue   |   Active set inline below
-       ════════════════════════════════════════════════════════════ */
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'],
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'],
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] {{
-        background-color: #f3f4f6 !important;
-        background: #f3f4f6 !important;
-        border: 1px solid #d1d5db !important;
-        color: #1f2937 !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.30) !important;
         transition: background-color 0.2s ease, border-color 0.2s ease,
                     color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
     }}
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue']:hover,
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed']:hover,
-    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d']:hover {{
+
+    /* Keep primary button default state blue (not only hover) */
+    button[kind="primary"],
+    button[data-testid^="baseButton-preset_Last_30_Days"],
+    button[data-testid^="baseButton-preset_QTD"],
+    button[data-testid^="baseButton-preset_YTD"],
+    button[data-testid="baseButton-proceed_pay_btn"],
+    button[data-testid="baseButton-back_invoices_btn"] {{
         background-color: #2563eb !important;
         background: #2563eb !important;
-        border-color: #2563eb !important;
-        color: #ffffff !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(37,99,235,0.25) !important;
+        color: white !important;
+        border: 2px solid #2563eb !important;
     }}
 
-    /* ════════════════════════════════════════════════════════════
-       EQUAL HEIGHT CHART CONTAINERS
-       .chart-container is the reusable class; flexbox makes the three
-       st.columns children stretch to identical height.
-       ════════════════════════════════════════════════════════════ */
+    /* Ensure that active tab buttons (Overdue, Disputed, Due) keep blue background when active */
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'][aria-expanded="true"],
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'][aria-expanded="true"],
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'][aria-expanded="true"] {{
+        background: #2563eb !important;
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+    }}
+
+    /* ── Equal height chart containers ── */
     .chart-container {{
         height: 100%;
         display: flex;
@@ -560,7 +548,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .chart-container > * {{ flex: 0 0 auto; }}
     .chart-container > .chart-body {{ flex: 1 1 auto; }}
 
-    /* Stretch the columns + their bordered containers to equal height */
+    /* Stretch columns to equal height */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
         display: flex !important;
         flex-direction: column !important;
@@ -578,45 +566,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         height: 100% !important;
     }}
 
-    /* ── General smooth transitions across buttons/cards ── */
-    button, .stButton button, div[data-testid="stButton"] button {{
-        transition: background-color 0.2s ease, border-color 0.2s ease,
-                    color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
-    }}
-
-    /* ── Primary / secondary nav + preset buttons ── */
-    button[kind="primary"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }}
-    button[kind="primary"]:hover {{
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
-    }}
-    button[data-testid^="baseButton-preset_"] {{ border-radius: 8px !important; font-weight: 600 !important; }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
-        background-color: #f1f5f9 !important; background: #f1f5f9 !important;
-        color: #475569 !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{
-        background-color: #e2e8f0 !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"],
-    button[data-testid="baseButton-back_invoices_btn"] {{
-        background-color: #2563eb !important; background: #2563eb !important; color: white !important;
-        border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"]:hover,
-    button[data-testid="baseButton-back_invoices_btn"]:hover {{
-        background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important;
-    }}
-
-    /* ── Misc ── */
+    /* Misc */
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     .main > .block-container {{ background-color: {bg_color} !important; transition: background-color 0.2s ease; }}
@@ -724,18 +674,6 @@ def render_filters():
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
                     st.rerun()
-
-    st.markdown(f"""
-    <style>
-    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
-        background-color: #2563eb !important; background: #2563eb !important;
-        color: white !important; border: 2px solid #2563eb !important;
-    }}
-    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"]:hover {{
-        background-color: #1d4ed8 !important; background: #1d4ed8 !important;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
@@ -894,30 +832,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
-
-        # Active tab styling: blue bg + white text for active, gray for inactive
-        st.markdown(f"""
-        <style>
-        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] {{
-            background: {'#2563eb' if current_tab == 'Overdue' else '#f3f4f6'} !important;
-            background-color: {'#2563eb' if current_tab == 'Overdue' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Overdue' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Overdue' else '#1f2937'} !important;
-        }}
-        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] {{
-            background: {'#2563eb' if current_tab == 'Disputed' else '#f3f4f6'} !important;
-            background-color: {'#2563eb' if current_tab == 'Disputed' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Disputed' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Disputed' else '#1f2937'} !important;
-        }}
-        div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] {{
-            background: {'#2563eb' if current_tab == 'Due' else '#f3f4f6'} !important;
-            background-color: {'#2563eb' if current_tab == 'Due' else '#f3f4f6'} !important;
-            border: 1px solid {'#2563eb' if current_tab == 'Due' else '#d1d5db'} !important;
-            color: {'white' if current_tab == 'Due' else '#1f2937'} !important;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
@@ -1332,7 +1246,6 @@ def render_forecast():
         """
         grir_df = run_query(grir_summary_sql)
 
-        # ── GR/IR metrics rendered as CARDS (not st.metric) ──
         if not grir_df.empty:
             row = grir_df.iloc[0]
             total_grir     = safe_number(row.get("total_grir_balance", 0))
@@ -2379,10 +2292,10 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '</tr><tr>'
+    html_table += '<tr> hilabih'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></table>'
+    html_table += '</table></tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2425,7 +2338,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_v += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_v += '</tr><tr>'
+        html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
         html_v += '</tr></table>'
