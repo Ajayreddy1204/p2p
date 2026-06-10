@@ -479,8 +479,8 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .grir-card-value {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
 
     /* ========== GLOBAL BUTTON HOVER RULE ==========
-       Every button (Streamlit native, custom, primary, secondary)
-       turns BLUE on hover with a subtle lift and shadow.
+       Every button turns BLUE on hover with lift and shadow.
+       This includes Genie page buttons: Ask Genie, Export MD, Summarize, Clear, chat submit.
     */
     button:hover,
     .stButton button:hover,
@@ -505,7 +505,13 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid^="baseButton-clear_"]:hover,
     button[data-testid="baseButton-submit"]:hover,
     button[data-testid^="baseButton-search_"]:hover,
-    button[data-testid^="baseButton-reset_"]:hover {{
+    button[data-testid^="baseButton-reset_"]:hover,
+    /* Genie specific buttons */
+    button[data-testid="baseButton-export_md_top"]:hover,
+    button[data-testid="baseButton-summarize_top"]:hover,
+    button[data-testid="baseButton-clear_top"]:hover,
+    button[data-testid="baseButton-submit"]:hover,
+    button[data-testid^="baseButton-card_"]:hover {{
         background-color: #2563eb !important;
         background: #2563eb !important;
         border-color: #2563eb !important;
@@ -1213,10 +1219,10 @@ def render_forecast():
         st.markdown("### Action Playbook")
         st.markdown("Use these guided analyses to turn the forecast into decisions: who to pay now, who to pay early, and where we are at risk of paying late.")
         actions = [
-            ("\U0001F4CA Forecast cash outflow (7\u201390 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("\U0001F4B0 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
-            ("\u23F0 Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
-            ("\u26A0\uFE0F Late payment trend and risk", "Show late payment trend for forecasting")
+            ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
+            ("⏰ Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
+            ("⚠️ Late payment trend and risk", "Show late payment trend for forecasting")
         ]
         for label, question in actions:
             if st.button(label, use_container_width=True):
@@ -1246,6 +1252,7 @@ def render_forecast():
         """
         grir_df = run_query(grir_summary_sql)
 
+        # Use fallback values if the query returns empty
         if not grir_df.empty:
             row = grir_df.iloc[0]
             total_grir     = safe_number(row.get("total_grir_balance", 0))
@@ -1256,26 +1263,30 @@ def render_forecast():
             year  = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
         else:
+            # Fallback to the exact values requested
             total_grir     = 6_200_000
-            grir_items     = 0
+            grir_items     = 319
             pct_over_60    = 0.0
             amount_over_60 = 0.0
             cnt_over_60    = 0
-            year, month    = 2026, 6
+            year, month    = 2026, 2
 
+        # Render the 4 GR/IR cards
         grir_cols = st.columns(4)
         with grir_cols[0]:
             render_grir_metric_card("TOTAL GR/IR", abbr_currency(total_grir))
         with grir_cols[1]:
-            render_grir_metric_card("% &gt; 60 DAYS", f"{pct_over_60:.1f}%")
+            render_grir_metric_card("% > 60 DAYS", f"{pct_over_60:.1f}%")
         with grir_cols[2]:
             render_grir_metric_card("60 DAYS AMOUNT", abbr_currency(amount_over_60))
         with grir_cols[3]:
             render_grir_metric_card("60 DAYS ITEMS", f"{cnt_over_60:,}")
 
+        # Caption line
         st.caption(f"GR/IR position for {year:04d}-{month:02d}: {grir_items:,} items outstanding; "
                    f"{pct_over_60:.1f}% of balance and {cnt_over_60:,} items are older than 60 days.")
 
+        # Optional trend table
         if not grir_df.empty:
             trend_sql = f"""
                 SELECT year, month, invoice_count, total_grir_blnc
@@ -1287,14 +1298,14 @@ def render_forecast():
                 st.markdown("**GR/IR outstanding trend (last 24 months)**")
                 st.dataframe(safe_dataframe_display(trend_df), use_container_width=True, hide_index=True)
         else:
-            st.info("No GR/IR data found \u2013 showing sample values above.")
+            st.info("No GR/IR data found – showing sample values above.")
 
         st.markdown("---")
         st.markdown("### GR/IR Clearing Playbook")
         st.markdown("Each step opens Genie with a pre-built prompt that uses the `gr_ir_outstanding` and related verified queries so you get context on chase receipts, and how much working capital you can release.")
         clearing_actions = [
             ("1. Identify top GR/IR hotspots to clear first", "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."),
-            ("2. Explain likely GR/IR root causes", "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2\u20133 concrete remediation actions."),
+            ("2. Explain likely GR/IR root causes", "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."),
             ("3. Quantify working-capital benefit from clearing old GR/IR", "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."),
             ("4. Draft vendor follow-up messages for top GR/IR items", "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.")
         ]
@@ -1966,7 +1977,7 @@ def render_quick_analysis_response(result: dict):
 # Genie UI & question processing
 # ------------------------------------------------------------
 GRIR_HOTSPOTS_Q = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
-GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2\u20133 concrete remediation actions."
+GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
 GRIR_WC_Q = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
 GRIR_FOLLOWUP_Q = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
 
@@ -2292,7 +2303,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
         html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
-    html_table += '<tr> hilabih'
+    html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
     html_table += '</table></tr>'
@@ -2341,7 +2352,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</tr></table>'
+        html_v += '</tr></tr>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2359,10 +2370,10 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_c += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_c += '</tr><tr>'
+        html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</tr></table>'
+        html_c += '</table></tr>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
