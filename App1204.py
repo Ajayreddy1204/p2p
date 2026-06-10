@@ -477,6 +477,12 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .grir-card-title {{ font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
     .grir-card-value {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
 
+    /* Needs Attention card backgrounds */
+    .na-card-overdue {{ background: #FEF2F2 !important; border-left: 4px solid #DC2626 !important; }}
+    .na-card-disputed {{ background: #FFFBEB !important; border-left: 4px solid #F59E0B !important; }}
+    .na-card-due {{ background: #EFF6FF !important; border-left: 4px solid #3B82F6 !important; }}
+    .na-card-default {{ background: #FFFFFF !important; }}
+
     /* ========== GLOBAL BUTTON HOVER RULE ==========
        Every button turns BLUE on hover with lift and shadow.
     */
@@ -491,7 +497,9 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid="baseButton-search_invoice_btn"]:hover,
     button[data-testid="baseButton-reset_invoice_btn"]:hover,
     button[data-testid="baseButton-submit"]:hover,
-    button[data-testid^="baseButton-card_"]:hover {{
+    button[data-testid^="baseButton-card_"]:hover,
+    button[data-testid="na_prev_bottom"]:hover,
+    button[data-testid="na_next_bottom"]:hover {{
         background-color: #2563eb !important;
         background: #2563eb !important;
         border-color: #2563eb !important;
@@ -521,15 +529,21 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #2563eb !important;
         color: white !important;
     }}
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'][aria-expanded="true"] *,
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'][aria-expanded="true"] *,
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'][aria-expanded="true"] * {{
+        color: white !important;
+    }}
 
-    /* Equal height chart containers */
+    /* Ensure Needs Attention container has enough padding for chart */
     .chart-container {{
         height: 100%;
         display: flex;
         flex-direction: column;
+        padding: 0.5rem;
     }}
     .chart-container > * {{ flex: 0 0 auto; }}
-    .chart-container > .chart-body {{ flex: 1 1 auto; }}
+    .chart-container > .chart-body {{ flex: 1 1 auto; min-height: 300px; }}
 
     /* Stretch columns to equal height */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
@@ -812,17 +826,21 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_page = 0
                 st.rerun()
 
+        # Active tab styling already handled by CSS
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
         if current_tab == 'Overdue':
             df = overdue_df
             status_label = "Overdue"
+            card_class = "na-card-overdue"
         elif current_tab == 'Disputed':
             df = disputed_df
             status_label = "Disputed"
+            card_class = "na-card-disputed"
         else:
             df = due_df
             status_label = "Due soon"
+            card_class = "na-card-due"
 
         tag_bg = "#f3f4f6"
         tag_color = "#1f2937"
@@ -844,6 +862,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
                         with st.container(border=True):
+                            # Apply card background class
+                            st.markdown(f'<div class="{card_class}" style="border-radius: 14px; padding: 0.5rem;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 ref = str(r.get("ref_no", "")).strip() or "—"
@@ -868,6 +888,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
+                            st.markdown('</div>', unsafe_allow_html=True)
                     card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
@@ -922,13 +943,16 @@ def render_charts(rng_start, rng_end, vendor_where):
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1)
             color_scale = alt.Scale(domain=["Paid","Pending","Disputed","Other"], range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
-            donut = alt.Chart(status_df).mark_arc(innerRadius=60, outerRadius=100).encode(
+            
+            # Increased innerRadius and outerRadius for better visibility, added padding
+            donut = alt.Chart(status_df).mark_arc(innerRadius=70, outerRadius=110).encode(
                 theta=alt.Theta("cnt:Q"),
                 color=alt.Color("status:N", scale=color_scale, legend=alt.Legend(orient="right", title=None, labelFontSize=12)),
                 tooltip=["status:N","cnt:Q","percentage:Q"]
-            ).properties(height=300)
+            ).properties(height=320, width=320)
+            
             center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=28, fontWeight="bold", color="#111827").encode(text="text:N")
-            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
+            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=25).encode(text="text:N")
             chart = donut + center_text + center_label
             st.altair_chart(chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
@@ -962,7 +986,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 x=alt.X("spend:Q", title=None, axis=alt.Axis(format="~s")),
                 y=alt.Y("vendor_name:N", sort="-x", title=None),
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
-            ).properties(height=300)
+            ).properties(height=320)
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -995,7 +1019,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"], range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
                 xOffset="type:N",
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
-            ).properties(height=300)
+            ).properties(height=320)
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -1350,7 +1374,7 @@ def render_forecast():
             year, month    = 2026, 2
 
         grir_cols = st.columns(4)
-        card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]   # light blue, light cyan, light orange, light purple
+        card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]
         with grir_cols[0]:
             render_grir_metric_card("TOTAL GR/IR", abbr_currency(total_grir), bg_color=card_colors[0])
         with grir_cols[1]:
@@ -1392,7 +1416,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py
+# genie.py (complete module)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1703,7 +1727,6 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
         analyst_text = "**Sample follow-up:** Subject: Missing GR/IR documents. Please provide missing goods receipts or invoices."
     return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
-# Quick analysis functions
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT DATE_TRUNC('month', posting_date) AS month, SUM(COALESCE(invoice_amount_local, 0)) AS monthly_spend,
@@ -1824,7 +1847,6 @@ def _quick_invoice_aging():
     analyst_text = ask_bedrock(f"Invoice aging:\n{df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on accounts payable.")
     return {"layout": "quick", "analysis_type": "invoice_aging", "metrics": metrics, "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.", "sql": sql, "question": "Invoice Aging"}
 
-# Response renderers
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2047,7 +2069,6 @@ def render_quick_analysis_response(result: dict):
         else:
             st.caption("No SQL available.")
 
-# Genie UI & question processing
 GRIR_HOTSPOTS_Q = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
 GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
 GRIR_WC_Q = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
@@ -2378,7 +2399,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></tr>'
+    html_table += '<tr></tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2424,7 +2445,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</td></tr>'
+        html_v += '</tr></tr>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
