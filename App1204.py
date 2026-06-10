@@ -477,6 +477,12 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .grir-card-title {{ font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
     .grir-card-value {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
 
+    /* Needs Attention card backgrounds */
+    .na-card-overdue {{ background: #FEF2F2 !important; border-left: 4px solid #DC2626 !important; }}
+    .na-card-disputed {{ background: #FFFBEB !important; border-left: 4px solid #F59E0B !important; }}
+    .na-card-due {{ background: #EFF6FF !important; border-left: 4px solid #3B82F6 !important; }}
+    .na-card-default {{ background: #FFFFFF !important; }}
+
     /* ========== GLOBAL BUTTON HOVER RULE ==========
        Every button turns BLUE on hover with lift and shadow.
     */
@@ -491,7 +497,9 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     button[data-testid="baseButton-search_invoice_btn"]:hover,
     button[data-testid="baseButton-reset_invoice_btn"]:hover,
     button[data-testid="baseButton-submit"]:hover,
-    button[data-testid^="baseButton-card_"]:hover {{
+    button[data-testid^="baseButton-card_"]:hover,
+    button[data-testid="na_prev_bottom"]:hover,
+    button[data-testid="na_next_bottom"]:hover {{
         background-color: #2563eb !important;
         background: #2563eb !important;
         border-color: #2563eb !important;
@@ -521,15 +529,29 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #2563eb !important;
         color: white !important;
     }}
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'][aria-expanded="true"] *,
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'][aria-expanded="true"] *,
+    div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'][aria-expanded="true"] * {{
+        color: white !important;
+    }}
 
-    /* Equal height chart containers */
+    /* Invoice Status Distribution donut - ensure full visibility */
     .chart-container {{
         height: 100%;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        overflow: visible;
+    }}
+    .chart-container .vega-embed {{
+        display: flex;
+        justify-content: center;
+        width: 100%;
     }}
     .chart-container > * {{ flex: 0 0 auto; }}
-    .chart-container > .chart-body {{ flex: 1 1 auto; }}
+    .chart-container > .chart-body {{ flex: 1 1 auto; min-height: 350px; display: flex; justify-content: center; align-items: center; }}
 
     /* Stretch columns to equal height */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
@@ -549,10 +571,31 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         height: 100% !important;
     }}
 
-    .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
+    .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; text-align: center; }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     .main > .block-container {{ background-color: {bg_color} !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
+    
+    /* Header alignment */
+    .title-section h1 {{
+        font-weight: 800 !important;
+        font-size: 1.8rem !important;
+        margin-bottom: 0 !important;
+        color: #1e293b;
+    }}
+    .title-section p {{
+        font-size: 0.75rem !important;
+        color: #64748b;
+        margin-top: 0 !important;
+        line-height: 1.2;
+    }}
+    .nav-section button {{
+        font-weight: 600 !important;
+    }}
+    .logo-container img {{
+        max-height: 60px;
+        width: auto;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -817,12 +860,15 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         if current_tab == 'Overdue':
             df = overdue_df
             status_label = "Overdue"
+            card_class = "na-card-overdue"
         elif current_tab == 'Disputed':
             df = disputed_df
             status_label = "Disputed"
+            card_class = "na-card-disputed"
         else:
             df = due_df
             status_label = "Due soon"
+            card_class = "na-card-due"
 
         tag_bg = "#f3f4f6"
         tag_color = "#1f2937"
@@ -844,6 +890,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
                         with st.container(border=True):
+                            st.markdown(f'<div class="{card_class}" style="border-radius: 14px; padding: 0.5rem;">', unsafe_allow_html=True)
                             left, right = st.columns([2, 1], gap="small")
                             with left:
                                 ref = str(r.get("ref_no", "")).strip() or "—"
@@ -868,6 +915,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
+                            st.markdown('</div>', unsafe_allow_html=True)
                     card_global_idx += 1
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
@@ -899,7 +947,7 @@ def render_charts(rng_start, rng_end, vendor_where):
 
     with col1:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><div class='chart-title' style='margin-bottom:0.5rem;'>Invoice Status Distribution</div><div class='chart-body'>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><div class='chart-title'>Invoice Status Distribution</div><div class='chart-body'>", unsafe_allow_html=True)
             status_sql = f"""
                 SELECT
                     CASE
@@ -922,20 +970,23 @@ def render_charts(rng_start, rng_end, vendor_where):
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1)
             color_scale = alt.Scale(domain=["Paid","Pending","Disputed","Other"], range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
-            donut = alt.Chart(status_df).mark_arc(innerRadius=60, outerRadius=100).encode(
+            
+            # Increased size and center alignment
+            donut = alt.Chart(status_df).mark_arc(innerRadius=70, outerRadius=110).encode(
                 theta=alt.Theta("cnt:Q"),
                 color=alt.Color("status:N", scale=color_scale, legend=alt.Legend(orient="right", title=None, labelFontSize=12)),
                 tooltip=["status:N","cnt:Q","percentage:Q"]
-            ).properties(height=300)
+            ).properties(width=350, height=350)
+            
             center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=28, fontWeight="bold", color="#111827").encode(text="text:N")
-            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
+            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=25).encode(text="text:N")
             chart = donut + center_text + center_label
             st.altair_chart(chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     with col2:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><div class='chart-title' style='margin-bottom:0.5rem;'>Top 10 Vendors by Spend</div><div class='chart-body'>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><div class='chart-title'>Top 10 Vendors by Spend</div><div class='chart-body'>", unsafe_allow_html=True)
             top_vendors_sql = f"""
                 SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
                 FROM {DATABASE}.fact_all_sources_vw f
@@ -962,13 +1013,13 @@ def render_charts(rng_start, rng_end, vendor_where):
                 x=alt.X("spend:Q", title=None, axis=alt.Axis(format="~s")),
                 y=alt.Y("vendor_name:N", sort="-x", title=None),
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
-            ).properties(height=300)
+            ).properties(height=350)
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     with col3:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><div class='chart-title' style='margin-bottom:0.5rem;'>Spend Trend Analysis</div><div class='chart-body'>", unsafe_allow_html=True)
+            st.markdown("<div class='chart-container'><div class='chart-title'>Spend Trend Analysis</div><div class='chart-body'>", unsafe_allow_html=True)
             trend_sql = f"""
                 SELECT DATE_TRUNC('month', posting_date) AS month,
                        SUM(COALESCE(invoice_amount_local,0)) AS actual_spend
@@ -995,7 +1046,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"], range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
                 xOffset="type:N",
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
-            ).properties(height=300)
+            ).properties(height=350)
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -1024,53 +1075,114 @@ def render_dashboard():
     p_start_lit = sql_date(p_start)
     p_end_lit = sql_date(p_end)
 
+    # ---------- KPI Queries (corrected from Snowflake reference) ----------
     cur_kpi_sql = f"""
+        WITH base AS (
+            SELECT 
+                f.purchase_order_reference,
+                f.invoice_number,
+                f.invoice_amount_local,
+                f.invoice_status,
+                v.vendor_name
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+              {vendor_where}
+        )
         SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-        {vendor_where}
+            COUNT(DISTINCT CASE WHEN UPPER(invoice_status) = 'OPEN' THEN purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT vendor_name) AS active_vendors,
+            COUNT(DISTINCT CASE WHEN UPPER(invoice_status) = 'OPEN' THEN invoice_number END) AS pending_inv,
+            SUM(CASE WHEN UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(invoice_amount_local,0) ELSE 0 END) AS total_spend
+        FROM base
     """
     cur_df = run_query(cur_kpi_sql)
     cur_spend = safe_number(cur_df.loc[0, "total_spend"]) if not cur_df.empty else 5_500_000
 
     prev_kpi_sql = f"""
+        WITH base AS (
+            SELECT 
+                f.purchase_order_reference,
+                f.invoice_number,
+                f.invoice_amount_local,
+                f.invoice_status,
+                v.vendor_name
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+              {vendor_where}
+        )
         SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
-        {vendor_where}
+            COUNT(DISTINCT CASE WHEN UPPER(invoice_status) = 'OPEN' THEN purchase_order_reference END) AS active_pos,
+            COUNT(DISTINCT purchase_order_reference) AS total_pos,
+            COUNT(DISTINCT vendor_name) AS active_vendors,
+            COUNT(DISTINCT CASE WHEN UPPER(invoice_status) = 'OPEN' THEN invoice_number END) AS pending_inv,
+            SUM(CASE WHEN UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(invoice_amount_local,0) ELSE 0 END) AS total_spend
+        FROM base
     """
     prev_df = run_query(prev_kpi_sql)
     prev_spend = safe_number(prev_df.loc[0, "total_spend"]) if not prev_df.empty else 14_200_000
 
+    # Avg Invoice Processing Time
+    avg_processing_sql = f"""
+        SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw
+        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+          {vendor_where.replace('v.vendor_name', 'vendor_name')}
+          AND UPPER(invoice_status) = 'PAID'
+          AND payment_date IS NOT NULL
+    """
+    avg_df = run_query(avg_processing_sql)
+    cur_avg_processing = safe_number(avg_df.loc[0, "avg_processing_days"]) if not avg_df.empty else 0
+
+    prev_avg_processing_sql = f"""
+        SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw
+        WHERE posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+          {vendor_where.replace('v.vendor_name', 'vendor_name')}
+          AND UPPER(invoice_status) = 'PAID'
+          AND payment_date IS NOT NULL
+    """
+    prev_avg_df = run_query(prev_avg_processing_sql)
+    prev_avg_processing = safe_number(prev_avg_df.loc[0, "avg_processing_days"]) if not prev_avg_df.empty else 0
+
+    # First Pass Invoices
     first_pass_sql = f"""
         WITH hist AS (
-            SELECT invoice_number,
-                   MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
-                   MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+            SELECT 
+                invoice_number,
+                MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
             FROM {DATABASE}.invoice_status_history_vw
             WHERE posting_date BETWEEN {start_lit} AND {end_lit}
             GROUP BY invoice_number
         )
-        SELECT COUNT(*) AS total_inv,
-               SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+        SELECT 
+            COUNT(*) AS total_inv,
+            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
         FROM hist
     """
     fp_df = run_query(first_pass_sql)
 
+    prev_first_pass_sql = f"""
+        WITH hist AS (
+            SELECT 
+                invoice_number,
+                MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+            GROUP BY invoice_number
+        )
+        SELECT 
+            COUNT(*) AS total_inv,
+            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+        FROM hist
+    """
+    prev_fp_df = run_query(prev_first_pass_sql)
+
+    # Autoprocessed Invoices
     auto_rate_sql = f"""
         WITH paid_invoices AS (
             SELECT invoice_number, status_notes
@@ -1078,13 +1190,64 @@ def render_dashboard():
             WHERE posting_date BETWEEN {start_lit} AND {end_lit}
               AND UPPER(status) = 'PAID'
         )
-        SELECT COUNT(*) AS total_cleared,
-               SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
+        SELECT 
+            COUNT(*) AS total_cleared,
+            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
         FROM paid_invoices
     """
     auto_df = run_query(auto_rate_sql)
 
-    render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit)
+    prev_auto_rate_sql = f"""
+        WITH paid_invoices AS (
+            SELECT invoice_number, status_notes
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {p_start_lit} AND {p_end_lit}
+              AND UPPER(status) = 'PAID'
+        )
+        SELECT 
+            COUNT(*) AS total_cleared,
+            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
+        FROM paid_invoices
+    """
+    prev_auto_df = run_query(prev_auto_rate_sql)
+
+    # Build final DataFrames for render_kpi_rows
+    cur_kpi_final = pd.DataFrame({
+        "active_pos": [safe_int(cur_df.loc[0, "active_pos"]) if not cur_df.empty else 0],
+        "total_pos": [safe_int(cur_df.loc[0, "total_pos"]) if not cur_df.empty else 0],
+        "active_vendors": [safe_int(cur_df.loc[0, "active_vendors"]) if not cur_df.empty else 0],
+        "pending_inv": [safe_int(cur_df.loc[0, "pending_inv"]) if not cur_df.empty else 0],
+        "avg_processing_days": [cur_avg_processing]
+    })
+    prev_kpi_final = pd.DataFrame({
+        "active_pos": [safe_int(prev_df.loc[0, "active_pos"]) if not prev_df.empty else 0],
+        "total_pos": [safe_int(prev_df.loc[0, "total_pos"]) if not prev_df.empty else 0],
+        "active_vendors": [safe_int(prev_df.loc[0, "active_vendors"]) if not prev_df.empty else 0],
+        "pending_inv": [safe_int(prev_df.loc[0, "pending_inv"]) if not prev_df.empty else 0],
+        "avg_processing_days": [prev_avg_processing]
+    })
+
+    # First pass DataFrames
+    fp_final = pd.DataFrame({
+        "total_inv": [safe_int(fp_df.loc[0, "total_inv"]) if not fp_df.empty else 0],
+        "first_pass_inv": [safe_int(fp_df.loc[0, "first_pass_inv"]) if not fp_df.empty else 0]
+    })
+    prev_fp_final = pd.DataFrame({
+        "total_inv": [safe_int(prev_fp_df.loc[0, "total_inv"]) if not prev_fp_df.empty else 0],
+        "first_pass_inv": [safe_int(prev_fp_df.loc[0, "first_pass_inv"]) if not prev_fp_df.empty else 0]
+    })
+
+    # Auto-processed DataFrames
+    auto_final = pd.DataFrame({
+        "total_cleared": [safe_int(auto_df.loc[0, "total_cleared"]) if not auto_df.empty else 0],
+        "auto_processed": [safe_int(auto_df.loc[0, "auto_processed"]) if not auto_df.empty else 0]
+    })
+    prev_auto_final = pd.DataFrame({
+        "total_cleared": [safe_int(prev_auto_df.loc[0, "total_cleared"]) if not prev_auto_df.empty else 0],
+        "auto_processed": [safe_int(prev_auto_df.loc[0, "auto_processed"]) if not prev_auto_df.empty else 0]
+    })
+
+    render_kpi_rows(cur_kpi_final, prev_kpi_final, cur_spend, prev_spend, fp_final, auto_final, start_lit, end_lit)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_needs_attention(rng_start, rng_end, vendor_where)
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
@@ -1237,9 +1400,8 @@ def render_forecast():
             cnt_over_60    = 0
             year, month    = 2026, 2
 
-        # Render the 4 GR/IR cards with different colors
         grir_cols = st.columns(4)
-        card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]   # light blue, light cyan, light orange, light purple
+        card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]
         with grir_cols[0]:
             render_grir_metric_card("TOTAL GR/IR", abbr_currency(total_grir), bg_color=card_colors[0])
         with grir_cols[1]:
@@ -1281,7 +1443,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py (shortened for brevity – full implementation from original)
+# genie.py (complete module)
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1592,7 +1754,6 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
         analyst_text = "**Sample follow-up:** Subject: Missing GR/IR documents. Please provide missing goods receipts or invoices."
     return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
-# Quick analysis functions
 def _quick_spending_overview():
     monthly_sql = f"""
         SELECT DATE_TRUNC('month', posting_date) AS month, SUM(COALESCE(invoice_amount_local, 0)) AS monthly_spend,
@@ -1713,7 +1874,6 @@ def _quick_invoice_aging():
     analyst_text = ask_bedrock(f"Invoice aging:\n{df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on accounts payable.")
     return {"layout": "quick", "analysis_type": "invoice_aging", "metrics": metrics, "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.", "sql": sql, "question": "Invoice Aging"}
 
-# Response renderers
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -1936,7 +2096,6 @@ def render_quick_analysis_response(result: dict):
         else:
             st.caption("No SQL available.")
 
-# Genie UI & question processing
 GRIR_HOTSPOTS_Q = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
 GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
 GRIR_WC_Q = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
@@ -2267,7 +2426,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></table>'
+    html_table += '<tr></tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2313,7 +2472,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</tr></table>'
+        html_v += '</tr></tr>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2334,7 +2493,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '<tr></table>'
+        html_c += '<tr></tr>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2478,15 +2637,45 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
-    # Inject global CSS so that hover effects and card styles apply to every page
     inject_dashboard_css("#ffffff")
 
     st.markdown("""
 <style>
 .block-container { padding-top: 2rem !important; padding-bottom: 0rem !important; }
-.title-section { text-align: left; margin-top: 1rem; }
-.nav-section { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
-.logo-container { display: flex; justify-content: flex-end; align-items: center; height: 100%; margin-top: 1rem; }
+/* Header layout fix: single line with logo right */
+.stApp > header { visibility: hidden; }
+div[data-testid="stHorizontalBlock"]:first-of-type {
+    align-items: center !important;
+}
+.title-section h1 {
+    font-weight: 800 !important;
+    font-size: 1.8rem !important;
+    margin-bottom: 0 !important;
+    color: #1e293b;
+}
+.title-section p {
+    font-size: 0.75rem !important;
+    color: #64748b;
+    margin-top: -0.2rem !important;
+    line-height: 1.2;
+}
+.nav-section {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+.nav-section button {
+    font-weight: 600 !important;
+}
+.logo-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+.logo-container img {
+    max-height: 60px;
+    width: auto;
+}
 button[kind="primary"] { background-color: #2563eb !important; background: #2563eb !important; color: white !important;
     border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }
 button[kind="primary"]:hover { background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
