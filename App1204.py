@@ -16,6 +16,9 @@ from functools import lru_cache
 from typing import Union, Optional, List, Dict
 import numpy as np
 
+# ------------------------------------------------------------
+# config.py
+# ------------------------------------------------------------
 DATABASE = "procure2pay"
 ATHENA_REGION = "us-east-1"
 BEDROCK_MODEL_ID = "amazon.nova-micro-v1:0"
@@ -33,6 +36,9 @@ def compute_range_preset(preset: str):
         return date(today.year, 1, 1), today
     return today.replace(day=1), today
 
+# ------------------------------------------------------------
+# utils.py
+# ------------------------------------------------------------
 def safe_number(val, default=0.0):
     try:
         if pd.isna(val):
@@ -221,7 +227,7 @@ def ensure_limit(sql: str, default_limit: int = 100) -> str:
         return sql
     return f"{sql.rstrip(';')} LIMIT {default_limit}"
 
-def auto_chart(df: pd.DataFrame):
+def auto_chart(df: pd.DataFrame) -> Union[alt.Chart, None]:
     if df.empty or len(df) > 200:
         return None
     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
@@ -248,12 +254,16 @@ def auto_chart(df: pd.DataFrame):
     return None
 
 def safe_dataframe_display(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert all object columns to string to avoid Arrow serialization errors."""
     if df.empty:
         return df
     for col in df.select_dtypes(include=['object']).columns:
         df[col] = df[col].astype(str)
     return df
 
+# ------------------------------------------------------------
+# athena_client.py
+# ------------------------------------------------------------
 @st.cache_resource
 def get_aws_session():
     return boto3.Session()
@@ -271,6 +281,9 @@ def run_query(sql: str) -> pd.DataFrame:
         st.error(f"Athena query failed: {e}\nSQL: {sql[:500]}")
         return pd.DataFrame()
 
+# ------------------------------------------------------------
+# bedrock_client.py
+# ------------------------------------------------------------
 @st.cache_resource
 def get_bedrock_runtime():
     return boto3.client("bedrock-runtime", region_name=ATHENA_REGION)
@@ -296,6 +309,9 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
         st.error(f"Bedrock invocation failed: {e}")
         return ""
 
+# ------------------------------------------------------------
+# persistence.py (full)
+# ------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -458,6 +474,9 @@ def get_frequent_questions_all_cached(limit=10):
     conn.close()
     return [{"query": row[0], "count": row[1]} for row in rows]
 
+# ------------------------------------------------------------
+# GLOBAL MEMORY: last 20 messages from last 2 days
+# ------------------------------------------------------------
 def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> str:
     user = get_current_user()
     conn = sqlite3.connect(DB_PATH)
@@ -484,7 +503,11 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
             context_parts.append(f"Assistant: {content}")
     return "Here is the conversation history from the last 2 days (most recent context):\n\n" + "\n\n".join(context_parts) + "\n\nNow answer the following new question taking into account the history:\n"
 
+# ------------------------------------------------------------
+# dashboard.py
+# ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
+    """Inject dashboard CSS with optional dynamic background color."""
     st.markdown(f"""
 <style>
     .stDateInput, .stSelectbox {{ width: 100%; }}
@@ -509,171 +532,28 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .kpi-delta-positive {{ color: #16a34a; }}
     .kpi-arrow {{ font-size: 1.2rem; margin-left: 0.25rem; }}
     .attention-header {{ font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
-
-    button[kind="primary"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-        border-radius: 999px !important;
-        font-weight: 600 !important;
-        transition: all 0.18s ease !important;
-    }}
-    button[kind="primary"]:hover {{
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
-    }}
-    button[kind="secondary"] {{
-        background-color: #f1f5f9 !important;
-        background: #f1f5f9 !important;
-        color: #475569 !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 999px !important;
-        font-weight: 600 !important;
-        transition: all 0.18s ease !important;
-    }}
-    button[kind="secondary"]:hover {{
-        background-color: #e2e8f0 !important;
-        background: #e2e8f0 !important;
-        border-color: #cbd5e1 !important;
-    }}
-
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[data-testid="column"] button {{
-        background-color: #f3f4f6 !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 999px !important;
-        padding: 6px 16px !important;
-        color: #1f2937 !important;
-        font-weight: 500 !important;
-        font-size: 13px !important;
-        transition: all 0.2s ease !important;
-        cursor: pointer !important;
-    }}
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:hover,
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:active {{
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        color: white !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-    }}
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:active {{
-        transform: translateY(0px) !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-    }}
-
-    button[data-testid="baseButton-na_prev_bottom"],
-    button[data-testid="baseButton-na_next_bottom"] {{
-        background-color: #f3f4f6 !important;
-        color: #1f2937 !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        padding: 8px 20px !important;
-        transition: all 0.2s ease !important;
-    }}
-    button[data-testid="baseButton-na_prev_bottom"]:hover,
-    button[data-testid="baseButton-na_next_bottom"]:hover,
-    button[data-testid="baseButton-na_prev_bottom"]:active,
-    button[data-testid="baseButton-na_next_bottom"]:active {{
-        background-color: #2563eb !important;
-        color: white !important;
-        border-color: #2563eb !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-    }}
-    button[data-testid="baseButton-na_prev_bottom"]:active,
-    button[data-testid="baseButton-na_next_bottom"]:active {{
-        transform: translateY(0px) !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-    }}
-
-    .chart-container {{
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }}
-    .chart-container > div {{
-        flex: 1;
-    }}
-    div[data-testid="column"] {{
-        display: flex;
-        flex-direction: column;
-    }}
-    div[data-testid="column"] > div {{
-        height: 100%;
-    }}
-    div[data-testid="column"] div[data-testid="stVerticalBlockBorder"] {{
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }}
-    .stColumn {{
-        display: flex;
-        flex-direction: column;
-    }}
-    .stColumn > div {{
-        height: 100%;
-    }}
-
+    button[data-testid^="baseButton-na_btn_"] {{ border-radius: 999px !important; font-weight: 600 !important; transition: all 0.18s ease !important; }}
+    button[data-testid="baseButton-na_btn_overdue"], button[data-testid="baseButton-na_btn_disputed"], button[data-testid="baseButton-na_btn_due30d"] {{ background: #e5e7eb !important; color: #111827 !important; }}
+    button[data-testid="baseButton-na_btn_overdue"]:hover, button[data-testid="baseButton-na_btn_disputed"]:hover, button[data-testid="baseButton-na_btn_due30d"]:hover {{ background: #2563eb !important; color: white !important; }}
+    button[data-testid^="baseButton-na_card_"] {{ background: transparent !important; border: none !important; box-shadow: none !important; color: #2563eb !important; font-weight: 500 !important; font-size: 13px !important; padding: 4px 0 0 0 !important; margin-top: 2px !important; text-decoration: none !important; cursor: pointer !important; }}
+    button[data-testid^="baseButton-na_card_"]:hover {{ color: #1d4ed8 !important; text-decoration: underline !important; }}
     .chart-title {{ font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
-    div[data-testid="stHorizontalBlock"] button[kind="primary"],
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="primary"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{
-        background-color: #f1f5f9 !important;
-        background: #f1f5f9 !important;
-        color: #475569 !important;
-        border: 1px solid #e2e8f0 !important;
-    }}
-    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{
-        background-color: #e2e8f0 !important;
-        background: #e2e8f0 !important;
-        border-color: #cbd5e1 !important;
-    }}
-    button[data-testid^="baseButton-preset_"] {{
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"],
-    button[data-testid="baseButton-back_invoices_btn"] {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        color: white !important;
-        border: 2px solid #2563eb !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }}
-    button[data-testid="baseButton-proceed_pay_btn"]:hover,
-    button[data-testid="baseButton-back_invoices_btn"]:hover {{
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
-    }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"], div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {{ background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {{ background-color: #f1f5f9 !important; background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }}
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {{ background-color: #e2e8f0 !important; background: #e2e8f0 !important; border-color: #cbd5e1 !important; }}
+    button[data-testid^="baseButton-preset_"] {{ border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s ease !important; }}
+    button[data-testid="baseButton-proceed_pay_btn"], button[data-testid="baseButton-back_invoices_btn"] {{ background-color: #2563eb !important; background: #2563eb !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-weight: 600 !important; }}
+    button[data-testid="baseButton-proceed_pay_btn"]:hover, button[data-testid="baseButton-back_invoices_btn"]:hover {{ background-color: #1d4ed8 !important; background: #1d4ed8 !important; border-color: #1d4ed8 !important; }}
+    /* Dashboard dynamic background */
     .main > .block-container {{
         background-color: {bg_color} !important;
         transition: background-color 0.2s ease;
     }}
+    /* Override any conflicting backgrounds */
     .stApp {{
         background-color: {bg_color} !important;
-    }}
-    .floating-bg-button {{
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        z-index: 1000;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -747,8 +627,9 @@ def render_filters():
             vendor_list = (["All Vendors"] + vendors_df["vendor_name"].tolist()) if not vendors_df.empty else ["All Vendors"]
             st.session_state[vendor_cache_key] = vendor_list
 
+        # FIX: Use empty label and collapsed visibility to prevent duplicate "All Vendors" text
         selected = st.selectbox(
-            "Select vendor",
+            "",  # empty label
             st.session_state[vendor_cache_key],
             index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
@@ -773,6 +654,21 @@ def render_filters():
                         st.session_state.date_range = (new_start, new_end)
                         st.session_state.preset = p
                     st.rerun()
+
+    st.markdown(f"""
+    <style>
+    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"] {{
+        background-color: #2563eb !important;
+        background: #2563eb !important;
+        color: white !important;
+        border: 2px solid #2563eb !important;
+    }}
+    button[data-testid="baseButton-preset_{current_preset.replace(' ', '_')}"]:hover {{
+        background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
@@ -839,9 +735,9 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
     st.session_state.selected_invoice = inv_str
-    st.session_state.inv_search_term = inv_str
-    st.session_state.inv_search_active = True
+    st.session_state.inv_search_q = ""
     st.session_state.page = "Invoices"
+    st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
@@ -935,23 +831,28 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
         tab_cols = st.columns([1, 1, 1], gap="small")
         with tab_cols[0]:
-            btn_type = "primary" if current_tab == 'Overdue' else "secondary"
-            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True, type=btn_type):
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue", use_container_width=True):
                 st.session_state.na_tab = 'Overdue'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[1]:
-            btn_type = "primary" if current_tab == 'Disputed' else "secondary"
-            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True, type=btn_type):
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed", use_container_width=True):
                 st.session_state.na_tab = 'Disputed'
                 st.session_state.na_page = 0
                 st.rerun()
         with tab_cols[2]:
-            btn_type = "primary" if current_tab == 'Due' else "secondary"
-            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True, type=btn_type):
+            if st.button(f"Due ({due_count})", key="na_btn_due30d", use_container_width=True):
                 st.session_state.na_tab = 'Due'
                 st.session_state.na_page = 0
                 st.rerun()
+
+        st.markdown(f"""
+        <style>
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_overdue'] * { color: white !important; }" if current_tab == 'Overdue' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_disputed'] * { color: white !important; }" if current_tab == 'Disputed' else ""}
+        {"div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] { background: #2563eb !important; background-color: #2563eb !important; color: white !important; border-color: #2563eb !important; font-weight: 800 !important; } div[data-testid='stButton'] button[data-testid='baseButton-na_btn_due30d'] * { color: white !important; }" if current_tab == 'Due' else ""}
+        </style>
+        """, unsafe_allow_html=True)
 
         st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
@@ -991,7 +892,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
-                                    navigate_to_invoice(ref)
+                                    st.session_state["invoice_search_from_card"] = ref
+                                    st.session_state["page"] = "Invoices"
+                                    st.experimental_set_query_params(tab="Invoices", invoice=ref)
+                                    st.rerun()
                                 vendor_nm = str(r.get("vendor_name", "—"))
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
@@ -1037,7 +941,7 @@ def render_charts(rng_start, rng_end, vendor_where):
 
     with col1:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-weight: 700;'>Invoice Status Distribution</h3>", unsafe_allow_html=True)
             status_sql = f"""
                 SELECT
                     CASE
@@ -1072,11 +976,10 @@ def render_charts(rng_start, rng_end, vendor_where):
             center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=12, color="#6b7280", dy=20).encode(text="text:N")
             chart = donut + center_text + center_label
             st.altair_chart(chart, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-weight: 700;'>Top 10 Vendors by Spend</h3>", unsafe_allow_html=True)
             top_vendors_sql = f"""
                 SELECT v.vendor_name, SUM(COALESCE(f.invoice_amount_local,0)) AS spend
                 FROM {DATABASE}.fact_all_sources_vw f
@@ -1105,11 +1008,10 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
     with col3:
         with st.container(border=True):
-            st.markdown("<div class='chart-container'><h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-weight: 700;'>Spend Trend Analysis</h3>", unsafe_allow_html=True)
             trend_sql = f"""
                 SELECT
                     DATE_TRUNC('month', posting_date) AS month,
@@ -1140,11 +1042,10 @@ def render_charts(rng_start, rng_end, vendor_where):
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
 def render_dashboard():
-    bg_color = st.session_state.get("dashboard_bg_color", "#ffffff")
-    inject_dashboard_css(bg_color)
+    # Fixed background color (white) - no floating button
+    inject_dashboard_css("#ffffff")
 
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
@@ -1238,6 +1139,9 @@ def render_dashboard():
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
+# ------------------------------------------------------------
+# forecast.py (unchanged)
+# ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
         SELECT
@@ -1378,10 +1282,10 @@ def render_forecast():
         st.markdown("### Action Playbook")
         st.markdown("Use these guided analyses to turn the forecast into decisions: who to pay now, who to pay early, and where we are at risk of paying late.")
         actions = [
-            ("Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
-            ("Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
-            ("Late payment trend and risk", "Show late payment trend for forecasting")
+            ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
+            ("⏰ Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
+            ("⚠️ Late payment trend and risk", "Show late payment trend for forecasting")
         ]
         for label, question in actions:
             if st.button(label, use_container_width=True):
@@ -1427,64 +1331,11 @@ def render_forecast():
             year = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
 
-            st.markdown("""
-            <style>
-            .grir-card {
-                border-radius: 16px;
-                padding: 1.2rem 1rem;
-                text-align: center;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-                border: 1px solid rgba(0,0,0,0.05);
-                height: 100%;
-                transition: transform 0.1s ease;
-            }
-            .grir-card:hover {
-                transform: translateY(-2px);
-            }
-            .grir-card-title {
-                font-size: 0.75rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 0.5rem;
-            }
-            .grir-card-value {
-                font-size: 2rem;
-                font-weight: 800;
-                line-height: 1.2;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.markdown(f"""
-                <div class="grir-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);">
-                    <div class="grir-card-title" style="color: #1e40af;">TOTAL GR/IR</div>
-                    <div class="grir-card-value" style="color: #1e3a8a;">{abbr_currency(total_grir)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col2:
-                st.markdown(f"""
-                <div class="grir-card" style="background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);">
-                    <div class="grir-card-title" style="color: #9a3412;">% > 60 DAYS</div>
-                    <div class="grir-card-value" style="color: #7c2d12;">{pct_over_60:.1f}%</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col3:
-                st.markdown(f"""
-                <div class="grir-card" style="background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);">
-                    <div class="grir-card-title" style="color: #991b1b;">> 60 DAYS AMOUNT</div>
-                    <div class="grir-card-value" style="color: #7f1d1d;">{abbr_currency(amount_over_60)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col4:
-                st.markdown(f"""
-                <div class="grir-card" style="background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);">
-                    <div class="grir-card-title" style="color: #5b21b6;">> 60 DAYS ITEMS</div>
-                    <div class="grir-card-value" style="color: #4c1d95;">{cnt_over_60:,}</div>
-                </div>
-                """, unsafe_allow_html=True)
+            grir_cols = st.columns(4)
+            grir_cols[0].metric("TOTAL GR/IR", abbr_currency(total_grir))
+            grir_cols[1].metric("% > 60 DAYS", f"{pct_over_60:.1f}%")
+            grir_cols[2].metric("> 60 DAYS AMOUNT", abbr_currency(amount_over_60))
+            grir_cols[3].metric("> 60 DAYS ITEMS", f"{cnt_over_60:,}")
 
             st.caption(f"GR/IR position for {year:04d}-{month:02d}: {grir_items:,} items outstanding; {pct_over_60:.1f}% of balance and {cnt_over_60:,} items are older than 60 days.")
 
@@ -1520,6 +1371,9 @@ def render_forecast():
                 st.session_state.page = "Genie"
                 st.rerun()
 
+# ------------------------------------------------------------
+# genie.py - Summarize appears inside the right container, buttons top, summary below
+# ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
         return ""
@@ -1664,36 +1518,7 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
-def is_off_topic(question: str) -> bool:
-    q_lower = question.lower().strip()
-    off_topic_patterns = [
-        r"^(hi|hello|hey|greetings)(\s|$)",
-        r"^(how are you|how are you doing|what's up|how's it going)(\s|$)",
-        r"^(what are you doing|what can you do|who are you|what is your name)(\s|$)",
-        r"^(good morning|good afternoon|good evening)(\s|$)",
-        r"^(thank|thanks)(\s|$)",
-        r"^(tell me a joke|tell me something fun)(\s|$)"
-    ]
-    for pattern in off_topic_patterns:
-        if re.search(pattern, q_lower):
-            return True
-    return False
-
-def get_off_topic_response(question: str) -> dict:
-    return {
-        "layout": "off_topic",
-        "message": (
-            "I'm designed to answer questions related to your procurement data, such as spend analysis, "
-            "vendor performance, invoice aging, payment trends, GR/IR reconciliation, and cash flow forecasting. "
-            "Could you please rephrase your question in the context of your procurement data?"
-        ),
-        "question": question
-    }
-
 def process_custom_query(query: str, history: str = "") -> dict:
-    if is_off_topic(query):
-        return get_off_topic_response(query)
-
     sql = generate_sql_from_semantic(query)
     if not sql or not is_safe_sql(sql):
         return {"layout": "error", "message": "Could not generate safe SQL for this question."}
@@ -1739,8 +1564,6 @@ Respond in plain text using markdown for headings and bullet points. Do not incl
     }
 
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     cf_sql = f"""
         SELECT
             forecast_bucket,
@@ -1844,8 +1667,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_early_payment(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     ep_sql_fallback = f"""
         SELECT
             CAST(f.invoice_number AS VARCHAR) AS document_number,
@@ -1907,8 +1728,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_payment_timing(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT
@@ -1963,8 +1782,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_late_payment_trend(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     trend_sql = f"""
         SELECT
             DATE_TRUNC('month', payment_date) AS month,
@@ -2007,8 +1824,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     sql = f"""
         SELECT
             year,
@@ -2055,8 +1870,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_root_causes(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     aging_sql = f"""
         SELECT
             year,
@@ -2115,8 +1928,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     sql = f"""
         SELECT
             year,
@@ -2169,8 +1980,6 @@ Respond in plain text, using markdown for headings and bullet points.
     }
 
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
-    if is_off_topic(question):
-        return get_off_topic_response(question)
     sql = f"""
         SELECT
             v.vendor_name,
@@ -2220,9 +2029,8 @@ Respond in plain text, using markdown for headings and bullet points. Do not inc
         "question": question
     }
 
+# Quick analysis functions (unchanged)
 def _quick_spending_overview():
-    if is_off_topic("Spending Overview"):
-        return get_off_topic_response("Spending Overview")
     monthly_sql = f"""
         SELECT
             DATE_TRUNC('month', posting_date) AS month,
@@ -2294,8 +2102,6 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_vendor_analysis():
-    if is_off_topic("Vendor Analysis"):
-        return get_off_topic_response("Vendor Analysis")
     vendors_sql = f"""
         SELECT
             COALESCE(v.vendor_name, 'Unknown') AS vendor_name,
@@ -2357,8 +2163,6 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_payment_performance():
-    if is_off_topic("Payment Performance"):
-        return get_off_topic_response("Payment Performance")
     sql = f"""
         SELECT
             DATE_FORMAT(payment_date, '%Y-%m') AS month,
@@ -2410,8 +2214,6 @@ Respond in plain text using markdown headings and bullet points.
     }
 
 def _quick_invoice_aging():
-    if is_off_topic("Invoice Aging"):
-        return get_off_topic_response("Invoice Aging")
     sql = f"""
         SELECT
             CASE
@@ -2468,6 +2270,9 @@ Respond in plain text using markdown headings and bullet points.
         "question": "Invoice Aging"
     }
 
+# ------------------------------------------------------------
+# Response renderers (all unchanged, with safe_dataframe_display)
+# ------------------------------------------------------------
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2612,9 +2417,6 @@ def render_grir_vendor_followup(result: dict):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
 def render_quick_analysis_response(result: dict):
-    if result.get("layout") == "off_topic":
-        st.info(result.get("message", "Question is not related to procurement data."))
-        return
     analysis_type = result.get("analysis_type", "spending_overview")
     metrics = result.get("metrics", {})
     analyst_response = result.get("analyst_response", "")
@@ -2755,18 +2557,10 @@ def render_quick_analysis_response(result: dict):
         else:
             st.caption("No SQL available.")
 
+# ------------------------------------------------------------
+# User question processing and Genie UI (with wrapper and buttons)
+# ------------------------------------------------------------
 def process_user_question(user_question: str):
-    if is_off_topic(user_question):
-        result = get_off_topic_response(user_question)
-        st.session_state.current_messages = []
-        st.session_state.current_messages.append({"role": "user", "content": user_question, "timestamp": datetime.now()})
-        st.session_state.current_messages.append({"role": "assistant", "content": result["message"], "response": result, "timestamp": datetime.now()})
-        save_chat_message(st.session_state.genie_session_id, 0, "user", user_question)
-        save_chat_message(st.session_state.genie_session_id, 1, "assistant", result["message"], source="off_topic")
-        save_question(user_question, "off_topic")
-        st.rerun()
-        return
-
     with st.spinner("Generating insights..."):
         cached = get_cache(user_question)
         if cached:
@@ -2945,56 +2739,48 @@ def render_genie():
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            if is_off_topic(auto_query):
-                result = get_off_topic_response(auto_query)
-                st.session_state.current_messages = []
-                st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
-                st.session_state.current_messages.append({"role": "assistant", "content": result["message"], "response": result, "timestamp": datetime.now()})
-                save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
-                save_chat_message(st.session_state.genie_session_id, 1, "assistant", result["message"], source="off_topic")
-                st.rerun()
+            history_context = get_recent_conversation_context(limit=20, max_age_days=2)
+            if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
+                result = process_grir_hotspots(auto_query, history_context)
+            elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
+                result = process_grir_root_causes(auto_query, history_context)
+            elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
+                result = process_grir_working_capital(auto_query, history_context)
+            elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
+                result = process_grir_vendor_followup(auto_query, history_context)
+            elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
+                result = process_cash_flow_forecast(auto_query, history_context)
+            elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
+                result = process_early_payment(auto_query, history_context)
+            elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
+                result = process_payment_timing(auto_query, history_context)
+            elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
+                result = process_late_payment_trend(auto_query, history_context)
+            elif auto_query == "Spending Overview":
+                result = _quick_spending_overview()
+            elif auto_query == "Vendor Analysis":
+                result = _quick_vendor_analysis()
+            elif auto_query == "Payment Performance":
+                result = _quick_payment_performance()
+            elif auto_query == "Invoice Aging":
+                result = _quick_invoice_aging()
             else:
-                history_context = get_recent_conversation_context(limit=20, max_age_days=2)
-                if auto_query == "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing.":
-                    result = process_grir_hotspots(auto_query, history_context)
-                elif auto_query == "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions.":
-                    result = process_grir_root_causes(auto_query, history_context)
-                elif auto_query == "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month.":
-                    result = process_grir_working_capital(auto_query, history_context)
-                elif auto_query == "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points.":
-                    result = process_grir_vendor_followup(auto_query, history_context)
-                elif any(kw in auto_query.lower() for kw in ["forecast cash outflow", "cash flow forecast"]):
-                    result = process_cash_flow_forecast(auto_query, history_context)
-                elif any(kw in auto_query.lower() for kw in ["pay early", "capture discounts"]):
-                    result = process_early_payment(auto_query, history_context)
-                elif any(kw in auto_query.lower() for kw in ["optimal payment timing"]):
-                    result = process_payment_timing(auto_query, history_context)
-                elif any(kw in auto_query.lower() for kw in ["late payment trend"]):
-                    result = process_late_payment_trend(auto_query, history_context)
-                elif auto_query == "Spending Overview":
-                    result = _quick_spending_overview()
-                elif auto_query == "Vendor Analysis":
-                    result = _quick_vendor_analysis()
-                elif auto_query == "Payment Performance":
-                    result = _quick_payment_performance()
-                elif auto_query == "Invoice Aging":
-                    result = _quick_invoice_aging()
-                else:
-                    result = process_custom_query(auto_query, history_context)
-                st.session_state.current_messages = []
-                st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
-                if result.get("layout") != "error":
-                    assistant_content = result.get('analyst_response', 'Analysis complete.')
-                    st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
-                    save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
-                    sql_used = _safe_sql_string(result.get("sql"))
-                    save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=sql_used)
-                    save_question(auto_query, "forecast")
-                    set_cache(auto_query, result)
-                else:
-                    st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
-                st.rerun()
+                result = process_custom_query(auto_query, history_context)
+            st.session_state.current_messages = []
+            st.session_state.current_messages.append({"role": "user", "content": auto_query, "timestamp": datetime.now()})
+            if result.get("layout") != "error":
+                assistant_content = result.get('analyst_response', 'Analysis complete.')
+                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+                save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
+                sql_used = _safe_sql_string(result.get("sql"))
+                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=sql_used)
+                save_question(auto_query, "forecast")
+                set_cache(auto_query, result)
+            else:
+                st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
+            st.rerun()
 
+    # Left-aligned welcome header
     st.markdown("""
     <div class="welcome-header-left">
         <h1>Welcome to ProcureIQ Genie</h1>
@@ -3002,6 +2788,7 @@ def render_genie():
     </div>
     """, unsafe_allow_html=True)
 
+    # Quick analysis cards (4 columns)
     cards_data = [
         {"icon": "📊", "title": "Spending Overview", "description": "Track total spend, monthly trends and major changes"},
         {"icon": "🏭", "title": "Vendor Analysis", "description": "Understand vendor-wise spend, concentration, and dependency"},
@@ -3024,6 +2811,7 @@ def render_genie():
 
     st.markdown("---")
 
+    # Left column: grouped container with expanders, Right column: chat area with wrapper and buttons
     left_info, right_chat = st.columns([0.35, 0.65], gap="large")
 
     with left_info:
@@ -3060,6 +2848,7 @@ def render_genie():
 
     with right_chat:
         with st.container(border=True):
+            # Buttons row - Export MD, Summarize, Clear
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button("Export MD", use_container_width=True, key="export_md_top"):
@@ -3079,6 +2868,7 @@ def render_genie():
                     start_new_session()
                     st.rerun()
 
+            # Show conversation summary (if any) directly below the buttons
             if st.session_state.show_summary and st.session_state.conversation_summary:
                 st.markdown("### Conversation Summary")
                 st.markdown(st.session_state.conversation_summary)
@@ -3087,6 +2877,7 @@ def render_genie():
                     st.rerun()
                 st.markdown("---")
 
+            # Chat area
             if not st.session_state.current_messages:
                 st.markdown("""
                 <div class="start-conversation">
@@ -3105,9 +2896,7 @@ def render_genie():
                         if "response" in msg and msg["response"]:
                             resp = msg["response"]
                             layout = resp.get("layout")
-                            if layout == "off_topic":
-                                st.info(resp.get("message", "Question not related to procurement data."))
-                            elif layout == "cash_flow":
+                            if layout == "cash_flow":
                                 render_cash_flow_response(resp)
                             elif layout == "early_payment":
                                 render_early_payment_response(resp)
@@ -3143,6 +2932,7 @@ def render_genie():
                             st.markdown(msg["content"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
+            # Input form
             with st.form(key="genie_chat_form", clear_on_submit=True):
                 col_in, col_btn = st.columns([0.85, 0.15])
                 with col_in:
@@ -3153,6 +2943,9 @@ def render_genie():
                 if submitted and user_question:
                     process_user_question(user_question)
 
+# ------------------------------------------------------------
+# invoices.py - Updated with horizontal two-row tables
+# ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
         val = inv_row.get(key, default)
@@ -3183,31 +2976,36 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    summary_html = f"""
-    <table style="width:100%; border-collapse: collapse; margin-bottom: 1rem;">
-        <tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Invoice Number</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Invoice Date</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Invoice Amount</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">PO Number</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">PO Amount</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Due Date</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Invoice Status</th>
-            <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Aging (Days)</th>
-          </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px 8px;">{inv_num}</td>
-            <td style="padding: 10px 8px;">{get_val("invoice_date", "")}</td>
-            <td style="padding: 10px 8px;">{abbr_currency(get_val("invoice_amount", 0))}</td>
-            <td style="padding: 10px 8px;">{get_val("po_number", "")}</td>
-            <td style="padding: 10px 8px;">{abbr_currency(get_val("po_amount", 0))}</td>
-            <td style="padding: 10px 8px;">{get_val("due_date", "")}</td>
-            <td style="padding: 10px 8px;">{get_val("invoice_status", "").upper()}</td>
-            <td style="padding: 10px 8px;">{f"{aging_days} days" if aging_days > 0 else "0 days"}</td>
-          </tr>
-    </table>
-    """
-    st.markdown(summary_html, unsafe_allow_html=True)
+
+    # Build horizontal table: first row field names, second row values
+    summary_fields = [
+        "Invoice Number", "Invoice Date", "Invoice Amount", "PO Number",
+        "PO Amount", "Due Date", "Invoice Status", "Aging (Days)"
+    ]
+    summary_values = [
+        inv_num,
+        get_val("invoice_date", ""),
+        abbr_currency(get_val("invoice_amount", 0)),
+        get_val("po_number", ""),
+        abbr_currency(get_val("po_amount", 0)),
+        get_val("due_date", ""),
+        get_val("invoice_status", "").upper(),
+        f"{aging_days} days" if aging_days > 0 else "0 days"
+    ]
+    # Create HTML table with two rows
+    html_table = '<table style="width:100%; border-collapse: collapse; margin-bottom: 1rem;">'
+    # Header row
+    html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+    for field in summary_fields:
+        html_table += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600; color: #1e293b;">{field}</th>'
+    html_table += '</tr>'
+    # Values row
+    html_table += '<tr>'
+    for val in summary_values:
+        html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
+    html_table += '</tr>'
+    html_table += '</table>'
+    st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### Status History")
@@ -3236,20 +3034,11 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             new_row = pd.DataFrame([{"status": "PAID", "effective_date": date.today().strftime("%Y-%m-%d"), "status_notes": "Processed via ProcureSpendIQ app"}])
             hist_df = pd.concat([hist_df, new_row], ignore_index=True)
     hist_df["effective_date"] = hist_df["effective_date"].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x, (date, datetime)) else str(x))
-    hist_html = '<table style="width:100%; border-collapse: collapse;">'
-    hist_html += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
-    hist_html += '<th style="padding: 10px 8px; text-align: left;">Status</th>'
-    hist_html += '<th style="padding: 10px 8px; text-align: left;">Effective Date</th>'
-    hist_html += '<th style="padding: 10px 8px; text-align: left;">Status Notes</th>'
-    hist_html += '</tr>'
-    for _, row in hist_df.iterrows():
-        hist_html += f'<tr style="border-bottom: 1px solid #e2e8f0;">'
-        hist_html += f'<td style="padding: 10px 8px;">{row["status"]}</td>'
-        hist_html += f'<td style="padding: 10px 8px;">{row["effective_date"]}</td>'
-        hist_html += f'<td style="padding: 10px 8px;">{row["status_notes"]}</td>'
-        hist_html += '</tr>'
-    hist_html += '</table>'
-    st.markdown(hist_html, unsafe_allow_html=True)
+    st.dataframe(safe_dataframe_display(hist_df[["status","effective_date","status_notes"]]), use_container_width=True, hide_index=True, column_config={
+        "status": st.column_config.TextColumn("Status", width="small"),
+        "effective_date": st.column_config.TextColumn("Effective Date", width="small"),
+        "status_notes": st.column_config.TextColumn("Status Notes", width="large"),
+    })
 
     st.markdown("---")
     st.markdown("### Vendor Information")
@@ -3288,17 +3077,18 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
             vendor_values = [
                 "0001000007", "McMaster-Carr", "VN-03608", "NL", "Bangalore", "13607", "Tech Center 611"
             ]
-        vendor_html = '<table style="width:100%; border-collapse: collapse;">'
-        vendor_html += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
-        for field in vendor_fields:
-            vendor_html += f'<th style="padding: 10px 8px; text-align: left;">{field}</th>'
-        vendor_html += '<tr>'
-        vendor_html += '<tr style="border-bottom: 1px solid #e2e8f0;">'
-        for val in vendor_values:
-            vendor_html += f'<td style="padding: 10px 8px;">{val}</td>'
-        vendor_html += '</tr>'
-        vendor_html += '</table>'
-        st.markdown(vendor_html, unsafe_allow_html=True)
+        # Create horizontal table
+        html_vendor = '<table style="width:100%; border-collapse: collapse;">'
+        html_vendor += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+        for f in vendor_fields:
+            html_vendor += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
+        html_vendor += '</table>'
+        html_vendor += '<tr>'
+        for v in vendor_values:
+            html_vendor += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
+        html_vendor += '</tr>'
+        html_vendor += '</table>'
+        st.markdown(html_vendor, unsafe_allow_html=True)
 
     with tab2:
         company_sql = f"""
@@ -3335,17 +3125,17 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
                 "1000", "Alpha Manufacturing Inc.", "1000", "Main Production Plant",
                 "350 Fifth Avenue", "New York", "10001"
             ]
-        company_html = '<table style="width:100%; border-collapse: collapse;">'
-        company_html += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
-        for field in company_fields:
-            company_html += f'<th style="padding: 10px 8px; text-align: left;">{field}</th>'
-        company_html += '</tr>'
-        company_html += '<tr style="border-bottom: 1px solid #e2e8f0;">'
-        for val in company_values:
-            company_html += f'<td style="padding: 10px 8px;">{val}</td>'
-        company_html += '</tr>'
-        company_html += '</table>'
-        st.markdown(company_html, unsafe_allow_html=True)
+        html_company = '<table style="width:100%; border-collapse: collapse;">'
+        html_company += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
+        for f in company_fields:
+            html_company += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
+        html_company += '</table>'
+        html_company += '<tr>'
+        for v in company_values:
+            html_company += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
+        html_company += '</tr>'
+        html_company += '</table>'
+        st.markdown(html_company, unsafe_allow_html=True)
 
     st.markdown("---")
     current_status = get_val("invoice_status", "").upper()
@@ -3362,88 +3152,63 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
-    
-    col_search1, col_search2 = st.columns([3, 1])
-    with col_search1:
-        search_term = st.text_input("Search by Invoice / PO Number", value=st.session_state.get("inv_search_term", ""), placeholder="e.g., 9001767 or PO12345", key="inv_search_input")
-    with col_search2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("🔍 Search", key="inv_search_btn", use_container_width=True):
-                st.session_state.inv_search_term = search_term
-                st.session_state.inv_search_active = True
-                st.rerun()
-        with col_btn2:
-            if st.button("Reset", key="inv_reset_btn", use_container_width=True):
-                st.session_state.inv_search_term = ""
-                st.session_state.inv_search_active = False
-                if "invoice_status_filter" in st.session_state:
-                    del st.session_state.invoice_status_filter
-                if "inv_sel_vendor" in st.session_state:
-                    del st.session_state.inv_sel_vendor
-                if "inv_sel_status" in st.session_state:
-                    del st.session_state.inv_sel_status
-                st.rerun()
-    
-    query_params = {}
-    try:
-        query_params = st.experimental_get_query_params()
-    except:
-        pass
+    query_params = st.experimental_get_query_params()
     selected_invoice = query_params.get("invoice", [None])[0] if "invoice" in query_params else None
-    
-    if selected_invoice or (st.session_state.get("inv_search_active", False) and st.session_state.get("inv_search_term", "")):
-        search_value = selected_invoice if selected_invoice else st.session_state.get("inv_search_term", "")
-        if search_value:
-            clean_search = clean_invoice_number(search_value)
-            inv_sql = f"""
-                SELECT
-                    f.invoice_number,
-                    f.posting_date AS invoice_date,
-                    f.invoice_amount_local AS invoice_amount,
-                    f.purchase_order_reference AS po_number,
-                    f.po_amount,
-                    f.due_date,
-                    UPPER(f.invoice_status) AS invoice_status,
-                    f.aging_days,
-                    f.vendor_id,
-                    v.vendor_name,
-                    v.vendor_name_2,
-                    v.country_code,
-                    v.city,
-                    v.postal_code,
-                    v.street,
-                    f.company_code,
-                    f.plant_code,
-                    f.currency
-                FROM {DATABASE}.fact_all_sources_vw f
-                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-                WHERE CAST(f.invoice_number AS VARCHAR) = '{clean_search}'
-                   OR CAST(f.purchase_order_reference AS VARCHAR) = '{clean_search}'
-                LIMIT 1
-            """
-            inv_df = run_query(inv_sql)
-            if not inv_df.empty:
-                inv_num = str(inv_df.iloc[0]["invoice_number"])
-                render_invoice_detail(inv_df.iloc[0].to_dict(), inv_num)
-                if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
-                    try:
-                        st.experimental_set_query_params(tab="Invoices")
-                    except:
-                        pass
-                    st.session_state.inv_search_active = False
-                    st.session_state.inv_search_term = ""
-                    st.rerun()
-                return
-            else:
-                st.warning(f"No invoice or PO found with number '{search_value}'. Showing all invoices.")
-                st.session_state.inv_search_active = False
-                st.session_state.inv_search_term = ""
-    
-    if "invoice_status_filter" not in st.session_state:
-        st.session_state.invoice_status_filter = "All Status"
-    
+    if selected_invoice:
+        inv_sql = f"""
+            SELECT
+                f.invoice_number,
+                f.posting_date AS invoice_date,
+                f.invoice_amount_local AS invoice_amount,
+                f.purchase_order_reference AS po_number,
+                f.po_amount,
+                f.due_date,
+                UPPER(f.invoice_status) AS invoice_status,
+                f.aging_days,
+                f.vendor_id,
+                v.vendor_name,
+                v.vendor_name_2,
+                v.country_code,
+                v.city,
+                v.postal_code,
+                v.street,
+                f.company_code,
+                f.plant_code,
+                f.currency
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE CAST(f.invoice_number AS VARCHAR) = '{selected_invoice}'
+            LIMIT 1
+        """
+        inv_df = run_query(inv_sql)
+        if not inv_df.empty:
+            render_invoice_detail(inv_df.iloc[0].to_dict(), selected_invoice)
+            if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
+                st.experimental_set_query_params(tab="Invoices")
+                st.rerun()
+            return
+        else:
+            st.warning(f"Invoice {selected_invoice} not found. Clearing selection.")
+            st.experimental_set_query_params(tab="Invoices")
+            st.rerun()
+    if "invoice_search_term" not in st.session_state:
+        st.session_state.invoice_search_term = ""
+    prefill = st.session_state.pop("invoice_search_term", None)
+    if prefill:
+        st.session_state.inv_search_q = clean_invoice_number(prefill)
+    search_term = st.session_state.get("inv_search_q", "")
+    col1, col2 = st.columns([3,1])
+    with col1:
+        user_search = st.text_input("Search by Invoice or PO Number", value=search_term, placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_input")
+    with col2:
+        if st.button("Reset", key="btn_inv_reset"):
+            st.session_state.inv_search_q = ""
+            st.session_state.invoice_search_term = ""
+            st.session_state.invoice_status_filter = "All Status"
+            st.rerun()
+    if user_search != search_term:
+        st.session_state.inv_search_q = user_search
+        st.rerun()
     col_vendor, col_status = st.columns(2)
     with col_vendor:
         if "inv_vendor_list" not in st.session_state:
@@ -3454,12 +3219,13 @@ def render_invoices():
     with col_status:
         status_options = ["All Status", "OPEN", "PAID", "DISPUTED", "OVERDUE", "DUE_NEXT_30"]
         selected_status_display = st.selectbox("Status", status_options, index=status_options.index(st.session_state.get("invoice_status_filter", "All Status")) if st.session_state.get("invoice_status_filter", "All Status") in status_options else 0, key="inv_sel_status")
-        st.session_state.invoice_status_filter = selected_status_display
         selected_status = selected_status_display
         if selected_status == "DUE_NEXT_30":
             selected_status = "OPEN"
-    
     where = []
+    if user_search:
+        clean_search = clean_invoice_number(user_search)
+        where.append(f"CAST(f.invoice_number AS VARCHAR) = '{clean_search}'")
     if selected_vendor != "All Vendors":
         safe_vendor = selected_vendor.replace("'", "''")
         where.append(f"UPPER(v.vendor_name) = UPPER('{safe_vendor}')")
@@ -3469,7 +3235,6 @@ def render_invoices():
         else:
             where.append(f"UPPER(f.invoice_status) = '{selected_status}'")
     where_sql = " AND ".join(where) if where else "1=1"
-    
     query = f"""
         SELECT DISTINCT
             f.invoice_number AS invoice_number,
@@ -3496,17 +3261,13 @@ def render_invoices():
             'po_number': 'PO NUMBER',
             'status': 'STATUS'
         })
-        st.dataframe(
-            safe_dataframe_display(df_display),
-            use_container_width=True,
-            height=400,
-            column_config={
-                "INVOICE NUMBER": st.column_config.TextColumn("INVOICE NUMBER", help="Click to view invoice details"),
-            }
-        )
+        st.dataframe(safe_dataframe_display(df_display), use_container_width=True, height=400)
     else:
         st.info("No invoices found. Try a different search term.")
 
+# ------------------------------------------------------------
+# main app
+# ------------------------------------------------------------
 def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
@@ -3514,7 +3275,7 @@ def main():
     st.markdown("""
 <style>
 .block-container {
-    padding-top: 2rem !important;
+    padding-top: 2rem !important;  /* Increased top padding for better visibility */
     padding-bottom: 0rem !important;
 }
 .kpi {
@@ -3534,9 +3295,10 @@ def main():
     font-weight: 900;
     margin-top: 6px;
 }
+/* Top bar layout - improved spacing */
 .title-section {
     text-align: left;
-    margin-top: 1rem;
+    margin-top: 1rem;  /* Moved down */
 }
 .nav-section {
     display: flex;
@@ -3551,15 +3313,42 @@ def main():
     height: 100%;
     margin-top: 1rem;
 }
+button[kind="primary"] {
+    background-color: #2563eb !important;
+    background: #2563eb !important;
+    color: white !important;
+    border: 2px solid #2563eb !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+button[kind="primary"]:hover {
+    background-color: #1d4ed8 !important;
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+button[data-testid="baseButton-proceed_pay_btn"],
+button[data-testid="baseButton-back_invoices_btn"] {
+    background-color: #2563eb !important;
+    background: #2563eb !important;
+    color: white !important;
+    border: 2px solid #2563eb !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+button[data-testid="baseButton-proceed_pay_btn"]:hover,
+button[data-testid="baseButton-back_invoices_btn"]:hover {
+    background-color: #1d4ed8 !important;
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
-    if "dashboard_bg_color" not in st.session_state:
-        st.session_state.dashboard_bg_color = "#ffffff"
 
-    col_title, col_nav, col_right = st.columns([1.2, 2.5, 1], gap="medium")
+    # Three-column layout: title (left), nav (center), logo (right)
+    col_title, col_nav, col_logo = st.columns([1.2, 2.5, 1], gap="medium")
 
     with col_title:
         st.markdown('<div class="title-section">', unsafe_allow_html=True)
@@ -3594,7 +3383,7 @@ def main():
                 set_page("Invoices")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_right:
+    with col_logo:
         st.markdown(f'<div class="logo-container"><img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" /></div>', unsafe_allow_html=True)
 
     st.markdown("---")
@@ -3602,56 +3391,11 @@ def main():
     if st.session_state.page == "Dashboard":
         render_dashboard()
     elif st.session_state.page == "Genie":
-        st.markdown(f"""
-        <style>
-            .main > .block-container {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-            .stApp {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-        </style>
-        """, unsafe_allow_html=True)
         render_genie()
     elif st.session_state.page == "Forecast":
-        st.markdown(f"""
-        <style>
-            .main > .block-container {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-            .stApp {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-        </style>
-        """, unsafe_allow_html=True)
         render_forecast()
     else:
-        st.markdown(f"""
-        <style>
-            .main > .block-container {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-            .stApp {{
-                background-color: {st.session_state.dashboard_bg_color} !important;
-            }}
-        </style>
-        """, unsafe_allow_html=True)
         render_invoices()
-
-    with st.container():
-        st.markdown('<div class="floating-bg-button">', unsafe_allow_html=True)
-        try:
-            with st.popover("🎨"):
-                new_color = st.color_picker("Background Color", st.session_state.dashboard_bg_color)
-                if new_color != st.session_state.dashboard_bg_color:
-                    st.session_state.dashboard_bg_color = new_color
-                    st.rerun()
-        except:
-            new_color = st.color_picker("BG", st.session_state.dashboard_bg_color, key="bg_color_picker_bottom")
-            if new_color != st.session_state.dashboard_bg_color:
-                st.session_state.dashboard_bg_color = new_color
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
