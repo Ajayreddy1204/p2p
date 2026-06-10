@@ -1014,7 +1014,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
-                                    # FIX: Navigate to invoice detail
+                                    # FIX: Navigate to invoice detail page
                                     st.session_state.inv_search_term = ref
                                     st.session_state.inv_search_active = True
                                     st.session_state.page = "Invoices"
@@ -3194,7 +3194,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py - Simple static tables with Search and Reset buttons (unchanged)
+# invoices.py - Simple static tables with Search and Reset buttons
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -3284,7 +3284,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Effective Date</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status Notes</th>'
-    hist_html += '</tr>'
+    hist_html += '<tr>'
     for _, row in hist_df.iterrows():
         hist_html += f'<tr style="border-bottom: 1px solid #e2e8f0;">'
         hist_html += f'<td style="padding: 10px 8px;">{row["status"]}</td>'
@@ -3552,7 +3552,7 @@ def render_invoices():
         st.info("No invoices found. Try a different search term.")
 
 # ------------------------------------------------------------
-# main app - with BG circle button at bottom-right fixed position
+# main app - with BG circle button at bottom-right using simple color picker
 # ------------------------------------------------------------
 def main():
     init_db()
@@ -3598,14 +3598,13 @@ def main():
     height: 100%;
     margin-top: 1rem;
 }
-/* BG circle button fixed at bottom-right */
-.bg-fixed-btn {
+/* BG circle button at bottom-right */
+.bg-circle {
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 1000;
     background-color: #e2e8f0;
-    border: none;
     border-radius: 50%;
     width: 50px;
     height: 50px;
@@ -3613,16 +3612,22 @@ def main():
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
 }
-.bg-fixed-btn:hover {
+.bg-circle:hover {
     background-color: #cbd5e1;
     transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-.bg-fixed-btn:active {
+.bg-circle:active {
     transform: scale(0.95);
+}
+/* Hide the default Streamlit color picker label and reduce its size */
+div[data-testid="stColorPicker"] label {
+    display: none;
+}
+div[data-testid="stColorPicker"] {
+    margin-bottom: 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3673,80 +3678,55 @@ def main():
 
     st.markdown("---")
 
-    # Fixed BG button at bottom right (using HTML + JavaScript + Streamlit's popover)
-    # We'll use a small popover that appears when clicking the button.
-    # Since we cannot easily attach a popover to a custom HTML button, we'll use a container and a placeholder.
-    # Simpler: use a st.popover placed at the bottom (via empty container) but we want it fixed.
-    # Instead, we add a small color picker in the sidebar? But requirement: bottom-right circle button.
-    # We'll implement a floating button that opens a popover using Streamlit's native popover (>=1.29).
-    # However, popover attaches to a button. So we can create a button with custom styling and put it inside the sidebar? No.
-    # Workaround: use a st.empty at the bottom to hold a popover. But that would be inside the scrollable area.
-    # Best: Use st.columns at the very end of the page to place a color picker in the bottom-right corner, but not fixed.
-    # Given the requirement, I'll add a small color picker at the bottom-right of the page (not floating) but clearly visible and always there.
-    # To make it "circle button", we style the color picker button as a circle.
-    # We'll add it after all content, but it will be at the bottom of the page (scroll down).
-    # To make it fixed, we can add a div with fixed position using st.markdown + custom HTML/JS to trigger a popover.
-    # For simplicity and reliability, I'll add a st.color_picker at the very bottom right of the page (not fixed) and style it as a circle.
-    # Most Streamlit apps have a scroll; a fixed button is trickier. I'll implement a simple circle button at the bottom right of the main content area.
-    
-    # We'll inject a custom HTML button with a JavaScript click handler that opens a color picker dialog.
-    # But that requires more complexity. Instead, we'll put a small color picker widget at the bottom of the sidebar? No.
-    # Given the constraints, I'll add a st.popover at the very end of the page (bottom) and style its button as a circle.
-    # This button will be at the bottom of the page (not floating), but it will be at the end of the content, which is usually bottom-right.
-    # To make it appear at the bottom right, we can use an empty container with fixed position CSS.
-    # Actually, we can add an empty element and inject CSS that positions it. But the popover button is generated by Streamlit.
-    # Alternatively, we can use a custom component, but that's overkill.
-    
-    # I'll implement a clean solution: add a button at the bottom of the page (after all content) that opens a color picker in an expander or popover.
-    # Since the user expects a circle button at bottom-right, we'll place a st.button with a custom class at the bottom of the page.
-    
-    # We'll use a placeholder at the bottom of the main content.
-    # However, this button will be inside the main container, not fixed. But users will see it at the bottom of the page.
-    # To simulate bottom-right, we can use a container with text-align: right.
-    # Let's do that: at the end of the page, add a container with a button that opens a color picker in a popover.
-    
-    # We'll use a popover and style the button.
-    
-    # Because of length, I'll add a simple st.popover at the very end of the main function.
-    # But the popover button will appear after all page content, which is effectively bottom-right if we align right.
-    
-    # We'll move the popover to after the page rendering.
-    
-    # However, to keep the code simple and ensure it works, I'll add a small color picker in the sidebar for demonstration? No, the requirement is specific.
-    
-    # Given the complexity, I'll provide the fixed button via CSS and an empty div that triggers a st.popover using a little JavaScript hack (not recommended).
-    
-    # For a working solution that meets "circle button on bottom-right that opens colour picker", I'll add a st.popover at the end of the page, aligned to the right.
-    
-    # At the end of main (after all content), we add:
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    # Inject fixed circle button with color picker
+    # We'll place the actual color picker in a hidden container and trigger it via JavaScript.
+    # Simpler: add a small color picker inside a fixed div using custom CSS and a bit of Streamlit.
+    # Since we cannot easily attach a click event to a custom HTML button to open the native color picker,
+    # we'll use a small st.color_picker that is styled as a circle button at the bottom right.
+    # We'll hide its label and position it.
     with st.container():
-        # Align the popover button to the right using columns
-        _, _, col_right_btn = st.columns([6, 3, 1])
-        with col_right_btn:
-            with st.popover("🎨"):
-                new_color = st.color_picker("Choose background colour", st.session_state.dashboard_bg_color)
-                if new_color != st.session_state.dashboard_bg_color:
-                    st.session_state.dashboard_bg_color = new_color
-                    st.rerun()
-            # Style the popover's button as a circle
-            st.markdown("""
+        st.markdown(
+            f"""
             <style>
-            div[data-testid="stPopover"] button {
-                background-color: #e2e8f0 !important;
-                border-radius: 50% !important;
-                width: 50px !important;
-                height: 50px !important;
-                padding: 0 !important;
-                font-size: 24px !important;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
-            }
-            div[data-testid="stPopover"] button:hover {
-                background-color: #cbd5e1 !important;
-                transform: scale(1.05);
-            }
+            .custom-bg-picker {{
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1001;
+            }}
+            .custom-bg-picker .stColorPicker {{
+                background-color: #e2e8f0;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }}
+            .custom-bg-picker .stColorPicker button {{
+                background: none;
+                border: none;
+                font-size: 24px;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                cursor: pointer;
+            }}
+            .custom-bg-picker .stColorPicker button:hover {{
+                background-color: #cbd5e1;
+            }}
             </style>
-            """, unsafe_allow_html=True)
+            <div class="custom-bg-picker">
+            """,
+            unsafe_allow_html=True
+        )
+        # Color picker – it will appear as a small circle button
+        new_color = st.color_picker("", st.session_state.dashboard_bg_color, key="bg_picker")
+        st.markdown("</div>", unsafe_allow_html=True)
+        if new_color != st.session_state.dashboard_bg_color:
+            st.session_state.dashboard_bg_color = new_color
+            st.rerun()
 
     # Now render the selected page with the dynamic background
     if st.session_state.page == "Dashboard":
