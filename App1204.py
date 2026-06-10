@@ -452,14 +452,12 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
     }}
-    /* Active/clicked state also blue */
     button:active, .stButton button:active, button[data-testid^="baseButton"]:active {{
         background-color: #1d4ed8 !important;
         background: #1d4ed8 !important;
         border-color: #1d4ed8 !important;
         color: white !important;
     }}
-    /* Primary buttons default to blue, secondary have light background but on hover become blue */
     button[kind="primary"] {{
         background-color: #2563eb !important;
         border-color: #2563eb !important;
@@ -475,13 +473,11 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #2563eb !important;
         color: white !important;
     }}
-    /* Needs attention active tabs – ensure blue when active */
     div[data-testid='stButton'] button[data-testid^='baseButton-na_btn'][aria-expanded="true"] {{
         background: #2563eb !important;
         border-color: #2563eb !important;
         color: white !important;
     }}
-    /* KPI cards, charts, etc. */
     .stDateInput, .stSelectbox {{ width: 100%; }}
     div[data-testid="stSelectbox"] div {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
     .kpi-card {{
@@ -1276,9 +1272,7 @@ def render_forecast():
                 st.rerun()
 
 # ------------------------------------------------------------
-# genie.py – all handlers (condensed for brevity, but fully functional)
-# Note: In the actual full code, all previous genie functions are included.
-# For space, I'm keeping the essential parts.
+# genie.py – with out‑of‑domain detection and summary‑only mode
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1359,7 +1353,37 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
+def is_relevant_question(question: str) -> bool:
+    """Return True if the question is related to procurement/P2P data."""
+    keywords = [
+        "spend", "vendor", "invoice", "po", "purchase order", "payment", "due", "overdue",
+        "dispute", "gr/ir", "cash flow", "forecast", "dashboard", "kpi", "trend", "analysis",
+        "procurement", "p2p", "pay", "receipt", "goods", "price", "quantity", "status",
+        "active vendors", "total spend", "pending", "processing time", "autoprocessed"
+    ]
+    q_lower = question.lower()
+    for kw in keywords:
+        if kw in q_lower:
+            return True
+    return False
+
 def process_custom_query(query: str, history: str = "") -> dict:
+    # Out‑of‑domain guard
+    if not is_relevant_question(query):
+        return {
+            "layout": "static",
+            "analyst_response": (
+                "I'm your procurement analytics assistant. "
+                "Please ask questions related to procurement data such as spend trends, "
+                "vendor performance, invoice status, payment cycles, GR/IR reconciliation, "
+                "cash flow forecasts, or PO analysis. For example:\n\n"
+                "- What is our total spend this quarter?\n"
+                "- Show top 10 vendors by spend\n"
+                "- How many invoices are overdue?\n"
+                "- What is the average payment cycle time?"
+            ),
+            "question": query
+        }
     sql = generate_sql_from_semantic(query)
     if not sql or not is_safe_sql(sql):
         return {"layout": "error", "message": "Could not generate safe SQL for this question."}
@@ -1395,6 +1419,8 @@ Respond in plain text using markdown for headings and bullet points.
     return {"layout": "analyst", "sql": sql, "df": df.to_dict(orient="records"), "question": query, "analyst_response": analyst_text}
 
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question related to cash flow forecast, for example: 'Show cash flow forecast for next 30 days'."}
     cf_sql = f"""
         SELECT forecast_bucket, invoice_count, total_amount, earliest_due, latest_due
         FROM {DATABASE}.cash_flow_forecast_vw
@@ -1442,6 +1468,8 @@ def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     return {"layout": "cash_flow", "df": cf_df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text or "Unable to generate insights.", "question": question}
 
 def process_early_payment(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about early payment opportunities, for example: 'Which invoices can be paid early to capture discounts?'"}
     ep_sql = f"""
         SELECT CAST(f.invoice_number AS VARCHAR) AS document_number, v.vendor_name,
             f.invoice_amount_local AS invoice_amount, f.due_date,
@@ -1464,6 +1492,8 @@ def process_early_payment(question: str, history: str = "") -> dict:
     return {"layout": "early_payment", "df": ep_df.to_dict(orient="records") if not ep_df.empty else [], "sql": ep_sql, "analyst_response": analyst_text or "No insights.", "question": question, "empty": ep_df.empty}
 
 def process_payment_timing(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about optimal payment timing, for example: 'What is the optimal payment timing strategy for this week?'"}
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT CASE
@@ -1488,6 +1518,8 @@ def process_payment_timing(question: str, history: str = "") -> dict:
     return {"layout": "payment_timing", "df": timing_df.to_dict(orient="records"), "sql": timing_sql, "analyst_response": analyst_text or "No insights.", "question": question}
 
 def process_late_payment_trend(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about late payment trends, for example: 'Show late payment trend for the last 6 months'."}
     trend_sql = f"""
         SELECT DATE_TRUNC('month', payment_date) AS month, COUNT(*) AS total_payments,
             SUM(CASE WHEN payment_date > due_date THEN 1 ELSE 0 END) AS late_payments,
@@ -1505,6 +1537,8 @@ def process_late_payment_trend(question: str, history: str = "") -> dict:
     return {"layout": "late_payment_trend", "df": trend_df.to_dict(orient="records"), "sql": trend_sql, "analyst_response": analyst_text or "No insights.", "question": question}
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR hotspots, for example: 'Show GR/IR outstanding balance by month'."}
     sql = f"""
         SELECT year, month, invoice_count, total_grir_blnc AS total_grir_balance
         FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC
@@ -1526,6 +1560,8 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
     return {"layout": "grir_hotspots", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
 def process_grir_root_causes(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR root causes, for example: 'Explain likely GR/IR root causes'."}
     aging_sql = f"SELECT year, month, pct_grir_over_60, cnt_grir_over_60 FROM {DATABASE}.gr_ir_aging_vw ORDER BY year DESC, month DESC LIMIT 6"
     balance_sql = f"SELECT year, month, total_grir_blnc FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC LIMIT 6"
     aging_df = run_query(aging_sql)
@@ -1540,6 +1576,8 @@ def process_grir_root_causes(question: str, history: str = "") -> dict:
     return {"layout": "grir_root_causes", "df": aging_df.to_dict(orient="records") if not aging_df.empty else [], "extra_df": balance_df.to_dict(orient="records") if not balance_df.empty else [], "sql": {"aging_sql": aging_sql, "balance_sql": balance_sql}, "analyst_response": analyst_text, "question": question}
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about working capital release from GR/IR, for example: 'Estimate working capital that would be released by clearing old GR/IR'."}
     sql = f"""
         SELECT year, month, total_grir_blnc,
             CASE WHEN (year * 100 + month) <= (EXTRACT(YEAR FROM CURRENT_DATE) * 100 + EXTRACT(MONTH FROM CURRENT_DATE) - 60)
@@ -1566,6 +1604,8 @@ def process_grir_working_capital(question: str, history: str = "") -> dict:
     return {"layout": "grir_working_capital", "df": df.to_dict(orient="records"), "metrics": {"older_60": float(total_old_60), "older_90": float(total_old_90)}, "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
+    if not is_relevant_question(question):
+        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR vendor follow-up, for example: 'Draft vendor follow-up messages for high GR/IR items'."}
     sql = f"""
         SELECT v.vendor_name, COUNT(*) AS grir_count, SUM(f.invoice_amount_local) AS total_amount,
             AVG(DATE_DIFF('day', f.posting_date, CURRENT_DATE)) AS avg_age_days
@@ -1981,6 +2021,7 @@ def process_user_question(user_question: str):
             result = _dispatch_query(user_question, history_context)
             st.session_state.current_messages = [{"role": "user", "content": user_question, "timestamp": datetime.now()}]
             if result.get("layout") != "error":
+                # For static out-of-domain responses, we also store the result
                 assistant_content = result.get('analyst_response', 'Analysis complete.')
                 st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
                 set_cache(user_question, result)
@@ -1994,6 +2035,8 @@ def process_user_question(user_question: str):
 def start_new_session():
     st.session_state.genie_session_id = str(uuid.uuid4())
     st.session_state.current_messages = []
+    st.session_state.show_summary = False
+    st.session_state.conversation_summary = ""
     save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
@@ -2006,14 +2049,18 @@ def summarize_conversation():
     if summary:
         st.session_state.conversation_summary = summary
         st.session_state.show_summary = True
+        # Clear current messages so only summary is shown
+        st.session_state.current_messages = []
     else:
         st.error("Could not generate summary at this time.")
 
 def export_conversation_md():
-    if not st.session_state.current_messages:
+    if not st.session_state.current_messages and not st.session_state.get("conversation_summary"):
         st.warning("No conversation to export.")
         return
     md_lines = ["# ProcureIQ Genie Conversation\n"]
+    if st.session_state.get("conversation_summary"):
+        md_lines.append(f"**Conversation Summary**\n\n{st.session_state.conversation_summary}\n\n---\n")
     for msg in st.session_state.current_messages:
         role = "**User**" if msg["role"] == "user" else "**Genie**"
         md_lines.append(f"{role}\n\n{msg['content']}\n\n---\n")
@@ -2139,7 +2186,7 @@ def render_genie():
             btn_col1, btn_col2, btn_col3 = st.columns(3)
             with btn_col1:
                 if st.button("Export MD", use_container_width=True, key="export_md_top"):
-                    if st.session_state.current_messages:
+                    if st.session_state.current_messages or st.session_state.conversation_summary:
                         export_conversation_md()
                     else:
                         st.warning("No conversation to export.")
@@ -2154,15 +2201,16 @@ def render_genie():
                 if st.button("Clear", use_container_width=True, key="clear_top"):
                     start_new_session()
 
+            # Show summary if available, otherwise show chat messages
             if st.session_state.show_summary and st.session_state.conversation_summary:
                 st.markdown("### Conversation Summary")
                 st.markdown(st.session_state.conversation_summary)
                 if st.button("Dismiss Summary", key="dismiss_summary_inside", use_container_width=True):
                     st.session_state.show_summary = False
+                    st.session_state.conversation_summary = ""
                     st.rerun()
                 st.markdown("---")
-
-            if not st.session_state.current_messages:
+            elif not st.session_state.current_messages:
                 st.markdown("""
                 <div class="start-conversation">
                     <div class="plus-button"><span>+</span></div>
@@ -2180,7 +2228,9 @@ def render_genie():
                         if "response" in msg and msg["response"]:
                             resp = msg["response"]
                             layout = resp.get("layout")
-                            if layout == "cash_flow": render_cash_flow_response(resp)
+                            if layout == "static":
+                                st.markdown(resp["analyst_response"])
+                            elif layout == "cash_flow": render_cash_flow_response(resp)
                             elif layout == "early_payment": render_early_payment_response(resp)
                             elif layout == "payment_timing": render_payment_timing_response(resp)
                             elif layout == "late_payment_trend": render_late_payment_trend_response(resp)
@@ -2307,7 +2357,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</table></table>'
+        html_v += '</tr></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2325,7 +2375,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_c += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_c += '<tr>'
+        html_c += '</tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
         html_c += '</table></table>'
@@ -2472,7 +2522,6 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
-    # Apply global CSS that makes all buttons blue on hover and click
     inject_dashboard_css("#ffffff")
 
     st.markdown("""
