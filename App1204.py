@@ -573,13 +573,13 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         padding: 15px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         z-index: 1001;
-        width: 200px;
+        width: 220px;
         border: 1px solid #e2e8f0;
     }}
     .bg-color-option {{
         display: inline-block;
-        width: 30px;
-        height: 30px;
+        width: 32px;
+        height: 32px;
         border-radius: 8px;
         margin: 5px;
         cursor: pointer;
@@ -592,20 +592,43 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     }}
 </style>
 <script>
-    // Background customization with local storage
     function setBackgroundColor(color) {{
+        // Apply to main app containers
         document.querySelector('.stApp').style.backgroundColor = color;
-        document.querySelector('.main > .block-container').style.backgroundColor = color;
+        var blockContainers = document.querySelectorAll('.main > .block-container');
+        blockContainers.forEach(function(el) {{
+            el.style.backgroundColor = color;
+        }});
+        // Save to localStorage
         localStorage.setItem('procureiq_bg_color', color);
     }}
     function loadBackgroundColor() {{
         var savedColor = localStorage.getItem('procureiq_bg_color');
         if (savedColor) {{
             document.querySelector('.stApp').style.backgroundColor = savedColor;
-            document.querySelector('.main > .block-container').style.backgroundColor = savedColor;
+            var blockContainers = document.querySelectorAll('.main > .block-container');
+            blockContainers.forEach(function(el) {{
+                el.style.backgroundColor = savedColor;
+            }});
+        }}
+    }}
+    function toggleBgPanel() {{
+        var panel = document.getElementById('bgPanel');
+        if (panel.style.display === 'none' || panel.style.display === '') {{
+            panel.style.display = 'block';
+        }} else {{
+            panel.style.display = 'none';
         }}
     }}
     document.addEventListener('DOMContentLoaded', loadBackgroundColor);
+    // Close panel if clicking outside
+    document.addEventListener('click', function(event) {{
+        var btn = document.getElementById('bgFloatingBtn');
+        var panel = document.getElementById('bgPanel');
+        if (btn && panel && !btn.contains(event.target) && !panel.contains(event.target)) {{
+            panel.style.display = 'none';
+        }}
+    }});
 </script>
 """, unsafe_allow_html=True)
 
@@ -2371,7 +2394,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</table></table>'
+    html_table += '<tr></tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2414,10 +2437,10 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_v += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_v += '</tr>'
+        html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</table></table>'
+        html_v += '</tr></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2438,7 +2461,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</table></table>'
+        html_c += '</table></tr>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2616,52 +2639,49 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
 
     st.markdown("---")
 
-    # Floating BG Button and Panel
-    with st.container():
-        # We'll inject the HTML/JS for the floating button and color picker
-        bg_colors = {
-            "Light Blue": "#e0f2fe",
-            "Light Gray": "#f3f4f6",
-            "Light Green": "#dcfce7",
-            "Light Purple": "#f3e8ff",
-            "Light Pink": "#fce7f3",
-            "Light Beige": "#fef9c3",
-            "Light Cyan": "#cffafe",
-            "White": "#ffffff"
-        }
-        # Generate color option HTML
-        color_options_html = ""
-        for name, hex_code in bg_colors.items():
-            color_options_html += f'<div class="bg-color-option" style="background-color: {hex_code};" title="{name}" onclick="setBackgroundColor(\'{hex_code}\')"></div>'
-        
-        floating_html = f"""
-        <div id="bgFloatingBtn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
-        <div id="bgPanel" class="bg-panel" style="display: none;">
-            <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Choose Background Color</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-                {color_options_html}
-            </div>
+    # Floating BG Button and Panel (using HTML/JS)
+    bg_colors = {
+        "Light Blue": "#e0f2fe",
+        "Light Gray": "#f3f4f6",
+        "Light Green": "#dcfce7",
+        "Light Purple": "#f3e8ff",
+        "Light Pink": "#fce7f3",
+        "Light Beige": "#fef9c3",
+        "Light Cyan": "#cffafe",
+        "White": "#ffffff"
+    }
+    color_options_html = ""
+    for name, hex_code in bg_colors.items():
+        color_options_html += f'<div class="bg-color-option" style="background-color: {hex_code};" title="{name}" onclick="setBackgroundColor(\'{hex_code}\')"></div>'
+    
+    floating_html = f"""
+    <div id="bgFloatingBtn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
+    <div id="bgPanel" class="bg-panel" style="display: none;">
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Choose Background Color</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            {color_options_html}
         </div>
-        <script>
-            function toggleBgPanel() {{
-                var panel = document.getElementById('bgPanel');
-                if (panel.style.display === 'none') {{
-                    panel.style.display = 'block';
-                }} else {{
-                    panel.style.display = 'none';
-                }}
+    </div>
+    <script>
+        function toggleBgPanel() {{
+            var panel = document.getElementById('bgPanel');
+            if (panel.style.display === 'none') {{
+                panel.style.display = 'block';
+            }} else {{
+                panel.style.display = 'none';
             }}
-            // Close panel when clicking outside
-            document.addEventListener('click', function(event) {{
-                var btn = document.getElementById('bgFloatingBtn');
-                var panel = document.getElementById('bgPanel');
-                if (!btn.contains(event.target) && !panel.contains(event.target)) {{
-                    panel.style.display = 'none';
-                }}
-            }});
-        </script>
-        """
-        st.markdown(floating_html, unsafe_allow_html=True)
+        }}
+        // Close panel when clicking outside
+        document.addEventListener('click', function(event) {{
+            var btn = document.getElementById('bgFloatingBtn');
+            var panel = document.getElementById('bgPanel');
+            if (btn && panel && !btn.contains(event.target) && !panel.contains(event.target)) {{
+                panel.style.display = 'none';
+            }}
+        }});
+    </script>
+    """
+    st.markdown(floating_html, unsafe_allow_html=True)
 
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
