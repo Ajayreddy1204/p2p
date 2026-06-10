@@ -669,11 +669,10 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .stApp {{
         background-color: {bg_color} !important;
     }}
-    /* Floating BG button */
     .floating-bg-button {{
         position: fixed;
         bottom: 20px;
-        right: 20px;
+        left: 20px;
         z-index: 1000;
     }}
 </style>
@@ -3242,7 +3241,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Effective Date</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status Notes</th>'
-    hist_html += '<tr>'
+    hist_html += '</tr>'
     for _, row in hist_df.iterrows():
         hist_html += f'<tr style="border-bottom: 1px solid #e2e8f0;">'
         hist_html += f'<td style="padding: 10px 8px;">{row["status"]}</td>'
@@ -3293,7 +3292,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         vendor_html += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for field in vendor_fields:
             vendor_html += f'<th style="padding: 10px 8px; text-align: left;">{field}</th>'
-        vendor_html += '</tr>'
+        vendor_html += '<tr>'
         vendor_html += '<tr style="border-bottom: 1px solid #e2e8f0;">'
         for val in vendor_values:
             vendor_html += f'<td style="padding: 10px 8px;">{val}</td>'
