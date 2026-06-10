@@ -669,6 +669,13 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .stApp {{
         background-color: {bg_color} !important;
     }}
+    /* Floating BG button */
+    .floating-bg-button {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -833,12 +840,9 @@ def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, star
 def navigate_to_invoice(invoice_number):
     inv_str = format_invoice_number(invoice_number)
     st.session_state.selected_invoice = inv_str
-    st.session_state.inv_search_q = ""
+    st.session_state.inv_search_term = inv_str
+    st.session_state.inv_search_active = True
     st.session_state.page = "Invoices"
-    try:
-        st.experimental_set_query_params(tab="Invoices", invoice=inv_str)
-    except:
-        pass
     st.rerun()
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
@@ -988,13 +992,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 ref = format_invoice_number(ref)
                                 btn_key = f"na_card_{start_idx}_{card_global_idx}_{ref.replace(' ', '_')[:30]}"
                                 if st.button(ref, key=btn_key):
-                                    st.session_state["invoice_search_from_card"] = ref
-                                    st.session_state["page"] = "Invoices"
-                                    try:
-                                        st.experimental_set_query_params(tab="Invoices", invoice=ref)
-                                    except:
-                                        pass
-                                    st.rerun()
+                                    navigate_to_invoice(ref)
                                 vendor_nm = str(r.get("vendor_name", "—"))
                                 st.markdown(f"<div style='color:#64748b;font-size:12px;overflow:hidden;text-overflow:ellipsis;'>{html.escape(vendor_nm)}</div>", unsafe_allow_html=True)
                             with right:
@@ -3244,7 +3242,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Effective Date</th>'
     hist_html += '<th style="padding: 10px 8px; text-align: left;">Status Notes</th>'
-    hist_html += '</tr>'
+    hist_html += '<tr>'
     for _, row in hist_df.iterrows():
         hist_html += f'<tr style="border-bottom: 1px solid #e2e8f0;">'
         hist_html += f'<td style="padding: 10px 8px;">{row["status"]}</td>'
@@ -3554,27 +3552,6 @@ def main():
     height: 100%;
     margin-top: 1rem;
 }
-.bg-button {
-    background-color: #e2e8f0;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 1rem;
-    margin-right: 0.5rem;
-}
-.bg-button:hover {
-    background-color: #cbd5e1;
-    transform: scale(1.05);
-}
-.bg-button:active {
-    transform: scale(0.95);
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -3619,21 +3596,7 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_right:
-        col_logo, col_bg = st.columns([3, 1])
-        with col_logo:
-            st.markdown(f'<div class="logo-container"><img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" /></div>', unsafe_allow_html=True)
-        with col_bg:
-            try:
-                with st.popover("🎨"):
-                    new_color = st.color_picker("Background Color", st.session_state.dashboard_bg_color)
-                    if new_color != st.session_state.dashboard_bg_color:
-                        st.session_state.dashboard_bg_color = new_color
-                        st.rerun()
-            except:
-                new_color = st.color_picker("BG", st.session_state.dashboard_bg_color, key="bg_color_picker")
-                if new_color != st.session_state.dashboard_bg_color:
-                    st.session_state.dashboard_bg_color = new_color
-                    st.rerun()
+        st.markdown(f'<div class="logo-container"><img src="{LOGO_URL}" style="width: 100px; height: auto; object-fit: contain;" /></div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -3675,6 +3638,21 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         render_invoices()
+
+    with st.container():
+        st.markdown('<div class="floating-bg-button">', unsafe_allow_html=True)
+        try:
+            with st.popover("🎨"):
+                new_color = st.color_picker("Background Color", st.session_state.dashboard_bg_color)
+                if new_color != st.session_state.dashboard_bg_color:
+                    st.session_state.dashboard_bg_color = new_color
+                    st.rerun()
+        except:
+            new_color = st.color_picker("BG", st.session_state.dashboard_bg_color, key="bg_color_picker_bottom")
+            if new_color != st.session_state.dashboard_bg_color:
+                st.session_state.dashboard_bg_color = new_color
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
