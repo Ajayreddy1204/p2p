@@ -541,7 +541,72 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
+    
+    /* Floating BG button */
+    .bg-floating-btn {{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+        background-color: #2563eb;
+        color: white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        text-align: center;
+        line-height: 50px;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+    }}
+    .bg-floating-btn:hover {{
+        background-color: #1d4ed8;
+        transform: scale(1.05);
+    }}
+    .bg-panel {{
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        z-index: 1001;
+        width: 200px;
+        border: 1px solid #e2e8f0;
+    }}
+    .bg-color-option {{
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        margin: 5px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: transform 0.1s ease;
+    }}
+    .bg-color-option:hover {{
+        transform: scale(1.1);
+        border-color: #2563eb;
+    }}
 </style>
+<script>
+    // Background customization with local storage
+    function setBackgroundColor(color) {{
+        document.querySelector('.stApp').style.backgroundColor = color;
+        document.querySelector('.main > .block-container').style.backgroundColor = color;
+        localStorage.setItem('procureiq_bg_color', color);
+    }}
+    function loadBackgroundColor() {{
+        var savedColor = localStorage.getItem('procureiq_bg_color');
+        if (savedColor) {{
+            document.querySelector('.stApp').style.backgroundColor = savedColor;
+            document.querySelector('.main > .block-container').style.backgroundColor = savedColor;
+        }}
+    }}
+    document.addEventListener('DOMContentLoaded', loadBackgroundColor);
+</script>
 """, unsafe_allow_html=True)
 
 def format_invoice_number(invoice_num):
@@ -1373,14 +1438,9 @@ def process_custom_query(query: str, history: str = "") -> dict:
         return {
             "layout": "static",
             "analyst_response": (
-                "I'm your procurement analytics assistant. "
-                "Please ask questions related to procurement data such as spend trends, "
-                "vendor performance, invoice status, payment cycles, GR/IR reconciliation, "
-                "cash flow forecasts, or PO analysis. For example:\n\n"
-                "- What is our total spend this quarter?\n"
-                "- Show top 10 vendors by spend\n"
-                "- How many invoices are overdue?\n"
-                "- What is the average payment cycle time?"
+                "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
+                "vendor information, invoice status, forecasting, spend analytics, dashboard metrics, "
+                "and related business data. Please ask a procurement or dashboard-related question."
             ),
             "question": query
         }
@@ -1420,7 +1480,7 @@ Respond in plain text using markdown for headings and bullet points.
 
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question related to cash flow forecast, for example: 'Show cash flow forecast for next 30 days'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     cf_sql = f"""
         SELECT forecast_bucket, invoice_count, total_amount, earliest_due, latest_due
         FROM {DATABASE}.cash_flow_forecast_vw
@@ -1469,7 +1529,7 @@ def process_cash_flow_forecast(question: str, history: str = "") -> dict:
 
 def process_early_payment(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about early payment opportunities, for example: 'Which invoices can be paid early to capture discounts?'"}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     ep_sql = f"""
         SELECT CAST(f.invoice_number AS VARCHAR) AS document_number, v.vendor_name,
             f.invoice_amount_local AS invoice_amount, f.due_date,
@@ -1493,7 +1553,7 @@ def process_early_payment(question: str, history: str = "") -> dict:
 
 def process_payment_timing(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about optimal payment timing, for example: 'What is the optimal payment timing strategy for this week?'"}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT CASE
@@ -1519,7 +1579,7 @@ def process_payment_timing(question: str, history: str = "") -> dict:
 
 def process_late_payment_trend(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about late payment trends, for example: 'Show late payment trend for the last 6 months'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     trend_sql = f"""
         SELECT DATE_TRUNC('month', payment_date) AS month, COUNT(*) AS total_payments,
             SUM(CASE WHEN payment_date > due_date THEN 1 ELSE 0 END) AS late_payments,
@@ -1538,7 +1598,7 @@ def process_late_payment_trend(question: str, history: str = "") -> dict:
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR hotspots, for example: 'Show GR/IR outstanding balance by month'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     sql = f"""
         SELECT year, month, invoice_count, total_grir_blnc AS total_grir_balance
         FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC
@@ -1561,7 +1621,7 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
 
 def process_grir_root_causes(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR root causes, for example: 'Explain likely GR/IR root causes'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     aging_sql = f"SELECT year, month, pct_grir_over_60, cnt_grir_over_60 FROM {DATABASE}.gr_ir_aging_vw ORDER BY year DESC, month DESC LIMIT 6"
     balance_sql = f"SELECT year, month, total_grir_blnc FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC LIMIT 6"
     aging_df = run_query(aging_sql)
@@ -1577,7 +1637,7 @@ def process_grir_root_causes(question: str, history: str = "") -> dict:
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about working capital release from GR/IR, for example: 'Estimate working capital that would be released by clearing old GR/IR'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     sql = f"""
         SELECT year, month, total_grir_blnc,
             CASE WHEN (year * 100 + month) <= (EXTRACT(YEAR FROM CURRENT_DATE) * 100 + EXTRACT(MONTH FROM CURRENT_DATE) - 60)
@@ -1605,7 +1665,7 @@ def process_grir_working_capital(question: str, history: str = "") -> dict:
 
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Please ask a question about GR/IR vendor follow-up, for example: 'Draft vendor follow-up messages for high GR/IR items'."}
+        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
     sql = f"""
         SELECT v.vendor_name, COUNT(*) AS grir_count, SUM(f.invoice_amount_local) AS total_amount,
             AVG(DATE_DIFF('day', f.posting_date, CURRENT_DATE)) AS avg_age_days
@@ -2311,7 +2371,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '<tr></table>'
+    html_table += '</table></table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2354,10 +2414,10 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_v += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_v += '<tr>'
+        html_v += '</tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</tr></table>'
+        html_v += '</table></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2375,7 +2435,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_c += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
-        html_c += '</tr>'
+        html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
         html_c += '</table></table>'
@@ -2555,6 +2615,53 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
         st.markdown(f"<div style='display: flex; justify-content: flex-end;'><img src='{LOGO_URL}' style='width: 120px; height: auto; object-fit: contain;' /></div>", unsafe_allow_html=True)
 
     st.markdown("---")
+
+    # Floating BG Button and Panel
+    with st.container():
+        # We'll inject the HTML/JS for the floating button and color picker
+        bg_colors = {
+            "Light Blue": "#e0f2fe",
+            "Light Gray": "#f3f4f6",
+            "Light Green": "#dcfce7",
+            "Light Purple": "#f3e8ff",
+            "Light Pink": "#fce7f3",
+            "Light Beige": "#fef9c3",
+            "Light Cyan": "#cffafe",
+            "White": "#ffffff"
+        }
+        # Generate color option HTML
+        color_options_html = ""
+        for name, hex_code in bg_colors.items():
+            color_options_html += f'<div class="bg-color-option" style="background-color: {hex_code};" title="{name}" onclick="setBackgroundColor(\'{hex_code}\')"></div>'
+        
+        floating_html = f"""
+        <div id="bgFloatingBtn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
+        <div id="bgPanel" class="bg-panel" style="display: none;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Choose Background Color</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                {color_options_html}
+            </div>
+        </div>
+        <script>
+            function toggleBgPanel() {{
+                var panel = document.getElementById('bgPanel');
+                if (panel.style.display === 'none') {{
+                    panel.style.display = 'block';
+                }} else {{
+                    panel.style.display = 'none';
+                }}
+            }}
+            // Close panel when clicking outside
+            document.addEventListener('click', function(event) {{
+                var btn = document.getElementById('bgFloatingBtn');
+                var panel = document.getElementById('bgPanel');
+                if (!btn.contains(event.target) && !panel.contains(event.target)) {{
+                    panel.style.display = 'none';
+                }}
+            }});
+        </script>
+        """
+        st.markdown(floating_html, unsafe_allow_html=True)
 
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
