@@ -112,6 +112,68 @@ def safe_dataframe_display(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].astype(str)
     return df
 
+def render_simple_table(df: pd.DataFrame, col_labels: dict = None,
+                        striped: bool = True, max_rows: int = 500):
+    """
+    Render a pandas DataFrame as a clean, plain HTML table.
+    Replaces st.dataframe() for tables that need simple styling:
+    - Clean borders, no Streamlit column-resize handles
+    - Optional striped rows
+    - Optional column label override via col_labels dict
+    - Numbers right-aligned, text left-aligned
+    """
+    if df.empty:
+        st.caption("No data available.")
+        return
+
+    df = df.head(max_rows).copy()
+
+    # Build header
+    headers = []
+    for col in df.columns:
+        label = col_labels.get(col, col.replace("_", " ").title()) if col_labels else col.replace("_", " ").title()
+        headers.append(f"<th style='padding:9px 12px;text-align:left;font-weight:600;"
+                       f"font-size:13px;color:#374151;background:#f8fafc;"
+                       f"border-bottom:2px solid #e2e8f0;white-space:nowrap;'>{label}</th>")
+
+    rows_html = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        bg = "#fafafa" if (striped and i % 2 == 0) else "white"
+        cells = []
+        for col in df.columns:
+            val = row[col]
+            # Format value
+            if pd.isna(val) if not isinstance(val, str) else False:
+                display = "—"
+                align = "left"
+            elif isinstance(val, float):
+                display = f"{val:,.2f}" if val != int(val) else f"{int(val):,}"
+                align = "right"
+            elif isinstance(val, int):
+                display = f"{val:,}"
+                align = "right"
+            else:
+                display = str(val)
+                align = "left"
+            cells.append(
+                f"<td style='padding:8px 12px;font-size:13px;color:#1f2937;"
+                f"border-bottom:1px solid #f0f0f0;text-align:{align};"
+                f"background:{bg};'>{display}</td>"
+            )
+        rows_html.append(f"<tr>{''.join(cells)}</tr>")
+
+    table_html = f"""
+<div style='overflow-x:auto;border-radius:10px;border:1px solid #e2e8f0;
+            box-shadow:0 1px 4px rgba(0,0,0,0.05);margin:4px 0;'>
+<table style='width:100%;border-collapse:collapse;background:white;
+              font-family:inherit;'>
+<thead><tr>{''.join(headers)}</tr></thead>
+<tbody>{''.join(rows_html)}</tbody>
+</table>
+</div>"""
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
 def format_invoice_number(inv_num):
     if inv_num is None: return ""
     s = str(inv_num)
@@ -1845,11 +1907,37 @@ def render_forecast():
         for i,col in enumerate(cols):
             with col:
                 st.markdown(f'<div class="fkc" style="background:{kc[i]};"><div class="fkt">{kt[i]}</div><div class="fkv">{kv[i]}</div></div>',unsafe_allow_html=True)
-        st.markdown("---"); st.markdown("#### Obligations by time bucket")
+        st.markdown("---")
+        st.markdown("#### Obligations by time bucket")
         if not cf_df.empty:
-            st.dataframe(safe_dataframe_display(cf_df),use_container_width=True,hide_index=True)
-            st.download_button("Download forecast (CSV)",data=cf_df.to_csv(index=False).encode(),file_name="cash_flow_forecast.csv",mime="text/csv")
-        else: st.info("No cash flow forecast data.")
+            # Clean up bucket labels for display
+            display_df = cf_df.copy()
+            bucket_labels = {
+                "TOTAL_UNPAID": "Total Unpaid",
+                "OVERDUE_NOW": "Overdue Now",
+                "DUE_7_DAYS": "Due in 7 Days",
+                "DUE_14_DAYS": "Due in 14 Days",
+                "DUE_30_DAYS": "Due in 30 Days",
+                "DUE_60_DAYS": "Due in 60 Days",
+                "DUE_90_DAYS": "Due in 90 Days",
+                "BEYOND_90_DAYS": "Beyond 90 Days",
+            }
+            if "forecast_bucket" in display_df.columns:
+                display_df["forecast_bucket"] = display_df["forecast_bucket"].map(
+                    lambda x: bucket_labels.get(str(x).upper(), x)
+                )
+            render_simple_table(display_df, col_labels={
+                "forecast_bucket": "Time Bucket",
+                "invoice_count":   "Invoice Count",
+                "total_amount":    "Total Amount ($)",
+                "earliest_due":    "Earliest Due",
+                "latest_due":      "Latest Due",
+            })
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+            st.download_button("Download forecast (CSV)", data=cf_df.to_csv(index=False).encode(),
+                               file_name="cash_flow_forecast.csv", mime="text/csv")
+        else:
+            st.info("No cash flow forecast data.")
         st.markdown("---"); st.markdown("### Action Playbook")
         for label,question in [
             ("Forecast cash outflow (7-90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
@@ -1882,8 +1970,14 @@ def render_forecast():
         trdf=run_query(trsql)
         if not trdf.empty:
             st.markdown("**GR/IR outstanding trend (last 24 months)**")
-            st.dataframe(safe_dataframe_display(trdf),use_container_width=True,hide_index=True)
-        else: st.info("No GR/IR data.")
+            render_simple_table(trdf, col_labels={
+                "year":            "Year",
+                "month":           "Month",
+                "invoice_count":   "Invoice Count",
+                "total_grir_blnc": "Total GR/IR Balance ($)",
+            })
+        else:
+            st.info("No GR/IR data.")
         st.markdown("---"); st.markdown("### GR/IR Clearing Playbook")
         for label,question in [
             ("1. Identify top GR/IR hotspots","Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."),
@@ -2966,7 +3060,14 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     if st.session_state.get(pk,False) and "PAID" not in hdf["status"].values:
         hdf=pd.concat([hdf,pd.DataFrame([{"status":"PAID","effective_date":date.today().strftime("%Y-%m-%d"),"status_notes":"Processed via ProcureIQ"}])],ignore_index=True)
     hdf["effective_date"]=hdf["effective_date"].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x,(date,datetime)) else str(x))
-    st.dataframe(safe_dataframe_display(hdf[["status","effective_date","status_notes"]]),use_container_width=True,hide_index=True)
+    render_simple_table(
+        hdf[["status", "effective_date", "status_notes"]],
+        col_labels={
+            "status":         "Status",
+            "effective_date": "Effective Date",
+            "status_notes":   "Notes",
+        }
+    )
 
     st.markdown("---"); st.markdown("### Vendor & Company Information")
     t1,t2=st.tabs(["Vendor Info","Company Info"])
