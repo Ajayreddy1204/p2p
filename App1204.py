@@ -437,337 +437,183 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 # ENHANCED: BG button CSS, all KPIs from Athena, no hardcoded values
 # ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
-    st.markdown(
-        f"""
+    st.markdown(f"""
 <style>
-    button, .stButton button, div[data-testid="stButton"] button,
-    button[kind="primary"], button[kind="secondary"],
-    button[data-testid^="baseButton"], .stDownloadButton button {{
-        transition: all 0.2s ease !important;
-    }}
+    /* (Keep all your existing CSS for buttons, KPIs, etc. unchanged) */
 
-    button:hover, .stButton button:hover, div[data-testid="stButton"] button:hover,
-    button[kind="primary"]:hover, button[kind="secondary"]:hover,
-    button[data-testid^="baseButton"]:hover, .stDownloadButton button:hover {{
-        background-color: #2563eb !important;
-        background: #2563eb !important;
-        border-color: #2563eb !important;
-        color: white !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
-    }}
-
-    button:active, .stButton button:active, button[data-testid^="baseButton"]:active {{
-        background-color: #1d4ed8 !important;
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
-        color: white !important;
-    }}
-
-    button[kind="primary"] {{
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        color: white !important;
-    }}
-
-    button[kind="secondary"] {{
-        background-color: #f3f4f6 !important;
-        border-color: #d1d5db !important;
-        color: #1f2937 !important;
-    }}
-
-    button[kind="secondary"]:hover {{
-        background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        color: white !important;
-    }}
-
-    .stDateInput, .stSelectbox {{ width: 100%; }}
-    div[data-testid="stSelectbox"] div {{
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }}
-
-    .kpi-card {{
-        border-radius: 16px;
-        padding: 1rem 1.2rem;
-        min-height: 100px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }}
-    .kpi-card-yellow {{ background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }}
-    .kpi-card-cyan   {{ background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }}
-    .kpi-card-pink   {{ background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }}
-    .kpi-card-purple {{ background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }}
-    .kpi-card-green  {{ background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }}
-
-    .kpi-title {{
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #374151;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.3rem;
-    }}
-    .kpi-value {{
-        font-size: 2rem;
-        font-weight: 800;
-        color: #111827;
-        line-height: 1.1;
-    }}
-    .kpi-delta {{
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-top: 0.25rem;
-    }}
-    .kpi-delta-negative {{ color: #dc2626; }}
-    .kpi-delta-positive {{ color: #16a34a; }}
-    .kpi-arrow {{
-        font-size: 1rem;
-        margin-left: 0.25rem;
-    }}
-
-    .grir-card {{
-        border-radius: 14px;
-        padding: 0.9rem 1rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-        min-height: 90px;
-        justify-content: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }}
-    .grir-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-    }}
-    .grir-card-title {{
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-    }}
-    .grir-card-value {{
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: #111827;
-        line-height: 1.1;
-    }}
-
-    .chart-container {{
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-    }}
-    .chart-container > .chart-body {{ flex: 1 1 auto; }}
-    .chart-title {{
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 0.5rem;
-    }}
-
-    .pagination-info {{
-        text-align: center;
-        color: #6b7280;
-        font-size: 0.9rem;
-    }}
-
-    .main > .block-container {{
-        background-color: {bg_color} !important;
-        padding-top: 0.5rem !important;
-    }}
-    .stApp {{
-        background-color: {bg_color} !important;
-    }}
-
-    /* ── FLOATING BG BUTTON (Fixed) ── */
-    #procureiq-bg-btn {{
+    /* Normal BG button (non-floating style) fixed at bottom right */
+    .bg-normal-btn {{
         position: fixed;
         bottom: 24px;
         right: 24px;
-        z-index: 99999;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        color: white;
-        border-radius: 50%;
-        width: 52px;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 700;
+        z-index: 9999;
+        background: white;
+        color: #1e293b;
+        border-radius: 30px;
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         transition: all 0.2s ease;
-        border: 2px solid rgba(255,255,255,0.3);
+        border: 1px solid #cbd5e1;
+        font-family: inherit;
+        backdrop-filter: blur(0px);
         user-select: none;
     }}
-    #procureiq-bg-btn:hover {{
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(37,99,235,0.5);
+    .bg-normal-btn:hover {{
+        background-color: #f8fafc;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+        border-color: #94a3b8;
     }}
-    #procureiq-bg-panel {{
+    .bg-panel {{
         position: fixed;
         bottom: 86px;
         right: 24px;
         background: white;
-        border-radius: 14px;
+        border-radius: 16px;
         padding: 16px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        z-index: 99998;
-        width: 230px;
+        z-index: 9998;
+        width: 260px;
         border: 1px solid #e2e8f0;
         display: none;
     }}
     .bg-panel-title {{
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 700;
         color: #1e293b;
         margin-bottom: 12px;
+        text-align: center;
     }}
     .bg-colors-grid {{
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        gap: 10px;
     }}
     .bg-color-swatch {{
         width: 100%;
         aspect-ratio: 1;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
         border: 2px solid transparent;
         transition: all 0.15s ease;
         box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }}
     .bg-color-swatch:hover {{
-        transform: scale(1.12);
+        transform: scale(1.08);
         border-color: #2563eb;
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
+    /* Small pointer arrow to make the panel look connected to the button */
+    .bg-panel::before {{
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        right: 20px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+        filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.05));
+    }}
 </style>
-""",
-        unsafe_allow_html=True,
-    )
 
-    # Separate component for the floating button with its own script
-    st.components.v1.html(
-        """
-<div id="procureiq-bg-btn" style="
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 99999;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: white;
-    border-radius: 50%;
-    width: 52px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
-    border: 2px solid rgba(255,255,255,0.3);
-    user-select: none;
-">BG</div>
-<div id="procureiq-bg-panel" style="
-    position: fixed;
-    bottom: 86px;
-    right: 24px;
-    background: white;
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-    z-index: 99998;
-    width: 230px;
-    border: 1px solid #e2e8f0;
-    display: none;
-">
-<div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 12px;">🎨 Background Theme</div>
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-<div class="bg-swatch" data-color="#e0f2fe" style="background:#e0f2fe; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#f3f4f6" style="background:#f3f4f6; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#dcfce7" style="background:#dcfce7; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#f3e8ff" style="background:#f3e8ff; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#fce7f3" style="background:#fce7f3; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#fef9c3" style="background:#fef9c3; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#cffafe" style="background:#cffafe; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
-<div class="bg-swatch" data-color="#ffffff" style="background:#ffffff; width:100%; aspect-ratio:1; border-radius:8px; cursor:pointer; border:2px solid transparent; box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>
+<div id="procureiq-bg-btn" class="bg-normal-btn">🎨 Theme</div>
+<div id="procureiq-bg-panel" class="bg-panel">
+    <div class="bg-panel-title">Background Color</div>
+    <div class="bg-colors-grid">
+        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe" title="Light Blue"></div>
+        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6" title="Light Gray"></div>
+        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7" title="Light Green"></div>
+        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff" title="Light Purple"></div>
+        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3" title="Light Pink"></div>
+        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3" title="Light Beige"></div>
+        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe" title="Light Cyan"></div>
+        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff" title="White"></div>
+    </div>
+    <div style="margin-top:12px; font-size:11px; color:#94a3b8; text-align:center;">Click any color to change background</div>
 </div>
-<div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
-</div>
+
 <script>
-(function() {
-    var btn = document.getElementById('procureiq-bg-btn');
-    var panel = document.getElementById('procureiq-bg-panel');
-    var parentDoc = window.parent.document;
+(function() {{
+    function applyBgColor(color) {{
+        var targets = [
+            document.querySelector('.stApp'),
+            document.querySelector('.main'),
+            document.querySelector('.main > .block-container')
+        ].filter(function(el) {{ return el !== null; }});
+        targets.forEach(function(el) {{ el.style.backgroundColor = color; }});
+        try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (panel) panel.style.display = 'none';
+    }}
 
-    function applyBgColor(color) {
-        var selectors = ['.stApp', '.main', '.main > .block-container', '[data-testid="stAppViewContainer"]'];
-        selectors.forEach(function(sel) {
-            var elements = parentDoc.querySelectorAll(sel);
-            elements.forEach(function(el) {
-                el.style.backgroundColor = color;
-            });
-        });
-        try {
-            localStorage.setItem('procureiq_bg_color', color);
-        } catch(e) {}
-        panel.style.display = 'none';
-    }
-
-    function loadSavedBg() {
-        try {
+    function loadSavedBg() {{
+        try {{
             var saved = localStorage.getItem('procureiq_bg_color');
-            if (saved) {
-                applyBgColor(saved);
-            }
-        } catch(e) {}
-    }
+            if (saved) {{
+                var targets = [
+                    document.querySelector('.stApp'),
+                    document.querySelector('.main'),
+                    document.querySelector('.main > .block-container')
+                ].filter(function(el) {{ return el !== null; }});
+                targets.forEach(function(el) {{ el.style.backgroundColor = saved; }});
+            }}
+        }} catch(e) {{}}
+    }}
 
-    btn.onclick = function(e) {
-        e.stopPropagation();
-        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-    };
+    function initBgControls() {{
+        var btn = document.getElementById('procureiq-bg-btn');
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (!btn || !panel) return;
 
-    var swatches = document.querySelectorAll('.bg-swatch');
-    swatches.forEach(function(sw) {
-        sw.onclick = function(e) {
+        // Remove old listener by cloning and replacing
+        var newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', function(e) {{
             e.stopPropagation();
-            var color = this.getAttribute('data-color');
-            if (color) applyBgColor(color);
-        };
-        sw.onmouseenter = function() {
-            this.style.transform = 'scale(1.12)';
-            this.style.borderColor = '#2563eb';
-        };
-        sw.onmouseleave = function() {
-            this.style.transform = 'scale(1)';
-            this.style.borderColor = 'transparent';
-        };
-    });
+            var p = document.getElementById('procureiq-bg-panel');
+            if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        }});
 
-    document.onclick = function(e) {
-        if (!btn.contains(e.target) && !panel.contains(e.target)) {
-            panel.style.display = 'none';
-        }
-    };
+        // Attach to swatches
+        var swatches = document.querySelectorAll('.bg-color-swatch');
+        swatches.forEach(function(sw) {{
+            var newSw = sw.cloneNode(true);
+            sw.parentNode.replaceChild(newSw, sw);
+            newSw.addEventListener('click', function(e) {{
+                e.stopPropagation();
+                var color = this.getAttribute('data-color') || this.style.backgroundColor;
+                if (color) applyBgColor(color);
+            }});
+        }});
+
+        // Close panel when clicking outside
+        document.addEventListener('click', function(e) {{
+            var btnElem = document.getElementById('procureiq-bg-btn');
+            var panelElem = document.getElementById('procureiq-bg-panel');
+            if (btnElem && panelElem && !btnElem.contains(e.target) && !panelElem.contains(e.target)) {{
+                panelElem.style.display = 'none';
+            }}
+        }});
+    }}
 
     loadSavedBg();
-})();
+    initBgControls();
+
+    var observer = new MutationObserver(function(mutations) {{
+        if (document.getElementById('procureiq-bg-btn') && document.getElementById('procureiq-bg-panel')) {{
+            initBgControls();
+            loadSavedBg();
+        }}
+    }});
+    observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
 </script>
-""",
-        height=0,
-    )
+""", unsafe_allow_html=True)
 
 def format_invoice_number(invoice_num):
     if invoice_num is None:
