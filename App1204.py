@@ -2634,84 +2634,85 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
             # Memory panels hidden as per user request
 
     with right_chat:
-        # ── All CSS for right panel ───────────────────────────────────
+        # ── Single CSS block for entire right panel ─────────────────────────
         st.markdown("""
 <style>
-/* ── AI Assistant outer wrapper ── */
-.genie-right-panel {
-    background: white;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 16px 16px 12px 16px;
-    box-shadow: 0 2px 14px rgba(0,0,0,0.07);
+/* Header buttons */
+.genie-header button {
+    height: 36px !important; min-height: 36px !important;
+    border-radius: 8px !important; font-size: 13px !important;
+    font-weight: 500 !important; white-space: nowrap !important;
 }
-/* ── Title ── */
-.genie-title {
-    font-size: 1rem; font-weight: 700; color: #1e293b;
-}
-/* ── Header action buttons ── */
-.genie-right-panel button {
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    white-space: nowrap !important;
-}
-/* ── Empty state ── */
+/* Empty state box */
 .genie-empty-state {
-    background: #f8fafc;
-    border-radius: 14px;
-    padding: 2.5rem 1rem;
-    text-align: center;
-    margin: 8px 0 10px 0;
-    min-height: 260px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    background:#f8fafc; border-radius:14px; padding:2.5rem 1rem;
+    text-align:center; margin:8px 0 10px 0; min-height:240px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
-.genie-empty-plus  { font-size:2.4rem; color:#94a3b8; margin-bottom:10px; line-height:1; }
-.genie-empty-title { font-size:1.05rem; font-weight:600; color:#1e293b; margin-bottom:5px; }
-.genie-empty-sub   { font-size:0.83rem; color:#64748b; max-width:260px; line-height:1.5; }
-/* ── Chat messages ── */
+.genie-empty-plus  { font-size:2.2rem; color:#94a3b8; margin-bottom:10px; }
+.genie-empty-title { font-size:1rem; font-weight:600; color:#1e293b; margin-bottom:5px; }
+.genie-empty-sub   { font-size:0.82rem; color:#64748b; max-width:260px; line-height:1.5; }
+/* Chat messages */
 .chat-messages {
-    max-height: 400px; overflow-y: auto; padding: 6px 2px;
-    margin-bottom: 8px; background: #fafcff;
-    border-radius: 12px; border: 1px solid #e8edf3;
+    max-height:380px; overflow-y:auto; padding:6px 2px;
+    margin-bottom:8px; background:#fafcff;
+    border-radius:12px; border:1px solid #e8edf3;
 }
-/* ── Ask input form: visible white box ── */
+/* ── Ask input form — always visible ── */
 div[data-testid="stForm"] {
-    background: white !important;
+    background: #f8fafc !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 14px !important;
     padding: 8px 10px !important;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.06) !important;
-    margin-top: 8px !important;
+    box-shadow: none !important;
+    margin-top: 10px !important;
+    width: 100% !important;
 }
-/* Text input */
-div[data-testid="stTextInput"] input {
+/* Input: full width, light grey bg */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 52px !important;
+    width: 52px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"],
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
     height: 46px !important;
     min-height: 46px !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 12px !important;
     font-size: 14px !important;
     color: #111827 !important;
-    background: white !important;
+    background: #f3f4f6 !important;
     padding: 0 16px !important;
     box-shadow: none !important;
-    width: 100% !important;
-}
-div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.10) !important;
     outline: none !important;
 }
-div[data-testid="stTextInput"] input::placeholder {
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #2563eb !important;
+    background: white !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important; font-size: 13px !important;
 }
-div[data-testid="stTextInput"] label { display: none !important; }
-/* Circular → submit button */
+div[data-testid="stForm"] div[data-testid="stTextInput"] label { display:none !important; }
+/* Circular → button */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 46px !important; height: 46px !important; min-height: 46px !important;
@@ -2720,179 +2721,163 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     background: #2563eb !important; color: white !important;
     border: none !important;
     box-shadow: 0 3px 10px rgba(37,99,235,0.30) !important;
-    line-height: 46px !important; text-align: center !important;
+    line-height: 46px !important;
 }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
-div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     background: #1d4ed8 !important;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.40) !important;
-    transform: scale(1.07) !important;
 }
-/* Resume panel */
 .resume-panel {
     background:#f0f7ff; border-radius:12px; padding:12px 14px;
     border:1px solid #c7dfff; margin:6px 0 10px 0;
 }
-.resume-panel-title { font-size:.88rem; font-weight:700; color:#1e40af; margin-bottom:3px; }
-.resume-panel-sub   { font-size:.76rem; color:#64748b; margin-bottom:8px; }
 </style>
 """, unsafe_allow_html=True)
 
-        st.markdown("<div class='genie-right-panel'>", unsafe_allow_html=True)
-
-        # ── Header: robot + title + action buttons ────────────────────
-        h1, h2, h3, h4, h5 = st.columns([1.6, 0.72, 0.88, 0.88, 0.66])
-        with h1:
-            st.markdown("<span style='font-size:1.3rem;'>🤖</span> "
-                        "<span class='genie-title'>AI Assistant</span>",
+        # ── Header row ───────────────────────────────────────────────────────
+        with st.container(border=True):
+            st.markdown("<div class='genie-header'>", unsafe_allow_html=True)
+            h1, h2, h3, h4, h5 = st.columns([1.6, 0.72, 0.88, 0.88, 0.66])
+            with h1:
+                st.markdown("🤖 **AI Assistant**")
+            with h2:
+                chats_on = st.session_state.get("show_chats_panel", False)
+                if st.button("Chats", key="genie_chats_btn", use_container_width=True,
+                             type="primary" if not chats_on else "secondary"):
+                    st.session_state["show_chats_panel"] = not chats_on; st.rerun()
+            with h3:
+                if st.button("Summarize", key="summarize_top", use_container_width=True):
+                    if st.session_state.current_messages: summarize_conversation(); st.rerun()
+                    else: st.warning("No conversation to summarize.")
+            with h4:
+                if st.button("Export MD", key="export_md_top", use_container_width=True):
+                    if st.session_state.current_messages or st.session_state.conversation_summary:
+                        export_conversation_md()
+                    else: st.warning("No conversation to export.")
+            with h5:
+                if st.button("Clear", key="clear_top", use_container_width=True):
+                    start_new_session()
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin:6px 0 8px 0;border:none;border-top:1px solid #f1f5f9;'/>",
                         unsafe_allow_html=True)
-        with h2:
-            chats_on = st.session_state.get("show_chats_panel", False)
-            if st.button("Chats", key="genie_chats_btn", use_container_width=True,
-                         type="primary" if not chats_on else "secondary"):
-                st.session_state["show_chats_panel"] = not chats_on; st.rerun()
-        with h3:
-            if st.button("Summarize", key="summarize_top", use_container_width=True):
-                if st.session_state.current_messages: summarize_conversation(); st.rerun()
-                else: st.warning("No conversation to summarize.")
-        with h4:
-            if st.button("Export MD", key="export_md_top", use_container_width=True):
-                if st.session_state.current_messages or st.session_state.conversation_summary:
-                    export_conversation_md()
-                else: st.warning("No conversation to export.")
-        with h5:
-            if st.button("Clear", key="clear_top", use_container_width=True):
-                start_new_session()
 
-        st.markdown("<hr style='margin:8px 0 10px 0;border:none;border-top:1px solid #f1f5f9;'/>",
-                    unsafe_allow_html=True)
+            # ── Resume chats panel ────────────────────────────────────────────
+            if st.session_state.get("show_chats_panel", False):
+                conn2 = sqlite3.connect(DB_PATH); c2 = conn2.cursor()
+                c2.execute("""SELECT session_id, session_label, created_at, last_updated
+                              FROM chat_sessions WHERE user_name=?
+                              ORDER BY last_updated DESC LIMIT 10""",
+                           (get_current_user(),))
+                recent_sessions = c2.fetchall()
+                session_data = []
+                for sess in recent_sessions:
+                    c2.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?", (sess[0],))
+                    mc = c2.fetchone()[0]
+                    if mc > 0:
+                        session_data.append({"session_id":sess[0],"label":sess[1],
+                                             "created_at":sess[2],"msg_count":mc})
+                conn2.close()
+                st.markdown("""<div class="resume-panel">
+                    <b>↩️ Resume a previous conversation</b><br>
+                    <small>Pick one to continue, or start fresh.</small>
+                </div>""", unsafe_allow_html=True)
+                if session_data:
+                    for sess in session_data[:5]:
+                        try:
+                            created_dt = datetime.fromisoformat(str(sess["created_at"]))
+                            age_h = int((datetime.now()-created_dt).total_seconds()/3600)
+                            age_s = f"{age_h}h ago" if age_h<24 else f"{age_h//24}d ago"
+                        except Exception: age_s="–"
+                        ci2, cb2 = st.columns([0.7,0.3])
+                        with ci2:
+                            st.markdown(f"<div style='font-size:.82rem;font-weight:600;"
+                                        f"color:#1e293b;'>{sess['label']}</div>"
+                                        f"<div style='font-size:.72rem;color:#94a3b8;'>"
+                                        f"{sess['msg_count']} messages · {age_s}</div>",
+                                        unsafe_allow_html=True)
+                        with cb2:
+                            if st.button("▶ Resume", key=f"resume_{sess['session_id'][:8]}",
+                                         use_container_width=True, type="primary"):
+                                msgs2 = load_session_messages(sess["session_id"])
+                                st.session_state.genie_session_id = sess["session_id"]
+                                st.session_state.current_messages = [
+                                    {"role":m["role"],"content":m["content"],
+                                     "timestamp":m["timestamp"]} for m in msgs2]
+                                st.session_state["show_chats_panel"] = False; st.rerun()
+                        st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
+                else:
+                    st.caption("No previous conversations found.")
+                if st.button("➕ Start a new conversation", key="start_new_conv",
+                             use_container_width=True):
+                    start_new_session()
+                st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
 
-        # ── Chats panel: resume previous conversations ────────────────
-        if st.session_state.get("show_chats_panel", False):
-            conn2 = sqlite3.connect(DB_PATH); c2 = conn2.cursor()
-            c2.execute("""SELECT session_id, session_label, created_at, last_updated
-                          FROM chat_sessions WHERE user_name=?
-                          ORDER BY last_updated DESC LIMIT 10""",
-                       (get_current_user(),))
-            recent_sessions = c2.fetchall()
-            session_data = []
-            for sess in recent_sessions:
-                c2.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?", (sess[0],))
-                mc = c2.fetchone()[0]
-                if mc > 0:
-                    session_data.append({"session_id":sess[0],"label":sess[1],
-                                         "created_at":sess[2],"msg_count":mc})
-            conn2.close()
+            # ── Summary ───────────────────────────────────────────────────────
+            if st.session_state.show_summary and st.session_state.conversation_summary:
+                st.markdown("### Conversation Summary")
+                st.markdown(st.session_state.conversation_summary)
+                if st.button("Dismiss Summary", key="dismiss_summary", use_container_width=True):
+                    st.session_state.show_summary=False; st.session_state.conversation_summary=""; st.rerun()
+                st.markdown("---")
 
-            st.markdown("""<div class="resume-panel">
-                <div class="resume-panel-title">↩️ Resume a previous conversation</div>
-                <div class="resume-panel-sub">Pick one to continue, or start fresh.</div>
-            </div>""", unsafe_allow_html=True)
-
-            if session_data:
-                for sess in session_data[:5]:
-                    try:
-                        created_dt = datetime.fromisoformat(str(sess["created_at"]))
-                        age_h = int((datetime.now()-created_dt).total_seconds()/3600)
-                        age_s = f"{age_h}h ago" if age_h<24 else f"{age_h//24}d ago"
-                    except Exception: age_s="–"
-                    ci2, cb2 = st.columns([0.7,0.3])
-                    with ci2:
-                        st.markdown(f"<div style='font-size:.82rem;font-weight:600;color:#1e293b;'>"
-                                    f"{sess['label']}</div>"
-                                    f"<div style='font-size:.72rem;color:#94a3b8;'>"
-                                    f"{sess['msg_count']} messages · {age_s}</div>",
-                                    unsafe_allow_html=True)
-                    with cb2:
-                        if st.button("▶ Resume", key=f"resume_{sess['session_id'][:8]}",
-                                     use_container_width=True, type="primary"):
-                            msgs2 = load_session_messages(sess["session_id"])
-                            st.session_state.genie_session_id = sess["session_id"]
-                            st.session_state.current_messages = [
-                                {"role":m["role"],"content":m["content"],
-                                 "timestamp":m["timestamp"]} for m in msgs2]
-                            st.session_state["show_chats_panel"] = False; st.rerun()
-                    st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
-            else:
-                st.caption("No previous conversations found.")
-            if st.button("➕ Start a new conversation", key="start_new_conv",
-                         use_container_width=True):
-                start_new_session()
-            st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
-
-        # ── Summary ───────────────────────────────────────────────────
-        if st.session_state.show_summary and st.session_state.conversation_summary:
-            st.markdown("### Conversation Summary")
-            st.markdown(st.session_state.conversation_summary)
-            if st.button("Dismiss Summary", key="dismiss_summary", use_container_width=True):
-                st.session_state.show_summary=False; st.session_state.conversation_summary=""; st.rerun()
-            st.markdown("---")
-
-        # ── Empty state ───────────────────────────────────────────────
-        elif (not st.session_state.current_messages
-              and not st.session_state.get("show_chats_panel",False)):
-            st.markdown("""
+            # ── Empty state or messages ───────────────────────────────────────
+            elif (not st.session_state.current_messages
+                  and not st.session_state.get("show_chats_panel",False)):
+                st.markdown("""
 <div class="genie-empty-state">
   <div class="genie-empty-plus">+</div>
   <div class="genie-empty-title">Start a Conversation</div>
   <div class="genie-empty-sub">Ask questions about your Procurement to Pay data.</div>
 </div>""", unsafe_allow_html=True)
 
-        # ── Chat messages ─────────────────────────────────────────────
-        elif st.session_state.current_messages:
-            st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
-            for msg in st.session_state.current_messages:
-                if msg["role"]=="user":
-                    st.markdown(f'<div class="message-user"><strong>You</strong><br/>'
-                                f'{html.escape(msg["content"])}</div>',unsafe_allow_html=True)
-                else:
-                    st.markdown('<div class="message-assistant"><strong>Genie</strong></div>',
-                                unsafe_allow_html=True)
-                    if "response" in msg and msg["response"]:
-                        resp=msg["response"]; layout=resp.get("layout")
-                        if layout=="static":               st.info(resp["analyst_response"])
-                        elif layout=="cash_flow":          render_cash_flow_response(resp)
-                        elif layout=="early_payment":      render_early_payment_response(resp)
-                        elif layout=="payment_timing":     render_payment_timing_response(resp)
-                        elif layout=="late_payment_trend": render_late_payment_trend_response(resp)
-                        elif layout=="grir_hotspots":      render_grir_hotspots(resp)
-                        elif layout=="grir_root_causes":   render_grir_root_causes(resp)
-                        elif layout=="grir_working_capital": render_grir_working_capital(resp)
-                        elif layout=="grir_vendor_followup": render_grir_vendor_followup(resp)
-                        elif layout=="quick":              render_quick_analysis_response(resp)
-                        elif layout=="analyst":
-                            if resp.get("analyst_response"): st.markdown(resp["analyst_response"])
-                            df2=pd.DataFrame(resp["df"])
-                            if not df2.empty:
-                                st.subheader("Supporting Data")
-                                st.dataframe(safe_dataframe_display(df2),use_container_width=True,hide_index=True)
-                                ch=auto_chart(df2)
-                                if ch: st.altair_chart(ch,use_container_width=True)
-                            with st.expander("View SQL"):
-                                st.code(_safe_sql_string(resp.get("sql")),language="sql")
-                        elif layout=="error": st.error(resp.get("message","Unknown error"))
-                    else: st.markdown(msg["content"])
-            st.markdown('</div>', unsafe_allow_html=True)
+            elif st.session_state.current_messages:
+                st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
+                for msg in st.session_state.current_messages:
+                    if msg["role"]=="user":
+                        st.markdown(f'<div class="message-user"><strong>You</strong><br/>'
+                                    f'{html.escape(msg["content"])}</div>',unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="message-assistant"><strong>Genie</strong></div>',
+                                    unsafe_allow_html=True)
+                        if "response" in msg and msg["response"]:
+                            resp=msg["response"]; layout=resp.get("layout")
+                            if layout=="static":               st.info(resp["analyst_response"])
+                            elif layout=="cash_flow":          render_cash_flow_response(resp)
+                            elif layout=="early_payment":      render_early_payment_response(resp)
+                            elif layout=="payment_timing":     render_payment_timing_response(resp)
+                            elif layout=="late_payment_trend": render_late_payment_trend_response(resp)
+                            elif layout=="grir_hotspots":      render_grir_hotspots(resp)
+                            elif layout=="grir_root_causes":   render_grir_root_causes(resp)
+                            elif layout=="grir_working_capital": render_grir_working_capital(resp)
+                            elif layout=="grir_vendor_followup": render_grir_vendor_followup(resp)
+                            elif layout=="quick":              render_quick_analysis_response(resp)
+                            elif layout=="analyst":
+                                if resp.get("analyst_response"): st.markdown(resp["analyst_response"])
+                                df2=pd.DataFrame(resp["df"])
+                                if not df2.empty:
+                                    st.subheader("Supporting Data")
+                                    st.dataframe(safe_dataframe_display(df2),use_container_width=True,hide_index=True)
+                                    ch=auto_chart(df2)
+                                    if ch: st.altair_chart(ch,use_container_width=True)
+                                with st.expander("View SQL"):
+                                    st.code(_safe_sql_string(resp.get("sql")),language="sql")
+                            elif layout=="error": st.error(resp.get("message","Unknown error"))
+                        else: st.markdown(msg["content"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        with st.form(key="genie_chat_form", clear_on_submit=True):
-            # Two columns: input takes all space, button gets just enough for the circle
-            fi, fb = st.columns([0.92, 0.08])
-            with fi:
-                prefill = st.session_state.pop("genie_prefill", "")
-                uq = st.text_input(
-                    "q",
-                    value=prefill,
-                    placeholder="Ask a procurement question.",
-                    label_visibility="collapsed",
-                )
-            with fb:
-                submitted = st.form_submit_button(
-                    "→", type="primary", use_container_width=True
-                )
-            if submitted and uq:
-                process_user_question(uq)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+            # ── Ask input — ALWAYS rendered unconditionally ───────────────────
+            with st.form(key="genie_chat_form", clear_on_submit=True):
+                fi, fb = st.columns([0.90, 0.10])
+                with fi:
+                    prefill = st.session_state.pop("genie_prefill", "")
+                    uq = st.text_input(
+                        "q", value=prefill,
+                        placeholder="Ask a procurement question…",
+                        label_visibility="collapsed",
+                    )
+                with fb:
+                    submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+                if submitted and uq:
+                    process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
