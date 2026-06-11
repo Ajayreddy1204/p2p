@@ -1092,30 +1092,48 @@ def render_filters():
     current_preset     = st.session_state.preset
     vendor_list        = st.session_state["vendor_list_stable"]
 
-    # ── Inject CSS: force preset buttons to never wrap text ─────
+    # ── Inject CSS: filter row — all elements same height, visible, no wrap ─
     st.markdown("""
 <style>
-/* Filter row: all columns vertically centred */
-div[data-testid="stHorizontalBlock"].filter-row {
+/* ── Filter row: align all elements to centre vertically ── */
+section.main div[data-testid="stHorizontalBlock"]:nth-of-type(2) {
+    align-items: center !important;
+    min-height: 44px !important;
+}
+/* Date input */
+div[data-testid="stDateInput"] input {
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+    white-space: nowrap !important;
+}
+/* Vendor selectbox */
+div[data-testid="stSelectbox"] > div {
+    height: 40px !important;
+    min-height: 40px !important;
+}
+div[data-testid="stSelectbox"] > div > div {
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+    display: flex !important;
     align-items: center !important;
 }
-/* Preset buttons: single line, consistent height */
-div[data-testid="stHorizontalBlock"].preset-row button {
+/* Preset buttons — no text wrap, fixed height */
+div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
+    height: 40px !important;
+    min-height: 40px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    height: 38px !important;
-    min-height: 38px !important;
     font-size: 13px !important;
-    padding: 0 10px !important;
+    padding: 0 12px !important;
     border-radius: 8px !important;
-    line-height: 38px !important;
-}
-/* Date input and selectbox height alignment */
-div[data-testid="stDateInput"] input,
-div[data-testid="stSelectbox"] > div > div {
-    height: 38px !important;
-    line-height: 38px !important;
+    line-height: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1235,11 +1253,65 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     urgent = oc + dc + duc
 
     with st.container(border=True):
-        st.markdown(f"<div style='font-size:16px;font-weight:800;color:#1a1a1a;padding:0.1rem 0.3rem 0.3rem 0.3rem;'>"
-                    f"Needs Attention <span style='font-weight:600;color:#6b7280;font-size:14px;'>({urgent:,})</span></div>",
-                    unsafe_allow_html=True)
-        tc1, tc2, tc3 = st.columns([1,1,1], gap="small")
-        st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
+        # ── All CSS for NA section up-front (no wrapper divs) ──────────────
+        st.markdown("""
+<style>
+/* Tab buttons — tall, full-width, pill-shaped */
+button[data-testid="baseButton-primary"][kind="primary"]:is(
+    [aria-label="Overdue (33)"],
+    [aria-label="Disputed (35)"],
+    [aria-label="Due (0)"]
+),
+div[data-testid="stHorizontalBlock"]:has(
+    button[data-testid="baseButton-secondary"][aria-label*="Overdue"],
+    button[data-testid="baseButton-secondary"][aria-label*="Disputed"],
+    button[data-testid="baseButton-secondary"][aria-label*="Due"]
+) button {
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+/* NA card containers: light pink */
+.na-cards-wrap div[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #FFF5F7 !important;
+    border: 1.5px solid #e8d0d8 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+/* Invoice number button: grey outlined box */
+.na-cards-wrap button[data-testid="baseButton-secondary"] {
+    background: white !important;
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 8px !important;
+    color: #374151 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+}
+.na-cards-wrap button[data-testid="baseButton-secondary"]:hover {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+        st.markdown(
+            f"<div style='font-size:16px;font-weight:800;color:#1a1a1a;"
+            f"padding:0.1rem 0 0.3rem 0;margin-bottom:6px;'>"
+            f"Needs Attention "
+            f"<span style='font-weight:600;color:#6b7280;font-size:14px;'>({urgent:,})</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        # Tab buttons — no wrapper div (prevents empty gap)
+        tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
         with tc1:
             t = "primary" if current_tab == "Overdue" else "secondary"
             if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
@@ -1252,9 +1324,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             t = "primary" if current_tab == "Due" else "secondary"
             if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
                 st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
         # ── Tag colours per tab ───────────────────────────────────────────────
         if current_tab == "Overdue":
@@ -1266,59 +1337,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         else:
             df = due_df;      sl = "Due soon";
             tbg = "#DCFCE7"; tc = "#166534"      # green tag
-
-        # ── Card CSS — white bg, light pink tint, grey border (matches screenshot) ──
-        st.markdown(f"""
-<style>
-/* ── NA card container ── */
-.na-cards-wrap div[data-testid="stVerticalBlockBorderWrapper"] {{
-    background-color: #FFF5F7 !important;
-    border: 1.5px solid #e8d0d8 !important;
-    border-radius: 16px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}}
-/* invoice-number button inside card: grey outlined box top-left */
-.na-cards-wrap button[data-testid="baseButton-secondary"] {{
-    background: white !important;
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 8px !important;
-    color: #374151 !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 12px !important;
-    box-shadow: none !important;
-    width: auto !important;
-    text-align: left !important;
-}}
-.na-cards-wrap button[data-testid="baseButton-secondary"]:hover {{
-    border-color: #2563eb !important;
-    color: #2563eb !important;
-    background: white !important;
-}}
-/* Tab buttons (Overdue / Disputed / Due) — full-width tall pills */
-.na-tabs-row button {{
-    height: 44px !important;
-    min-height: 44px !important;
-    border-radius: 10px !important;
-    font-size: 15px !important;
-    font-weight: 600 !important;
-}}
-.na-tabs-row button[kind="secondary"] {{
-    background: white !important;
-    border: 1.5px solid #d1d5db !important;
-    color: #374151 !important;
-}}
-.na-tabs-row button[kind="primary"] {{
-    background: #2563eb !important;
-    color: white !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
-}}
-</style>""", unsafe_allow_html=True)
 
         if df.empty:
             st.markdown(
@@ -2600,64 +2618,78 @@ def render_genie():
                         else: st.markdown(msg["content"])
                 st.markdown('</div>',unsafe_allow_html=True)
 
-            # ── Ask a question input box — clearly visible ──────────
+            # ── Ask input — clean white box matching screenshot 3 ─────
             st.markdown("""
 <style>
-/* Make the Genie question input clearly visible */
+/* Outer form container: white, rounded, subtle border */
 div[data-testid="stForm"] {
-    border: 2px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    padding: 10px 12px !important;
     background: white !important;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
-    margin-top: 8px !important;
-}
-div[data-testid="stForm"] input[type="text"] {
-    font-size: 14px !important;
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 10px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 16px !important;
     padding: 10px 14px !important;
-    height: 44px !important;
-    background: #f9fafb !important;
-    color: #111827 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07) !important;
+    margin-top: 10px !important;
 }
-div[data-testid="stForm"] input[type="text"]:focus {
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+/* Text input: clean, visible, left-aligned cursor */
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    font-size: 14px !important;
+    color: #111827 !important;
     background: white !important;
+    padding: 0 16px !important;
+    box-shadow: none !important;
     outline: none !important;
 }
-div[data-testid="stForm"] input[type="text"]::placeholder {
-    color: #9ca3af !important;
-    font-size: 13px !important;
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
 }
-/* Submit button */
-div[data-testid="stForm"] button[type="submit"] {
-    height: 44px !important;
-    min-height: 44px !important;
-    border-radius: 10px !important;
-    font-size: 18px !important;
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important;
+    font-size: 13.5px !important;
+}
+/* Submit button: circular blue → */
+div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
+    width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 20px !important;
     font-weight: 700 !important;
     background: #2563eb !important;
     color: white !important;
     border: none !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.35) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    margin: 0 auto !important;
+}
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+    background: #1d4ed8 !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 5px 14px rgba(37,99,235,0.45) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
             with st.form(key="genie_chat_form", clear_on_submit=True):
-                ci, cb = st.columns([0.85, 0.15])
+                ci, cb = st.columns([0.88, 0.12])
                 with ci:
                     prefill = st.session_state.pop("genie_prefill", "")
                     uq = st.text_input(
-                        "Ask a procurement question",
+                        "q",
                         value=prefill,
-                        placeholder="💬  Ask a procurement question here…",
+                        placeholder="Ask a procurement question…",
                         label_visibility="collapsed",
                     )
                 with cb:
-                    submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+                    submitted = st.form_submit_button("→", type="primary", use_container_width=False)
                 if submitted and uq:
                     process_user_question(uq)
 
