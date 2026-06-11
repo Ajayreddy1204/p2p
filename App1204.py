@@ -433,7 +433,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 
 # ------------------------------------------------------------
 # dashboard.py
-# ENHANCED: normal BG button (non-floating) at bottom right, background color picker with requested colors
+# ENHANCED: BG button CSS, all KPIs from Athena, no hardcoded values
 # ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
     st.markdown(f"""
@@ -517,7 +517,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
 
-    /* ── NORMAL BG BUTTON (non-floating style, fixed at bottom right) ── */
+    /* Normal BG button (non-floating style) fixed at bottom right */
     .bg-normal-btn {{
         position: fixed;
         bottom: 24px;
@@ -582,20 +582,33 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #2563eb;
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
+    /* Additional line / border for the panel – satisfies "show line" */
+    .bg-panel::before {{
+        content: '';
+        position: absolute;
+        top: -8px;
+        right: 20px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+        filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.05));
+    }}
 </style>
 
 <div id="procureiq-bg-btn" class="bg-normal-btn">🎨 Theme</div>
 <div id="procureiq-bg-panel" class="bg-panel">
     <div class="bg-panel-title">Background Color</div>
     <div class="bg-colors-grid">
-        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe"></div>
-        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6"></div>
-        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7"></div>
-        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff"></div>
-        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3"></div>
-        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3"></div>
-        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe"></div>
-        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff"></div>
+        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe" title="Light Blue"></div>
+        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6" title="Light Gray"></div>
+        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7" title="Light Green"></div>
+        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff" title="Light Purple"></div>
+        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3" title="Light Pink"></div>
+        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3" title="Light Beige"></div>
+        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe" title="Light Cyan"></div>
+        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff" title="White"></div>
     </div>
     <div style="margin-top:12px; font-size:11px; color:#94a3b8; text-align:center;">Click any color to change background</div>
 </div>
@@ -633,10 +646,10 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         var panel = document.getElementById('procureiq-bg-panel');
         if (!btn || !panel) return;
 
-        // Replace button to avoid duplicate listeners
+        // Remove old listeners by cloning and replacing
         var newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
-        document.getElementById('procureiq-bg-btn').addEventListener('click', function(e) {{
+        newBtn.addEventListener('click', function(e) {{
             e.stopPropagation();
             var p = document.getElementById('procureiq-bg-panel');
             if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
@@ -1539,6 +1552,7 @@ def is_relevant_question(question: str) -> bool:
         # Greetings & pleasantries
         r"^(hi|hello|hey|howdy|hiya|yo|sup|greetings|good\s*(morning|afternoon|evening|night|day))\b",
         r"^(what's up|how's it going|how are you doing|how do you do|nice to meet you)\b",
+        r"^(how are you)\b",          # added explicit "how are you"
         # Personal questions about the assistant
         r"^(what|who) are you\??",
         r"^(how old are you|what is your age|when were you born)\b",
@@ -1589,16 +1603,13 @@ def is_relevant_question(question: str) -> bool:
         "clearing", "reconciliation", "working capital", "follow-up", "hotspot",
         "root cause", "remediation", "action", "playbook", "insight", "recommend",
     ]
+
     for kw in procurement_keywords:
         if kw in q_lower:
             return True
 
-    # If no keyword matches but the question is not caught by non-procurement patterns,
-    # we consider it relevant (safe fallback). This ensures valid procurement questions
-    # that might not contain exact keywords (e.g., "Show me unpaid invoices").
-    # To be conservative, we return False only for explicit non-procurement patterns.
-    # For all other cases, we assume it's procurement-related.
-    return True
+    # If no procurement keyword and no non-procurement pattern matched, consider irrelevant
+    return False
 
 OUT_OF_DOMAIN_RESPONSE = (
     "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
@@ -2604,7 +2615,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></tr>'
+    html_table += '</tr></table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2656,7 +2667,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</table></table>'
+        html_v += '</tr></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2823,7 +2834,7 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
-    # Inject CSS with normal BG button at bottom right (non-floating style)
+    # Inject CSS with working BG button (no separate render_floating_bg_button call)
     inject_dashboard_css("#ffffff")
 
     st.markdown("""
