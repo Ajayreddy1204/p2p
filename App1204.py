@@ -1847,10 +1847,10 @@ def render_forecast():
         else: st.info("No cash flow forecast data.")
         st.markdown("---"); st.markdown("### Action Playbook")
         for label,question in [
-            ("📊 Forecast cash outflow (7–90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("💰 Invoices to pay early to capture discounts","Which invoices should we pay early to capture discounts?"),
-            ("⏰ Optimal payment timing for this week","What is the optimal payment timing strategy for this week?"),
-            ("⚠️ Late payment trend and risk","Show late payment trend for forecasting")]:
+            ("Forecast cash outflow (7–90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Invoices to pay early to capture discounts","Which invoices should we pay early to capture discounts?"),
+            ("Optimal payment timing for this week","What is the optimal payment timing strategy for this week?"),
+            ("Late payment trend and risk","Show late payment trend for forecasting")]:
             if st.button(label,use_container_width=True):
                 st.session_state.auto_run_query=question; st.session_state.page="Genie"; st.rerun()
 
@@ -2468,7 +2468,7 @@ def export_conversation_md():
         lines.append(f"**Summary**\n\n{st.session_state.conversation_summary}\n\n---\n")
     for msg in st.session_state.current_messages:
         lines.append(f"{'**User**' if msg['role']=='user' else '**Genie**'}\n\n{msg['content']}\n\n---\n")
-    st.download_button("📥 Download MD",data="\n".join(lines),
+    st.download_button("Download MD",data="\n".join(lines),
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
@@ -3013,7 +3013,7 @@ def render_invoices():
     with cs1:
         us=st.text_input("Invoice Number",value=st.session_state.invoice_search_input,
                          placeholder="e.g., 9001767",label_visibility="collapsed",key="inv_search_widget")
-    with cs2: sc=st.button("🔍 Search",use_container_width=True,key="search_invoice_btn")
+    with cs2: sc=st.button("Search",use_container_width=True,key="search_invoice_btn")
     with cs3: rc=st.button("Reset",use_container_width=True,key="reset_invoice_btn")
 
     if rc:
