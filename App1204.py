@@ -3199,29 +3199,24 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                             st.markdown(msg["content"])
                 pass  # end chat messages
 
-        pass  # form rendered outside right_col below
-
-    # ══════════════════════════════════════════════════════════════
-    # ASK INPUT — rendered at render_genie() level for FULL WIDTH
-    # Outside left_col/right_col so it spans the entire page
-    # ══════════════════════════════════════════════════════════════
-    st.markdown("""
+        # ── Ask input: white container, same width as AI Assistant above ──
+        st.markdown("""
 <style>
-/* Full-width ask form — no container box (already inside one above) */
+/* Form wrapper: white rounded container matching AI Assistant width */
 div[data-testid="stForm"] {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
+    background: white !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
     margin-top: 10px !important;
     width: 100% !important;
 }
-/* Horizontal layout: input grows, button stays small */
+/* Row: input fills space, button stays fixed */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important; align-items: center !important;
-    gap: 12px !important; width: 100% !important; flex-wrap: nowrap !important;
-    padding: 0 !important; margin: 0 !important;
+    gap: 10px !important; width: 100% !important;
+    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
@@ -3229,22 +3224,20 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
-    flex: 0 0 58px !important; width: 58px !important;
-    min-width: 58px !important; padding: 0 !important;
+    flex: 0 0 56px !important; width: 56px !important;
+    min-width: 56px !important; padding: 0 !important;
 }
-/* Text input: tall and full width */
 div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
     width: 100% !important; padding: 0 !important; margin: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     width: 100% !important;
-    height: 56px !important;
-    min-height: 56px !important;
-    font-size: 15px !important;
-    padding: 0 22px !important;
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 12px !important;
+    height: 52px !important; min-height: 52px !important;
+    font-size: 14px !important;
+    padding: 0 20px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
     background: #f8f9fa !important;
     color: #111827 !important;
     box-shadow: none !important; outline: none !important;
@@ -3255,19 +3248,19 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
     box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #9ca3af !important; font-size: 14px !important;
+    color: #9ca3af !important; font-size: 13.5px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-/* Submit: blue circle */
+/* Blue circle submit button */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-    width: 52px !important; height: 52px !important;
-    min-width: 52px !important; min-height: 52px !important;
+    width: 50px !important; height: 50px !important;
+    min-width: 50px !important; min-height: 50px !important;
     border-radius: 50% !important; padding: 0 !important;
-    font-size: 20px !important; font-weight: 700 !important;
+    font-size: 18px !important; font-weight: 700 !important;
     background: #2563eb !important; color: white !important;
     border: none !important;
-    box-shadow: 0 3px 12px rgba(37,99,235,0.32) !important;
-    line-height: 52px !important; text-align: center !important;
+    box-shadow: 0 3px 12px rgba(37,99,235,0.30) !important;
+    line-height: 50px !important; text-align: center !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     background: #1d4ed8 !important;
@@ -3277,19 +3270,21 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
 </style>
 """, unsafe_allow_html=True)
 
-    with st.form(key="genie_chat_form", clear_on_submit=True):
-        fi, fb = st.columns([0.92, 0.08])
-        with fi:
-            prefill = st.session_state.pop("genie_prefill", "")
-            uq = st.text_input(
-                "q", value=prefill,
-                placeholder="Ask a procurement question…",
-                label_visibility="collapsed",
-            )
-        with fb:
-            submitted = st.form_submit_button("->", type="primary", use_container_width=True)
-        if submitted and uq:
-            process_user_question(uq)
+        with st.form(key="genie_chat_form", clear_on_submit=True):
+            fi, fb = st.columns([0.90, 0.10])
+            with fi:
+                prefill = st.session_state.pop("genie_prefill", "")
+                uq = st.text_input(
+                    "q", value=prefill,
+                    placeholder="Ask a procurement question…",
+                    label_visibility="collapsed",
+                )
+            with fb:
+                submitted = st.form_submit_button("->", type="primary", use_container_width=True)
+            if submitted and uq:
+                process_user_question(uq)
+
+    # form is inside right_col — see above
 
 
 # ── Invoices ──────────────────────────────────────────────────
