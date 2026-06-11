@@ -1300,10 +1300,6 @@ def render_forecast():
                 FROM buckets
             )
             SELECT * FROM total UNION ALL SELECT * FROM buckets
-            ORDER BY CASE forecast_bucket
-                WHEN 'TOTAL_UNPAID' THEN 0 WHEN 'OVERDUE_NOW' THEN 1 WHEN 'DUE_7_DAYS' THEN 2
-                WHEN 'DUE_14_DAYS' THEN 3 WHEN 'DUE_30_DAYS' THEN 4 WHEN 'DUE_60_DAYS' THEN 5
-                WHEN 'DUE_90_DAYS' THEN 6 ELSE 7 END
         """
         cf_df = run_query(cf_sql_fallback)
 
@@ -1538,7 +1534,6 @@ def is_relevant_question(question: str) -> bool:
         r"^good\s*(morning|afternoon|evening|night)\b",
         r"^how are you",
         r"^who are you",
-        r"^what (are|is) you",
         r"^tell me a joke",
         r"^what('s| is) (the )?weather",
         r"^what('s| is) (your )?name",
@@ -2526,7 +2521,7 @@ def render_genie():
                 with col_in:
                     prefill = st.session_state.pop("genie_prefill", "")
                     user_question = st.text_input("Ask a question", value=prefill,
-                                                  placeholder="Ask a procurement question here...",
+                                                  placeholder="Ask a procurement question here..",
                                                   label_visibility="collapsed")
                 with col_btn:
                     submitted = st.form_submit_button("→", type="primary", use_container_width=True)
@@ -2579,7 +2574,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></table>'
+    html_table += '</table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2631,7 +2626,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</tr></table>'
+        html_v += '</table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2652,7 +2647,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</tr></table>'
+        html_c += '<tr>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
