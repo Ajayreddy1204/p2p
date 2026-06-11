@@ -2713,7 +2713,7 @@ def render_invoices():
         user_search = st.text_input("Invoice or PO Number", value=st.session_state.invoice_search_input,
                                     placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_widget")
     with col_btn:
-        search_clicked = st.button("🔍 Search", use_container_width=True, key="search_invoice_btn")
+        search_clicked = st.button("Search", use_container_width=True, key="search_invoice_btn")
     with col_reset:
         reset_clicked = st.button("Reset", use_container_width=True, key="reset_invoice_btn")
 
