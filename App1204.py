@@ -1414,7 +1414,76 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         si  = page * ipp; ei2 = min(si + ipp, tot)
         page_df = df.iloc[si:ei2]; gi = 0
 
-        # ── 4-column card grid — pure HTML cards (no st.container border) ──
+        # ── 4-column card grid ─────────────────────────────────────────────
+        # Use st.container(border=True) so Streamlit widgets ARE inside the
+        # container element. Override the container's visual via CSS targeting
+        # stVerticalBlockBorderWrapper with a unique card-index class.
+        # This is the only approach that keeps buttons inside the pink box.
+
+        # Global card CSS (injected once)
+        st.markdown("""
+<style>
+/* ── Card container: light pink bg, pink border, rounded ── */
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item {
+    background: #FFF0F2 !important;
+    border: 1.5px solid #f5c6cb !important;
+    border-radius: 16px !important;
+    box-shadow: 0 2px 8px rgba(229,57,53,0.06) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+/* ── Invoice number button inside each card ── */
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item
+    button[data-testid="baseButton-secondary"] {
+    background: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    color: #374151 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+    width: auto !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item
+    button[data-testid="baseButton-secondary"]:hover {
+    background: #e9eaf0 !important;
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+        # Inject JS once to tag each stVerticalBlockBorderWrapper with na-card-item
+        # We count them relative to the current render position
+        card_count = len(page_df)
+        st.markdown(f"""
+<script>
+(function() {{
+    // Wait for DOM then tag every BorderWrapper inside the NA section
+    function tagCards() {{
+        var wrappers = window.parent.document.querySelectorAll(
+            'div[data-testid="stVerticalBlockBorderWrapper"]'
+        );
+        // Tag the first {card_count} wrappers that don't have a tab-related button
+        var tagged = 0;
+        wrappers.forEach(function(w) {{
+            if (tagged >= {card_count}) return;
+            // Skip wrappers that already have the na-outer class (the section container)
+            if (!w.classList.contains('na-outer')) {{
+                w.classList.add('na-card-item');
+                tagged++;
+            }}
+        }});
+    }}
+    setTimeout(tagCards, 100);
+    setTimeout(tagCards, 500);
+}})();
+</script>
+""", unsafe_allow_html=True)
+
         for chunk_start in range(0, len(page_df), 4):
             row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
             cols = st.columns(4, gap="medium")
@@ -1425,44 +1494,38 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     amt   = safe_number(r.get("amount"))
                     ddr   = r.get("due_date")
                     dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
+                    bk    = f"na_card_{si}_{gi}_{ref[:30]}"
 
-                    # Full card as pure HTML — no Streamlit container border
-                    bk = f"na_card_{si}_{gi}_{ref[:30]}"
-
-                    # Render card HTML
-                    st.markdown(f"""
-<div class="na-card">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-    <span class="na-inv-num" id="inv_{bk}">{ref}</span>
-    <span class="na-status">{sl}</span>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:4px;">
-    <span class="na-vendor">{vname}</span>
-    <div>
-      <div class="na-amount">{abbr_currency(amt)}</div>
-      <div class="na-due">Due: {dd}</div>
-    </div>
-  </div>
-</div>""", unsafe_allow_html=True)
-
-                    # Invisible navigation button (zero height via CSS)
-                    # The visible card HTML above is the display; this handles click routing
-                    st.markdown(
-                        f"<style>#btn_hide_{bk} button{{height:0!important;"
-                        f"min-height:0!important;padding:0!important;"
-                        f"border:none!important;background:transparent!important;"
-                        f"margin:0!important;overflow:hidden!important;"
-                        f"font-size:0!important;line-height:0!important;}}</style>"
-                        f"<div id='btn_hide_{bk}'>",
-                        unsafe_allow_html=True,
-                    )
-                    if st.button(ref, key=bk):
-                        st.session_state["invoice_search_from_card"] = ref
-                        st.session_state["page"] = "Invoices"
-                        st.experimental_set_query_params(invoice=ref)
-                        st.rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)
-
+                    with st.container(border=True):
+                        # Row 1: invoice button (left) + status label (right)
+                        r1a, r1b = st.columns([1.5, 1], gap="small")
+                        with r1a:
+                            if st.button(ref, key=bk):
+                                st.session_state["invoice_search_from_card"] = ref
+                                st.session_state["page"] = "Invoices"
+                                st.experimental_set_query_params(invoice=ref)
+                                st.rerun()
+                        with r1b:
+                            st.markdown(
+                                f"<div style='text-align:right;padding-top:6px;"
+                                f"font-size:11px;font-weight:700;color:{tc_color};'>"
+                                f"{sl}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        # Row 2: amount + due date (right-aligned)
+                        st.markdown(
+                            f"<div style='text-align:right;margin:2px 0 2px 0;'>"
+                            f"<div style='font-size:15px;font-weight:800;color:#111827;"
+                            f"line-height:1.2;'>{abbr_currency(amt)}</div>"
+                            f"<div style='font-size:10px;color:#9ca3af;margin-top:1px;'>"
+                            f"Due: {dd}</div></div>",
+                            unsafe_allow_html=True,
+                        )
+                        # Row 3: vendor name (small grey)
+                        st.markdown(
+                            f"<div style='font-size:11px;color:#6b7280;'>{vname}</div>",
+                            unsafe_allow_html=True,
+                        )
                     gi += 1
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
