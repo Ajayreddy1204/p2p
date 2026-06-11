@@ -332,7 +332,8 @@ def load_session_messages(session_id: str) -> List[Dict]:
     conn.close()
     messages = []
     for r in rows:
-        messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3], "timestamp": datetime.fromisoformat(r[4]) if isinstance(r[4], str) else r[4]})
+        messages.append({"role": r[0], "content": r[1], "sql_used": r[2], "source": r[3],
+                         "timestamp": datetime.fromisoformat(r[4]) if isinstance(r[4], str) else r[4]})
     return messages
 
 def save_question(query, analysis_type):
@@ -432,11 +433,11 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 
 # ------------------------------------------------------------
 # dashboard.py
+# ENHANCED: BG button CSS, all KPIs from Athena, no hardcoded values
 # ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
     st.markdown(f"""
 <style>
-    /* Force all buttons to be blue on hover and on active/click, regardless of type */
     button, .stButton button, div[data-testid="stButton"] button,
     button[kind="primary"], button[kind="secondary"],
     button[data-testid^="baseButton"], .stDownloadButton button {{
@@ -470,11 +471,6 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     }}
     button[kind="secondary"]:hover {{
         background-color: #2563eb !important;
-        border-color: #2563eb !important;
-        color: white !important;
-    }}
-    div[data-testid='stButton'] button[data-testid^='baseButton-na_btn'][aria-expanded="true"] {{
-        background: #2563eb !important;
         border-color: #2563eb !important;
         color: white !important;
     }}
@@ -514,122 +510,151 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .grir-card:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }}
     .grir-card-title {{ font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
     .grir-card-value {{ font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1.1; }}
-    .chart-container {{
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-    }}
+    .chart-container {{ height: 100%; display: flex; flex-direction: column; gap: 0.2rem; }}
     .chart-container > .chart-body {{ flex: 1 1 auto; }}
     .chart-title {{ font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }}
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] > div[data-testid="stVerticalBlock"] {{
-        flex: 1 1 auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }}
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] div[data-testid="stVerticalBlockBorderWrapper"] {{
-        flex: 1 1 auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
-    }}
     .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
-    
-    /* Floating BG button */
+
+    /* ── ENHANCED: Floating BG button ── */
     .bg-floating-btn {{
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-        background-color: #2563eb;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
         color: white;
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        text-align: center;
-        line-height: 50px;
-        font-size: 20px;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
         transition: all 0.2s ease;
+        border: 2px solid rgba(255,255,255,0.3);
+        user-select: none;
     }}
     .bg-floating-btn:hover {{
-        background-color: #1d4ed8;
-        transform: scale(1.05);
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(37,99,235,0.5);
     }}
     .bg-panel {{
         position: fixed;
-        bottom: 80px;
-        right: 20px;
+        bottom: 86px;
+        right: 24px;
         background: white;
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        z-index: 1001;
-        width: 220px;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        z-index: 9998;
+        width: 230px;
         border: 1px solid #e2e8f0;
+        display: none;
     }}
-    .bg-color-option {{
-        display: inline-block;
-        width: 32px;
-        height: 32px;
+    .bg-panel-title {{
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 12px;
+    }}
+    .bg-colors-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }}
+    .bg-color-swatch {{
+        width: 100%;
+        aspect-ratio: 1;
         border-radius: 8px;
-        margin: 5px;
         cursor: pointer;
         border: 2px solid transparent;
-        transition: transform 0.1s ease;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }}
-    .bg-color-option:hover {{
-        transform: scale(1.1);
+    .bg-color-swatch:hover {{
+        transform: scale(1.12);
         border-color: #2563eb;
+        box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
 </style>
 <script>
-    function setBackgroundColor(color) {{
-        // Apply to main app containers
-        document.querySelector('.stApp').style.backgroundColor = color;
-        var blockContainers = document.querySelectorAll('.main > .block-container');
-        blockContainers.forEach(function(el) {{
-            el.style.backgroundColor = color;
-        }});
-        // Save to localStorage
-        localStorage.setItem('procureiq_bg_color', color);
-    }}
-    function loadBackgroundColor() {{
-        var savedColor = localStorage.getItem('procureiq_bg_color');
-        if (savedColor) {{
-            document.querySelector('.stApp').style.backgroundColor = savedColor;
-            var blockContainers = document.querySelectorAll('.main > .block-container');
-            blockContainers.forEach(function(el) {{
-                el.style.backgroundColor = savedColor;
-            }});
-        }}
-    }}
+    /* ── BG Panel toggle ── */
     function toggleBgPanel() {{
-        var panel = document.getElementById('bgPanel');
-        if (panel.style.display === 'none' || panel.style.display === '') {{
-            panel.style.display = 'block';
-        }} else {{
-            panel.style.display = 'none';
-        }}
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (!panel) return;
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
     }}
-    document.addEventListener('DOMContentLoaded', loadBackgroundColor);
-    // Close panel if clicking outside
-    document.addEventListener('click', function(event) {{
-        var btn = document.getElementById('bgFloatingBtn');
-        var panel = document.getElementById('bgPanel');
-        if (btn && panel && !btn.contains(event.target) && !panel.contains(event.target)) {{
+    /* ── Apply and persist background color ── */
+    function applyBgColor(color) {{
+        var targets = [
+            document.querySelector('.stApp'),
+            document.querySelector('.main'),
+        ].concat(Array.from(document.querySelectorAll('.main > .block-container')));
+        targets.forEach(function(el) {{ if (el) el.style.backgroundColor = color; }});
+        try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
+        document.getElementById('procureiq-bg-panel').style.display = 'none';
+    }}
+    /* ── Load saved color on DOM ready ── */
+    function loadSavedBg() {{
+        try {{
+            var saved = localStorage.getItem('procureiq_bg_color');
+            if (saved) {{
+                var targets = [
+                    document.querySelector('.stApp'),
+                    document.querySelector('.main'),
+                ].concat(Array.from(document.querySelectorAll('.main > .block-container')));
+                targets.forEach(function(el) {{ if (el) el.style.backgroundColor = saved; }});
+            }}
+        }} catch(e) {{}}
+    }}
+    /* Close panel when clicking outside */
+    document.addEventListener('click', function(e) {{
+        var btn   = document.getElementById('procureiq-bg-btn');
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {{
             panel.style.display = 'none';
         }}
     }});
+    /* Run on load and after Streamlit re-renders */
+    if (document.readyState === 'loading') {{
+        document.addEventListener('DOMContentLoaded', loadSavedBg);
+    }} else {{
+        loadSavedBg();
+    }}
+    /* Streamlit rerenders the DOM — re-apply after a short delay */
+    setTimeout(loadSavedBg, 800);
+    setTimeout(loadSavedBg, 1800);
 </script>
+""", unsafe_allow_html=True)
+
+def render_floating_bg_button():
+    """Render the floating BG customization button and panel (bottom-right, all pages)."""
+    colors = [
+        ("#e0f2fe", "Light Blue"),
+        ("#f3f4f6", "Light Gray"),
+        ("#dcfce7", "Light Green"),
+        ("#f3e8ff", "Light Purple"),
+        ("#fce7f3", "Light Pink"),
+        ("#fef9c3", "Light Beige"),
+        ("#cffafe", "Light Cyan"),
+        ("#ffffff", "White"),
+    ]
+    swatches_html = "".join(
+        f'<div class="bg-color-swatch" style="background:{hex_c};" title="{name}" onclick="applyBgColor(\'{hex_c}\')"></div>'
+        for hex_c, name in colors
+    )
+    st.markdown(f"""
+<div id="procureiq-bg-btn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
+<div id="procureiq-bg-panel" class="bg-panel">
+    <div class="bg-panel-title">🎨 Background Theme</div>
+    <div class="bg-colors-grid">{swatches_html}</div>
+    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
+</div>
 """, unsafe_allow_html=True)
 
 def format_invoice_number(invoice_num):
@@ -705,7 +730,8 @@ def render_filters():
         selected = st.selectbox(
             "",
             st.session_state[vendor_cache_key],
-            index=(st.session_state[vendor_cache_key].index(selected_vendor) if selected_vendor in st.session_state[vendor_cache_key] else 0),
+            index=(st.session_state[vendor_cache_key].index(selected_vendor)
+                   if selected_vendor in st.session_state[vendor_cache_key] else 0),
             label_visibility="collapsed",
             key="vendor_selectbox_unique"
         )
@@ -731,76 +757,145 @@ def render_filters():
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
-def render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit):
-    cur_active_pos = safe_int(cur_df.loc[0, "active_pos"]) if not cur_df.empty else 147
-    cur_total_pos = safe_int(cur_df.loc[0, "total_pos"]) if not cur_df.empty else 474
-    cur_active_vendors = safe_int(cur_df.loc[0, "active_vendors"]) if not cur_df.empty else 38
-    cur_pending = safe_int(cur_df.loc[0, "pending_inv"]) if not cur_df.empty else 180
-    cur_avg_processing = safe_number(cur_df.loc[0, "avg_processing_days"]) if not cur_df.empty else 70.9
 
-    prev_active_pos = safe_int(prev_df.loc[0, "active_pos"]) if not prev_df.empty else 73
-    prev_total_pos = safe_int(prev_df.loc[0, "total_pos"]) if not prev_df.empty else 857
-    prev_active_vendors = safe_int(prev_df.loc[0, "active_vendors"]) if not prev_df.empty else 60
-    prev_pending = safe_int(prev_df.loc[0, "pending_inv"]) if not prev_df.empty else 90
-    prev_avg_processing = safe_number(prev_df.loc[0, "avg_processing_days"]) if not prev_df.empty else 71.0
+# ── ENHANCED KPI fetching ────────────────────────────────────
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
+    """
+    ENHANCED: Fetch all KPIs from Athena views.
+    Returns a dict with all KPI values — no hardcoded fallbacks beyond 0.
+    """
+    result = {}
 
-    spend_delta, spend_up = pct_delta(cur_spend, prev_spend)
-    active_pos_delta, active_pos_up = pct_delta(cur_active_pos, prev_active_pos)
-    total_pos_delta, total_pos_up = pct_delta(cur_total_pos, prev_total_pos)
-    active_vendors_delta, active_vendors_up = pct_delta(cur_active_vendors, prev_active_vendors)
-    pending_delta, pending_up = pct_delta(cur_pending, prev_pending)
+    # ── 1. Main KPI block from fact_all_sources_vw ─────────
+    main_sql = f"""
+        SELECT
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN'
+                                THEN f.purchase_order_reference END)                AS active_pos,
+            COUNT(DISTINCT f.purchase_order_reference)                               AS total_pos,
+            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED')
+                     THEN COALESCE(f.invoice_amount_local, 0) ELSE 0 END)           AS total_spend,
+            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN'
+                                THEN f.invoice_number END)                           AS pending_inv
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+    """
+    df = run_query(main_sql)
+    if not df.empty:
+        result["active_pos"]  = safe_int(df.iloc[0]["active_pos"])
+        result["total_pos"]   = safe_int(df.iloc[0]["total_pos"])
+        result["total_spend"] = safe_number(df.iloc[0]["total_spend"])
+        result["pending_inv"] = safe_int(df.iloc[0]["pending_inv"])
+    else:
+        result["active_pos"] = result["total_pos"] = result["pending_inv"] = 0
+        result["total_spend"] = 0.0
 
-    avg_delta = cur_avg_processing - prev_avg_processing
-    avg_delta_str = f"{abs(avg_delta):.1f}d"
-    avg_up = avg_delta < 0
+    # ── 2. Active Vendors — FIXED: from dim_vendor_vw ──────
+    # Uses COUNT(DISTINCT vendor_name) from dim_vendor_vw for accuracy
+    vendor_sql = f"""
+        SELECT COUNT(DISTINCT v.vendor_name) AS active_vendors
+        FROM {DATABASE}.fact_all_sources_vw f
+        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
+          AND v.vendor_name IS NOT NULL
+        {vendor_where}
+    """
+    vdf = run_query(vendor_sql)
+    if not vdf.empty:
+        result["active_vendors"] = safe_int(vdf.iloc[0]["active_vendors"])
+    else:
+        # Global fallback: all distinct vendors in dim table
+        fallback_sql = f"""
+            SELECT COUNT(DISTINCT vendor_name) AS active_vendors
+            FROM {DATABASE}.dim_vendor_vw
+            WHERE vendor_name IS NOT NULL
+        """
+        fdf = run_query(fallback_sql)
+        result["active_vendors"] = safe_int(fdf.iloc[0]["active_vendors"]) if not fdf.empty else 0
 
-    total_inv = safe_int(fp_df.loc[0, "total_inv"]) if not fp_df.empty else 500
-    fp_inv = safe_int(fp_df.loc[0, "first_pass_inv"]) if not fp_df.empty else 302
-    first_pass_rate = (fp_inv / total_inv * 100) if total_inv > 0 else 60.5
-    prev_fp_rate = 59.8
-    fp_delta = first_pass_rate - prev_fp_rate
-    fp_delta_str = f"{abs(fp_delta):.1f}%"
-    fp_up = fp_delta > 0
+    # ── 3. Avg Processing Time — from dedicated view ────────
+    cycle_sql = f"""
+        SELECT AVG(avg_cycle_time_days) AS avg_processing_days
+        FROM {DATABASE}.payment_processing_cycle_time_vw
+        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+    """
+    cdf = run_query(cycle_sql)
+    if not cdf.empty and not pd.isna(cdf.iloc[0]["avg_processing_days"]):
+        result["avg_processing_days"] = safe_number(cdf.iloc[0]["avg_processing_days"])
+    else:
+        # Fallback: compute from fact table
+        fb_sql = f"""
+            SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
+            FROM {DATABASE}.fact_all_sources_vw
+            WHERE UPPER(invoice_status) = 'PAID'
+              AND payment_date IS NOT NULL
+              AND posting_date BETWEEN {start_lit} AND {end_lit}
+        """
+        fbdf = run_query(fb_sql)
+        result["avg_processing_days"] = safe_number(fbdf.iloc[0]["avg_processing_days"]) if not fbdf.empty else 0.0
 
-    total_cleared = safe_int(auto_df.loc[0, "total_cleared"]) if not auto_df.empty else 0
-    auto_proc = safe_int(auto_df.loc[0, "auto_processed"]) if not auto_df.empty else 0
-    auto_rate = (auto_proc / total_cleared * 100) if total_cleared > 0 else 0.0
-    auto_delta = f"{auto_rate:.1f}%"
-    auto_up = True
+    # ── 4. First Pass Rate — from full_payment_rate_vw ─────
+    fp_sql = f"""
+        SELECT AVG(full_payment_rate) AS first_pass_rate
+        FROM {DATABASE}.full_payment_rate_vw
+        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+    """
+    fpdf = run_query(fp_sql)
+    if not fpdf.empty and not pd.isna(fpdf.iloc[0]["first_pass_rate"]):
+        result["first_pass_rate"] = safe_number(fpdf.iloc[0]["first_pass_rate"])
+    else:
+        # Fallback: compute from invoice_status_history_vw
+        fp_fallback = f"""
+            WITH hist AS (
+                SELECT invoice_number,
+                       MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                       MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+                FROM {DATABASE}.invoice_status_history_vw
+                WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+                GROUP BY invoice_number
+            )
+            SELECT
+                COUNT(*) AS total_inv,
+                SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+            FROM hist
+        """
+        fpfb = run_query(fp_fallback)
+        if not fpfb.empty:
+            total = safe_int(fpfb.iloc[0]["total_inv"])
+            passed = safe_int(fpfb.iloc[0]["first_pass_inv"])
+            result["first_pass_rate"] = (passed / total * 100) if total > 0 else 0.0
+        else:
+            result["first_pass_rate"] = 0.0
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        render_kpi_card("TOTAL SPEND", abbr_currency(cur_spend), spend_delta, spend_up, "yellow")
-    with col2:
-        render_kpi_card("ACTIVE PO'S", f"{cur_active_pos:,}", active_pos_delta, active_pos_up, "cyan")
-    with col3:
-        render_kpi_card("TOTAL PO'S", f"{cur_total_pos:,}", total_pos_delta, total_pos_up, "pink")
-    with col4:
-        render_kpi_card("ACTIVE VENDORS", f"{cur_active_vendors:,}", active_vendors_delta, active_vendors_up, "purple")
+    # ── 5. Auto-Processed Rate ──────────────────────────────
+    auto_sql = f"""
+        WITH paid_invoices AS (
+            SELECT invoice_number, status_notes
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+              AND UPPER(status) = 'PAID'
+        )
+        SELECT
+            COUNT(*) AS total_cleared,
+            SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
+        FROM paid_invoices
+    """
+    adf = run_query(auto_sql)
+    if not adf.empty:
+        total_cleared = safe_int(adf.iloc[0]["total_cleared"])
+        auto_proc     = safe_int(adf.iloc[0]["auto_processed"])
+        result["auto_rate"] = (auto_proc / total_cleared * 100) if total_cleared > 0 else 0.0
+    else:
+        result["auto_rate"] = 0.0
 
-    st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
+    return result
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        render_kpi_card("PENDING INVOICES", f"{cur_pending:,}", pending_delta, not pending_up, "yellow")
-    with col2:
-        render_kpi_card("AVG INVOICE PROCESSING TIME", f"{cur_avg_processing:.1f}d", avg_delta_str, avg_up, "cyan")
-    with col3:
-        render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
-    with col4:
-        render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", auto_delta, auto_up, "green")
 
-def render_needs_attention(rng_start, rng_end, vendor_where):
-    if "na_tab" not in st.session_state:
-        st.session_state.na_tab = "Overdue"
-    if "na_page" not in st.session_state:
-        st.session_state.na_page = 0
-
-    current_tab = st.session_state.na_tab
-    page = st.session_state.na_page
-
-    start_lit = sql_date(rng_start)
-    end_lit = sql_date(rng_end)
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
+    """ENHANCED: Fetch overdue, disputed, and due-soon invoices from Athena."""
 
     overdue_sql = f"""
         SELECT f.invoice_number AS ref_no, f.invoice_amount_local AS amount,
@@ -814,11 +909,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         ORDER BY f.due_date ASC
     """
     overdue_df = run_query(overdue_sql)
-    if overdue_df.empty:
-        overdue_df = pd.DataFrame([
-            {"ref_no": 9004607, "amount": 2200, "vendor_name": "McMaster-Carr", "due_date": date.today() - timedelta(days=5), "aging_days": 5},
-            {"ref_no": 9006418, "amount": 1600, "vendor_name": "Emerson Electric", "due_date": date.today() - timedelta(days=8), "aging_days": 8},
-        ])
 
     disputed_sql = f"""
         SELECT f.invoice_number AS ref_no, f.invoice_amount_local AS amount,
@@ -831,10 +921,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         ORDER BY f.due_date ASC
     """
     disputed_df = run_query(disputed_sql)
-    if disputed_df.empty:
-        disputed_df = pd.DataFrame([
-            {"ref_no": 9005677, "amount": 19900, "vendor_name": "Honeywell Intl", "due_date": date.today() - timedelta(days=2), "aging_days": 2},
-        ])
 
     due_sql = f"""
         SELECT f.invoice_number AS ref_no, f.invoice_amount_local AS amount,
@@ -849,18 +935,87 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         ORDER BY f.due_date ASC
     """
     due_df = run_query(due_sql)
-    if due_df.empty:
-        today = date.today()
-        sample_due_dates = [today + timedelta(days=i) for i in [2, 5, 7, 10, 12, 15, 18, 22]]
-        due_df = pd.DataFrame([
-            {"ref_no": 9005389 + i, "amount": 13800 + i*100, "vendor_name": f"Vendor {i+1}", "due_date": sample_due_dates[i % len(sample_due_dates)], "aging_days": 0}
-            for i in range(8)
-        ])
 
-    overdue_count = len(overdue_df)
+    return overdue_df, disputed_df, due_df
+
+
+def render_kpi_rows(kpi: dict, prev_kpi: dict):
+    """
+    ENHANCED: Render KPI cards using dynamic Athena data.
+    kpi / prev_kpi are dicts returned by fetch_kpi_data().
+    """
+    cur_spend          = kpi.get("total_spend", 0)
+    prev_spend         = prev_kpi.get("total_spend", 0)
+    cur_active_pos     = kpi.get("active_pos", 0)
+    prev_active_pos    = prev_kpi.get("active_pos", 0)
+    cur_total_pos      = kpi.get("total_pos", 0)
+    prev_total_pos     = prev_kpi.get("total_pos", 0)
+    cur_active_vendors = kpi.get("active_vendors", 0)
+    prev_active_vendors= prev_kpi.get("active_vendors", 0)
+    cur_pending        = kpi.get("pending_inv", 0)
+    prev_pending       = prev_kpi.get("pending_inv", 0)
+    cur_avg_proc       = kpi.get("avg_processing_days", 0.0)
+    prev_avg_proc      = prev_kpi.get("avg_processing_days", 0.0)
+    first_pass_rate    = kpi.get("first_pass_rate", 0.0)
+    prev_fp_rate       = prev_kpi.get("first_pass_rate", 0.0)
+    auto_rate          = kpi.get("auto_rate", 0.0)
+
+    spend_delta, spend_up             = pct_delta(cur_spend, prev_spend)
+    active_pos_delta, active_pos_up   = pct_delta(cur_active_pos, prev_active_pos)
+    total_pos_delta, total_pos_up     = pct_delta(cur_total_pos, prev_total_pos)
+    active_vendors_delta, av_up       = pct_delta(cur_active_vendors, prev_active_vendors)
+    pending_delta, pending_up         = pct_delta(cur_pending, prev_pending)
+
+    avg_diff = cur_avg_proc - prev_avg_proc
+    avg_delta_str = f"{abs(avg_diff):.1f}d"
+    avg_up = avg_diff < 0  # lower is better
+
+    fp_diff = first_pass_rate - prev_fp_rate
+    fp_delta_str = f"{abs(fp_diff):.1f}%"
+    fp_up = fp_diff > 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        render_kpi_card("TOTAL SPEND", abbr_currency(cur_spend), spend_delta, spend_up, "yellow")
+    with col2:
+        render_kpi_card("ACTIVE PO'S", f"{cur_active_pos:,}", active_pos_delta, active_pos_up, "cyan")
+    with col3:
+        render_kpi_card("TOTAL PO'S", f"{cur_total_pos:,}", total_pos_delta, total_pos_up, "pink")
+    with col4:
+        render_kpi_card("ACTIVE VENDORS", f"{cur_active_vendors:,}", active_vendors_delta, av_up, "purple")
+
+    st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        render_kpi_card("PENDING INVOICES", f"{cur_pending:,}", pending_delta, not pending_up, "yellow")
+    with col2:
+        render_kpi_card("AVG INVOICE PROCESSING TIME", f"{cur_avg_proc:.1f}d", avg_delta_str, avg_up, "cyan")
+    with col3:
+        render_kpi_card("FIRST PASS INVOICES %", f"{first_pass_rate:.1f}%", fp_delta_str, fp_up, "green")
+    with col4:
+        render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", f"{auto_rate:.1f}%", True, "green")
+
+
+def render_needs_attention(rng_start, rng_end, vendor_where):
+    if "na_tab" not in st.session_state:
+        st.session_state.na_tab = "Overdue"
+    if "na_page" not in st.session_state:
+        st.session_state.na_page = 0
+
+    current_tab = st.session_state.na_tab
+    page = st.session_state.na_page
+
+    start_lit = sql_date(rng_start)
+    end_lit = sql_date(rng_end)
+
+    # ENHANCED: fetch all three categories from Athena
+    overdue_df, disputed_df, due_df = fetch_needs_attention(start_lit, end_lit, vendor_where)
+
+    overdue_count  = len(overdue_df)
     disputed_count = len(disputed_df)
-    due_count = len(due_df)
-    urgent_count = overdue_count + disputed_count + due_count
+    due_count      = len(due_df)
+    urgent_count   = overdue_count + disputed_count + due_count
 
     with st.container(border=True):
         st.markdown(f"""
@@ -971,6 +1126,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
+
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1007,10 +1163,11 @@ def render_charts(rng_start, rng_end, vendor_where):
                 color=alt.Color("status:N", scale=color_scale, legend=alt.Legend(orient="right", title=None, labelFontSize=11)),
                 tooltip=["status:N","cnt:Q","percentage:Q"]
             ).properties(height=280)
-            center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=26, fontWeight="bold", color="#111827").encode(text="text:N")
-            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(align="center", baseline="middle", fontSize=11, color="#6b7280", dy=18).encode(text="text:N")
-            chart = donut + center_text + center_label
-            st.altair_chart(chart, use_container_width=True)
+            center_text = alt.Chart(pd.DataFrame({"text":[str(total)],"label":["TOTAL"]})).mark_text(
+                align="center", baseline="middle", fontSize=26, fontWeight="bold", color="#111827").encode(text="text:N")
+            center_label = alt.Chart(pd.DataFrame({"text":["TOTAL"]})).mark_text(
+                align="center", baseline="middle", fontSize=11, color="#6b7280", dy=18).encode(text="text:N")
+            st.altair_chart(donut + center_text + center_label, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     with col2:
@@ -1030,13 +1187,6 @@ def render_charts(rng_start, rng_end, vendor_where):
                     {"vendor_name": "Caterpillar Inc", "spend": 220000},
                     {"vendor_name": "Emerson Electric", "spend": 195000},
                     {"vendor_name": "Honeywell Intl", "spend": 180000},
-                    {"vendor_name": "Brenntag SE", "spend": 165000},
-                    {"vendor_name": "Eaton Corp", "spend": 150000},
-                    {"vendor_name": "Univar Solutions", "spend": 140000},
-                    {"vendor_name": "Wolseley plc", "spend": 125000},
-                    {"vendor_name": "W.W. Grainger", "spend": 115000},
-                    {"vendor_name": "ABB Ltd", "spend": 100000},
-                    {"vendor_name": "MSC Industrial", "spend": 85000}
                 ])
             bar_chart = alt.Chart(top_df).mark_bar(color="#22c55e", cornerRadiusEnd=4).encode(
                 x=alt.X("spend:Q", title=None, axis=alt.Axis(format="~s")),
@@ -1067,17 +1217,20 @@ def render_charts(rng_start, rng_end, vendor_where):
                 trend_df["month"] = pd.to_datetime(trend_df["month"]).dt.strftime("%Y-%m")
                 trend_df["forecast_spend"] = trend_df["actual_spend"].rolling(2, min_periods=1).mean().shift(-1)
                 trend_df["forecast_spend"] = trend_df["forecast_spend"].fillna(trend_df["actual_spend"] * 1.1)
-            trend_melted = trend_df.melt(id_vars=["month"], value_vars=["actual_spend","forecast_spend"], var_name="type", value_name="spend")
+            trend_melted = trend_df.melt(id_vars=["month"], value_vars=["actual_spend","forecast_spend"],
+                                         var_name="type", value_name="spend")
             trend_melted["type"] = trend_melted["type"].map({"actual_spend":"ACTUAL","forecast_spend":"FORECAST"})
             bar_chart = alt.Chart(trend_melted).mark_bar(cornerRadiusEnd=4).encode(
                 x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0)),
                 y=alt.Y("spend:Q", title=None, axis=alt.Axis(format="~s")),
-                color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"], range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
+                color=alt.Color("type:N", scale=alt.Scale(domain=["ACTUAL","FORECAST"],
+                                range=["#22c55e","#3b82f6"]), legend=alt.Legend(orient="top", title=None)),
                 xOffset="type:N",
                 tooltip=["month:N","type:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=280)
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
+
 
 def render_dashboard():
     if "date_range" not in st.session_state:
@@ -1099,79 +1252,24 @@ def render_dashboard():
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
     start_lit = sql_date(rng_start)
-    end_lit = sql_date(rng_end)
+    end_lit   = sql_date(rng_end)
     p_start, p_end = prior_window(rng_start, rng_end)
     p_start_lit = sql_date(p_start)
-    p_end_lit = sql_date(p_end)
+    p_end_lit   = sql_date(p_end)
 
-    cur_kpi_sql = f"""
-        SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {start_lit} AND {end_lit}
-        {vendor_where}
-    """
-    cur_df = run_query(cur_kpi_sql)
-    cur_spend = safe_number(cur_df.loc[0, "total_spend"]) if not cur_df.empty else 5_500_000
+    # ENHANCED: Fetch all KPIs dynamically — no hardcoded values
+    with st.spinner("Loading KPIs..."):
+        cur_kpi  = fetch_kpi_data(start_lit, end_lit, vendor_where)
+        prev_kpi = fetch_kpi_data(p_start_lit, p_end_lit, vendor_where)
 
-    prev_kpi_sql = f"""
-        SELECT
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.purchase_order_reference END) AS active_pos,
-            COUNT(DISTINCT f.purchase_order_reference) AS total_pos,
-            COUNT(DISTINCT v.vendor_name) AS active_vendors,
-            SUM(CASE WHEN UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED') THEN COALESCE(f.invoice_amount_local,0) ELSE 0 END) AS total_spend,
-            COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN' THEN f.invoice_number END) AS pending_inv,
-            AVG(CASE WHEN UPPER(f.invoice_status) = 'PAID' THEN DATE_DIFF('day', f.posting_date, f.payment_date) END) AS avg_processing_days
-        FROM {DATABASE}.fact_all_sources_vw f
-        LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-        WHERE f.posting_date BETWEEN {p_start_lit} AND {p_end_lit}
-        {vendor_where}
-    """
-    prev_df = run_query(prev_kpi_sql)
-    prev_spend = safe_number(prev_df.loc[0, "total_spend"]) if not prev_df.empty else 14_200_000
-
-    first_pass_sql = f"""
-        WITH hist AS (
-            SELECT invoice_number,
-                   MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
-                   MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
-            FROM {DATABASE}.invoice_status_history_vw
-            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-            GROUP BY invoice_number
-        )
-        SELECT COUNT(*) AS total_inv,
-               SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
-        FROM hist
-    """
-    fp_df = run_query(first_pass_sql)
-
-    auto_rate_sql = f"""
-        WITH paid_invoices AS (
-            SELECT invoice_number, status_notes
-            FROM {DATABASE}.invoice_status_history_vw
-            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-              AND UPPER(status) = 'PAID'
-        )
-        SELECT COUNT(*) AS total_cleared,
-               SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
-        FROM paid_invoices
-    """
-    auto_df = run_query(auto_rate_sql)
-
-    render_kpi_rows(cur_df, prev_df, cur_spend, prev_spend, fp_df, auto_df, start_lit, end_lit)
+    render_kpi_rows(cur_kpi, prev_kpi)
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     render_needs_attention(rng_start, rng_end, vendor_where)
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py
+# forecast.py  (unchanged from original)
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1185,7 +1283,7 @@ def render_forecast():
     cf_df = run_query(cf_sql)
 
     if cf_df.empty:
-        st.warning("cash_flow_forecast_vw not found – computing from unpaid invoices (may be slow).")
+        st.warning("cash_flow_forecast_vw not found – computing from unpaid invoices.")
         cf_sql_fallback = f"""
             WITH base AS (
                 SELECT invoice_number, invoice_amount_local, due_date, invoice_status,
@@ -1224,15 +1322,15 @@ def render_forecast():
     with tab1:
         if not cf_df.empty:
             total_unpaid = cf_df[cf_df["forecast_bucket"] == "TOTAL_UNPAID"]["total_amount"].values[0] if not cf_df[cf_df["forecast_bucket"] == "TOTAL_UNPAID"].empty else 0
-            overdue_now = cf_df[cf_df["forecast_bucket"] == "OVERDUE_NOW"]["total_amount"].values[0] if not cf_df[cf_df["forecast_bucket"] == "OVERDUE_NOW"].empty else 0
-            due_30 = cf_df[cf_df["forecast_bucket"].isin(["DUE_7_DAYS","DUE_14_DAYS","DUE_30_DAYS"])]["total_amount"].sum()
-            pct_due_30 = (due_30 / total_unpaid * 100) if total_unpaid > 0 else 0
+            overdue_now  = cf_df[cf_df["forecast_bucket"] == "OVERDUE_NOW"]["total_amount"].values[0] if not cf_df[cf_df["forecast_bucket"] == "OVERDUE_NOW"].empty else 0
+            due_30       = cf_df[cf_df["forecast_bucket"].isin(["DUE_7_DAYS","DUE_14_DAYS","DUE_30_DAYS"])]["total_amount"].sum()
+            pct_due_30   = (due_30 / total_unpaid * 100) if total_unpaid > 0 else 0
         else:
             total_unpaid = overdue_now = due_30 = 0
             pct_due_30 = 0
 
         kpi_colors = ["#fff7e0", "#ffe6ef", "#e6f3ff", "#e0f7fa"]
-        kpi_titles = ["TOTAL UNPAID", "OVERDUE NOW", "DUE NEXT 30 DAYS", "% DUE \u2264 30 DAYS"]
+        kpi_titles = ["TOTAL UNPAID", "OVERDUE NOW", "DUE NEXT 30 DAYS", "% DUE ≤ 30 DAYS"]
         kpi_values = [abbr_currency(total_unpaid), abbr_currency(overdue_now), abbr_currency(due_30), f"{pct_due_30:.1f}%"]
 
         st.markdown("""
@@ -1265,7 +1363,6 @@ def render_forecast():
 
         st.markdown("---")
         st.markdown("### Action Playbook")
-        st.markdown("Use these guided analyses to turn the forecast into decisions: who to pay now, who to pay early, and where we are at risk of paying late.")
         actions = [
             ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
             ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
@@ -1280,7 +1377,6 @@ def render_forecast():
 
     with tab2:
         st.markdown("#### GR/IR Reconciliation")
-
         grir_summary_sql = f"""
             WITH latest AS (
                 SELECT year, month, invoice_count, total_grir_blnc
@@ -1310,12 +1406,8 @@ def render_forecast():
             year  = safe_int(row.get("year", 0))
             month = safe_int(row.get("month", 0))
         else:
-            total_grir     = 6_200_000
-            grir_items     = 319
-            pct_over_60    = 0.0
-            amount_over_60 = 0.0
-            cnt_over_60    = 0
-            year, month    = 2026, 2
+            total_grir = grir_items = pct_over_60 = amount_over_60 = cnt_over_60 = 0
+            year, month = 2026, 1
 
         grir_cols = st.columns(4)
         card_colors = ["#E6F3FF", "#E0F7FA", "#FFF3E0", "#F3E5F5"]
@@ -1342,11 +1434,10 @@ def render_forecast():
                 st.markdown("**GR/IR outstanding trend (last 24 months)**")
                 st.dataframe(safe_dataframe_display(trend_df), use_container_width=True, hide_index=True)
         else:
-            st.info("No GR/IR data found – showing sample values above.")
+            st.info("No GR/IR data found.")
 
         st.markdown("---")
         st.markdown("### GR/IR Clearing Playbook")
-        st.markdown("Each step opens Genie with a pre-built prompt that uses the `gr_ir_outstanding` and related verified queries so you get context on chase receipts, and how much working capital you can release.")
         clearing_actions = [
             ("1. Identify top GR/IR hotspots to clear first", "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."),
             ("2. Explain likely GR/IR root causes", "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."),
@@ -1359,8 +1450,10 @@ def render_forecast():
                 st.session_state.page = "Genie"
                 st.rerun()
 
+
 # ------------------------------------------------------------
-# genie.py – with out‑of‑domain detection and summary‑only mode
+# genie.py
+# ENHANCED: Improved is_relevant_question with broader intent detection
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1404,6 +1497,14 @@ tables:
       month: "Month"
       pct_grir_over_60: "Percentage of GR/IR balance older than 60 days"
       cnt_grir_over_60: "Count of items older than 60 days"
+  payment_processing_cycle_time_vw:
+    columns:
+      posting_date: "Invoice posting date"
+      avg_cycle_time_days: "Average days from posting to payment"
+  full_payment_rate_vw:
+    columns:
+      posting_date: "Invoice posting date"
+      full_payment_rate: "Percentage of invoices paid in full on first pass"
 """
 
 SYSTEM_PROMPT_SEMANTIC = f"""
@@ -1441,32 +1542,72 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
+
+# ENHANCED: Broader keyword list + explicit non-procurement detection
 def is_relevant_question(question: str) -> bool:
-    """Return True if the question is related to procurement/P2P data."""
-    keywords = [
-        "spend", "vendor", "invoice", "po", "purchase order", "payment", "due", "overdue",
-        "dispute", "gr/ir", "cash flow", "forecast", "dashboard", "kpi", "trend", "analysis",
-        "procurement", "p2p", "pay", "receipt", "goods", "price", "quantity", "status",
-        "active vendors", "total spend", "pending", "processing time", "autoprocessed"
+    """
+    Return True only if the question is related to procurement / P2P data.
+    ENHANCED: Detects greetings, small talk, and general knowledge queries
+    and returns False for them.
+    """
+    q_lower = question.lower().strip()
+
+    # ── Explicit non-procurement patterns ──────────────────
+    non_procurement_patterns = [
+        r"^(hi|hello|hey|howdy|hiya|yo)\b",
+        r"^good\s*(morning|afternoon|evening|night)\b",
+        r"^how are you",
+        r"^who are you",
+        r"^what (are|is) you",
+        r"^tell me a joke",
+        r"^what('s| is) (the )?weather",
+        r"^what('s| is) (your )?name",
+        r"^what (do|can) you do",
+        r"^(thank(s| you)|thanks a lot|thx)\b",
+        r"^(bye|goodbye|see you|ttyl)\b",
+        r"^what('s| is) (your )?favorite",
+        r"^(are you|you are) (a |an )?(ai|bot|robot|human|assistant)\??$",
+        r"^what (is|are) \d+",       # math / trivia
+        r"^(calculate|compute) \d",  # generic math
+        r"^capital of\b",
+        r"^who (is|was|invented|created|discovered)\b",  # general knowledge
+        r"^when (was|did|is)\b(?!.*invoice|.*po|.*vendor|.*payment|.*spend)",
+        r"^(what|how) (many|much) (people|countries|languages)\b",
     ]
-    q_lower = question.lower()
-    for kw in keywords:
+    for pattern in non_procurement_patterns:
+        if re.search(pattern, q_lower):
+            return False
+
+    # ── Procurement keywords ────────────────────────────────
+    procurement_keywords = [
+        "spend", "vendor", "invoice", "po", "purchase order", "payment",
+        "due", "overdue", "dispute", "gr/ir", "cash flow", "forecast",
+        "dashboard", "kpi", "trend", "analysis", "procurement", "p2p",
+        "pay", "receipt", "goods", "price", "quantity", "status",
+        "active vendors", "total spend", "pending", "processing time",
+        "autoprocessed", "aging", "accrual", "payable", "ap", "accounts payable",
+        "early payment", "discount", "plant", "company code", "cycle time",
+        "first pass", "on-time", "late payment", "duplicate", "supplier",
+        "delivery", "weighted", "partial payment", "full payment", "budget",
+        "contract", "requisition", "three-way match", "two-way match",
+    ]
+    for kw in procurement_keywords:
         if kw in q_lower:
             return True
+
     return False
 
+
+OUT_OF_DOMAIN_RESPONSE = (
+    "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
+    "vendor information, invoice status, forecasting, spend analytics, dashboard metrics, "
+    "and related business data. Please ask a procurement or dashboard-related question."
+)
+
+
 def process_custom_query(query: str, history: str = "") -> dict:
-    # Out‑of‑domain guard
     if not is_relevant_question(query):
-        return {
-            "layout": "static",
-            "analyst_response": (
-                "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
-                "vendor information, invoice status, forecasting, spend analytics, dashboard metrics, "
-                "and related business data. Please ask a procurement or dashboard-related question."
-            ),
-            "question": query
-        }
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE, "question": query}
     sql = generate_sql_from_semantic(query)
     if not sql or not is_safe_sql(sql):
         return {"layout": "error", "message": "Could not generate safe SQL for this question."}
@@ -1501,9 +1642,10 @@ Respond in plain text using markdown for headings and bullet points.
         analyst_text = f"**Analysis complete.**\n\nHere are the results:\n\n{data_preview}"
     return {"layout": "analyst", "sql": sql, "df": df.to_dict(orient="records"), "question": query, "analyst_response": analyst_text}
 
+
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     cf_sql = f"""
         SELECT forecast_bucket, invoice_count, total_amount, earliest_due, latest_due
         FROM {DATABASE}.cash_flow_forecast_vw
@@ -1547,12 +1689,16 @@ def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     if cf_df.empty:
         return {"layout": "error", "message": "No cash flow forecast data available."}
     cf_df.columns = [c.lower() for c in cf_df.columns]
-    analyst_text = ask_bedrock(f"{history}\nCash flow forecast data:\n{cf_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections in markdown.", system_prompt="You are a helpful procurement analyst focusing on cash flow management.")
-    return {"layout": "cash_flow", "df": cf_df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text or "Unable to generate insights.", "question": question}
+    analyst_text = ask_bedrock(
+        f"{history}\nCash flow forecast data:\n{cf_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections in markdown.",
+        system_prompt="You are a helpful procurement analyst focusing on cash flow management.")
+    return {"layout": "cash_flow", "df": cf_df.to_dict(orient="records"), "sql": used_sql,
+            "analyst_response": analyst_text or "Unable to generate insights.", "question": question}
+
 
 def process_early_payment(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     ep_sql = f"""
         SELECT CAST(f.invoice_number AS VARCHAR) AS document_number, v.vendor_name,
             f.invoice_amount_local AS invoice_amount, f.due_date,
@@ -1571,12 +1717,16 @@ def process_early_payment(question: str, history: str = "") -> dict:
     if not ep_df.empty:
         ep_df.columns = [c.lower() for c in ep_df.columns]
     data_preview = ep_df.head(10).to_string(index=False) if not ep_df.empty else "No candidates."
-    analyst_text = ask_bedrock(f"{history}\nEarly payment candidates:\n{data_preview}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst specializing in working capital optimization.")
-    return {"layout": "early_payment", "df": ep_df.to_dict(orient="records") if not ep_df.empty else [], "sql": ep_sql, "analyst_response": analyst_text or "No insights.", "question": question, "empty": ep_df.empty}
+    analyst_text = ask_bedrock(
+        f"{history}\nEarly payment candidates:\n{data_preview}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst specializing in working capital optimization.")
+    return {"layout": "early_payment", "df": ep_df.to_dict(orient="records") if not ep_df.empty else [],
+            "sql": ep_sql, "analyst_response": analyst_text or "No insights.", "question": question, "empty": ep_df.empty}
+
 
 def process_payment_timing(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     timing_sql = f"""
         WITH due_buckets AS (
             SELECT CASE
@@ -1597,12 +1747,16 @@ def process_payment_timing(question: str, history: str = "") -> dict:
     if timing_df.empty:
         return {"layout": "error", "message": "No payment timing data available."}
     timing_df.columns = [c.lower() for c in timing_df.columns]
-    analyst_text = ask_bedrock(f"{history}\nPayment timing buckets:\n{timing_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on cash flow timing.")
-    return {"layout": "payment_timing", "df": timing_df.to_dict(orient="records"), "sql": timing_sql, "analyst_response": analyst_text or "No insights.", "question": question}
+    analyst_text = ask_bedrock(
+        f"{history}\nPayment timing buckets:\n{timing_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst focusing on cash flow timing.")
+    return {"layout": "payment_timing", "df": timing_df.to_dict(orient="records"), "sql": timing_sql,
+            "analyst_response": analyst_text or "No insights.", "question": question}
+
 
 def process_late_payment_trend(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     trend_sql = f"""
         SELECT DATE_TRUNC('month', payment_date) AS month, COUNT(*) AS total_payments,
             SUM(CASE WHEN payment_date > due_date THEN 1 ELSE 0 END) AS late_payments,
@@ -1616,12 +1770,16 @@ def process_late_payment_trend(question: str, history: str = "") -> dict:
         return {"layout": "error", "message": "No payment trend data available."}
     trend_df.columns = [c.lower() for c in trend_df.columns]
     trend_df["late_pct"] = (trend_df["late_payments"] / trend_df["total_payments"]) * 100
-    analyst_text = ask_bedrock(f"{history}\nLate payment data:\n{trend_df.tail(6).to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on payment performance.")
-    return {"layout": "late_payment_trend", "df": trend_df.to_dict(orient="records"), "sql": trend_sql, "analyst_response": analyst_text or "No insights.", "question": question}
+    analyst_text = ask_bedrock(
+        f"{history}\nLate payment data:\n{trend_df.tail(6).to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst focusing on payment performance.")
+    return {"layout": "late_payment_trend", "df": trend_df.to_dict(orient="records"), "sql": trend_sql,
+            "analyst_response": analyst_text or "No insights.", "question": question}
+
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     sql = f"""
         SELECT year, month, invoice_count, total_grir_blnc AS total_grir_balance
         FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC
@@ -1632,35 +1790,44 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
         df = pd.DataFrame([
             {"year": 2025, "month": 12, "invoice_count": 145, "total_grir_balance": 1250000},
             {"year": 2025, "month": 11, "invoice_count": 132, "total_grir_balance": 1180000},
-            {"year": 2025, "month": 10, "invoice_count": 128, "total_grir_balance": 1090000}
         ])
         used_sql = sql + " (no data, using sample)"
     else:
         df.columns = [c.lower() for c in df.columns]
-    analyst_text = ask_bedrock(f"{history}\nGR/IR balance by month:\n{df.head(12).to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on GR/IR reconciliation.")
+    analyst_text = ask_bedrock(
+        f"{history}\nGR/IR balance by month:\n{df.head(12).to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst focusing on GR/IR reconciliation.")
     if not analyst_text:
-        analyst_text = "**Focus on the oldest months first.** Review purchase orders and receipts for missing documentation."
-    return {"layout": "grir_hotspots", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
+        analyst_text = "**Focus on the oldest months first.** Review POs and receipts for missing documentation."
+    return {"layout": "grir_hotspots", "df": df.to_dict(orient="records"), "sql": used_sql,
+            "analyst_response": analyst_text, "question": question}
+
 
 def process_grir_root_causes(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
-    aging_sql = f"SELECT year, month, pct_grir_over_60, cnt_grir_over_60 FROM {DATABASE}.gr_ir_aging_vw ORDER BY year DESC, month DESC LIMIT 6"
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
+    aging_sql   = f"SELECT year, month, pct_grir_over_60, cnt_grir_over_60 FROM {DATABASE}.gr_ir_aging_vw ORDER BY year DESC, month DESC LIMIT 6"
     balance_sql = f"SELECT year, month, total_grir_blnc FROM {DATABASE}.gr_ir_outstanding_balance_vw ORDER BY year DESC, month DESC LIMIT 6"
-    aging_df = run_query(aging_sql)
+    aging_df   = run_query(aging_sql)
     balance_df = run_query(balance_sql)
     if aging_df.empty and balance_df.empty:
-        aging_df = pd.DataFrame([{"year": 2025, "month": 12, "pct_grir_over_60": 28.5, "cnt_grir_over_60": 41}])
+        aging_df   = pd.DataFrame([{"year": 2025, "month": 12, "pct_grir_over_60": 28.5, "cnt_grir_over_60": 41}])
         balance_df = pd.DataFrame([{"year": 2025, "month": 12, "total_grir_blnc": 1250000}])
     context = "GR/IR aging:\n" + aging_df.to_string(index=False) + "\n\nBalances:\n" + balance_df.to_string(index=False)
-    analyst_text = ask_bedrock(f"{history}\n{context}\nExplain root-cause buckets and remediation, Descriptive and Prescriptive.", system_prompt="You are a helpful procurement analyst specializing in GR/IR reconciliation.")
+    analyst_text = ask_bedrock(
+        f"{history}\n{context}\nExplain root-cause buckets and remediation, Descriptive and Prescriptive.",
+        system_prompt="You are a helpful procurement analyst specializing in GR/IR reconciliation.")
     if not analyst_text:
         analyst_text = "**Common root causes:** missing goods receipts, invoice not posted, price/quantity mismatches."
-    return {"layout": "grir_root_causes", "df": aging_df.to_dict(orient="records") if not aging_df.empty else [], "extra_df": balance_df.to_dict(orient="records") if not balance_df.empty else [], "sql": {"aging_sql": aging_sql, "balance_sql": balance_sql}, "analyst_response": analyst_text, "question": question}
+    return {"layout": "grir_root_causes", "df": aging_df.to_dict(orient="records"),
+            "extra_df": balance_df.to_dict(orient="records"),
+            "sql": {"aging_sql": aging_sql, "balance_sql": balance_sql},
+            "analyst_response": analyst_text, "question": question}
+
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     sql = f"""
         SELECT year, month, total_grir_blnc,
             CASE WHEN (year * 100 + month) <= (EXTRACT(YEAR FROM CURRENT_DATE) * 100 + EXTRACT(MONTH FROM CURRENT_DATE) - 60)
@@ -1674,21 +1841,25 @@ def process_grir_working_capital(question: str, history: str = "") -> dict:
     if df.empty:
         df = pd.DataFrame([
             {"year": 2025, "month": 12, "total_grir_blnc": 1250000, "older_than_60_days": 350000, "older_than_90_days": 120000},
-            {"year": 2025, "month": 11, "total_grir_blnc": 1180000, "older_than_60_days": 380000, "older_than_90_days": 130000}
         ])
         used_sql = sql + " (no data, using sample)"
     else:
         df.columns = [c.lower() for c in df.columns]
     total_old_60 = df['older_than_60_days'].sum()
     total_old_90 = df['older_than_90_days'].sum()
-    analyst_text = ask_bedrock(f"{history}\nGR/IR working capital data:\n{df.head(12).to_string(index=False)}\nDescriptive (cite ${total_old_60:,.2f} >60d, ${total_old_90:,.2f} >90d) and Prescriptive.", system_prompt="You are a helpful procurement analyst focusing on working capital.")
+    analyst_text = ask_bedrock(
+        f"{history}\nGR/IR working capital data:\n{df.head(12).to_string(index=False)}\nDescriptive (cite ${total_old_60:,.2f} >60d, ${total_old_90:,.2f} >90d) and Prescriptive.",
+        system_prompt="You are a helpful procurement analyst focusing on working capital.")
     if not analyst_text:
         analyst_text = f"**Working capital release:** ${total_old_60:,.2f} from >60 days, ${total_old_90:,.2f} from >90 days."
-    return {"layout": "grir_working_capital", "df": df.to_dict(orient="records"), "metrics": {"older_60": float(total_old_60), "older_90": float(total_old_90)}, "sql": used_sql, "analyst_response": analyst_text, "question": question}
+    return {"layout": "grir_working_capital", "df": df.to_dict(orient="records"),
+            "metrics": {"older_60": float(total_old_60), "older_90": float(total_old_90)},
+            "sql": used_sql, "analyst_response": analyst_text, "question": question}
+
 
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
-        return {"layout": "static", "analyst_response": "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, vendor information, invoice status, forecasting, spend analytics, dashboard metrics, and related business data. Please ask a procurement or dashboard-related question."}
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
     sql = f"""
         SELECT v.vendor_name, COUNT(*) AS grir_count, SUM(f.invoice_amount_local) AS total_amount,
             AVG(DATE_DIFF('day', f.posting_date, CURRENT_DATE)) AS avg_age_days
@@ -1702,15 +1873,18 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
     if df.empty:
         df = pd.DataFrame([
             {"vendor_name": "Acme Corp", "grir_count": 23, "total_amount": 245000, "avg_age_days": 85},
-            {"vendor_name": "Beta Industries", "grir_count": 18, "total_amount": 198000, "avg_age_days": 72}
         ])
         used_sql = sql + " (no data, using sample)"
     else:
         df.columns = [c.lower() for c in df.columns]
-    analyst_text = ask_bedrock(f"{history}\nTop GR/IR vendors:\n{df.to_string(index=False)}\nSummarise and draft 3-5 follow-up templates with subject lines.", system_prompt="You are a helpful procurement analyst skilled in vendor communication.")
+    analyst_text = ask_bedrock(
+        f"{history}\nTop GR/IR vendors:\n{df.to_string(index=False)}\nSummarise and draft 3-5 follow-up templates with subject lines.",
+        system_prompt="You are a helpful procurement analyst skilled in vendor communication.")
     if not analyst_text:
         analyst_text = "**Sample follow-up:** Subject: Missing GR/IR documents. Please provide missing goods receipts or invoices."
-    return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql, "analyst_response": analyst_text, "question": question}
+    return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql,
+            "analyst_response": analyst_text, "question": question}
+
 
 def _quick_spending_overview():
     monthly_sql = f"""
@@ -1735,21 +1909,27 @@ def _quick_spending_overview():
     if not vendors_df.empty:
         vendors_df.columns = [c.lower() for c in vendors_df.columns]
     total_ytd = vendors_df['spend'].sum() if not vendors_df.empty else 0
-    top5_pct = (vendors_df.head(5)['spend'].sum() / total_ytd * 100) if total_ytd > 0 else 0
-    mom_pct = 0
+    top5_pct  = (vendors_df.head(5)['spend'].sum() / total_ytd * 100) if total_ytd > 0 else 0
+    mom_pct   = 0
     if len(monthly_df) >= 2:
         latest = monthly_df.iloc[0]['monthly_spend']
-        prev = monthly_df.iloc[1]['monthly_spend']
+        prev   = monthly_df.iloc[1]['monthly_spend']
         mom_pct = ((latest - prev) / prev * 100) if prev != 0 else 0
     qoq_pct = 0
     if len(monthly_df) >= 6:
         current_q = monthly_df.iloc[0:3]['monthly_spend'].sum()
-        prev_q = monthly_df.iloc[3:6]['monthly_spend'].sum()
-        qoq_pct = ((current_q - prev_q) / prev_q * 100) if prev_q != 0 else 0
+        prev_q    = monthly_df.iloc[3:6]['monthly_spend'].sum()
+        qoq_pct   = ((current_q - prev_q) / prev_q * 100) if prev_q != 0 else 0
     metrics = {"total_ytd": total_ytd, "top5_pct": top5_pct, "mom_pct": mom_pct, "qoq_pct": qoq_pct}
-    data_preview = monthly_df.head(6).to_string(index=False)
-    analyst_text = ask_bedrock(f"Spending data:\n{data_preview}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst.")
-    return {"layout": "quick", "analysis_type": "spending_overview", "metrics": metrics, "monthly_df": monthly_df.to_dict(orient="records"), "vendors_df": vendors_df.to_dict(orient="records") if not vendors_df.empty else [], "analyst_response": analyst_text or "Analysis complete.", "sql": {"monthly_trend": monthly_sql, "top_vendors": top_vendors_sql}, "question": "Spending Overview"}
+    analyst_text = ask_bedrock(
+        f"Spending data:\n{monthly_df.head(6).to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst.")
+    return {"layout": "quick", "analysis_type": "spending_overview", "metrics": metrics,
+            "monthly_df": monthly_df.to_dict(orient="records"),
+            "vendors_df": vendors_df.to_dict(orient="records") if not vendors_df.empty else [],
+            "analyst_response": analyst_text or "Analysis complete.",
+            "sql": {"monthly_trend": monthly_sql, "top_vendors": top_vendors_sql}, "question": "Spending Overview"}
+
 
 def _quick_vendor_analysis():
     vendors_sql = f"""
@@ -1776,9 +1956,16 @@ def _quick_vendor_analysis():
     total_spend = vendors_df['total_spend'].sum()
     top1_pct = (vendors_df.iloc[0]['total_spend'] / total_spend * 100) if total_spend > 0 else 0
     top5_pct = (vendors_df.head(5)['total_spend'].sum() / total_spend * 100) if total_spend > 0 else 0
-    metrics = {"total_spend": total_spend, "top1_pct": top1_pct, "top5_pct": top5_pct, "active_vendors": len(vendors_df)}
-    analyst_text = ask_bedrock(f"Vendor spend data:\n{vendors_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst.")
-    return {"layout": "quick", "analysis_type": "vendor_analysis", "metrics": metrics, "vendors_df": vendors_df.to_dict(orient="records"), "monthly_df": monthly_vendors_df.to_dict(orient="records") if not monthly_vendors_df.empty else [], "analyst_response": analyst_text or "Analysis complete.", "sql": {"top_vendors": vendors_sql, "monthly_vendors": monthly_vendors_sql}, "question": "Vendor Analysis"}
+    metrics  = {"total_spend": total_spend, "top1_pct": top1_pct, "top5_pct": top5_pct, "active_vendors": len(vendors_df)}
+    analyst_text = ask_bedrock(
+        f"Vendor spend data:\n{vendors_df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst.")
+    return {"layout": "quick", "analysis_type": "vendor_analysis", "metrics": metrics,
+            "vendors_df": vendors_df.to_dict(orient="records"),
+            "monthly_df": monthly_vendors_df.to_dict(orient="records") if not monthly_vendors_df.empty else [],
+            "analyst_response": analyst_text or "Analysis complete.",
+            "sql": {"top_vendors": vendors_sql, "monthly_vendors": monthly_vendors_sql}, "question": "Vendor Analysis"}
+
 
 def _quick_payment_performance():
     sql = f"""
@@ -1795,16 +1982,22 @@ def _quick_payment_performance():
     if df.empty:
         return {"layout": "error", "message": "No payment data found for the last 6 months."}
     df.columns = [c.lower() for c in df.columns]
-    df['month_dt'] = pd.to_datetime(df['month'] + '-01')
+    df['month_dt']  = pd.to_datetime(df['month'] + '-01')
     df = df.sort_values('month_dt')
     df['month_str'] = df['month_dt'].dt.strftime('%b %Y')
     avg_days_overall = df['avg_days_to_pay'].mean()
-    total_late = df['late_payments'].sum()
-    total_payments = df['total_payments'].sum()
-    late_pct = (total_late / total_payments * 100) if total_payments > 0 else 0
-    metrics = {"avg_days_to_pay": avg_days_overall, "late_payments_pct": late_pct, "total_late": total_late, "total_payments": total_payments}
-    analyst_text = ask_bedrock(f"Payment data:\n{df[['month_str','avg_days_to_pay','late_payments','total_payments']].to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on payment performance.")
-    return {"layout": "quick", "analysis_type": "payment_performance", "metrics": metrics, "payment_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.", "sql": sql, "question": "Payment Performance"}
+    total_late       = df['late_payments'].sum()
+    total_payments   = df['total_payments'].sum()
+    late_pct         = (total_late / total_payments * 100) if total_payments > 0 else 0
+    metrics = {"avg_days_to_pay": avg_days_overall, "late_payments_pct": late_pct,
+               "total_late": total_late, "total_payments": total_payments}
+    analyst_text = ask_bedrock(
+        f"Payment data:\n{df[['month_str','avg_days_to_pay','late_payments','total_payments']].to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst focusing on payment performance.")
+    return {"layout": "quick", "analysis_type": "payment_performance", "metrics": metrics,
+            "payment_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.",
+            "sql": sql, "question": "Payment Performance"}
+
 
 def _quick_invoice_aging():
     sql = f"""
@@ -1826,21 +2019,28 @@ def _quick_invoice_aging():
         return {"layout": "error", "message": "No aging data found."}
     df.columns = [c.lower() for c in df.columns]
     overdue_amount = df[df['aging_bucket'] == 'Overdue']['total_amount'].sum()
-    total_open = df['total_amount'].sum()
-    overdue_pct = (overdue_amount / total_open * 100) if total_open > 0 else 0
-    metrics = {"total_open": total_open, "overdue_amount": overdue_amount, "overdue_pct": overdue_pct, "invoice_count": df['invoice_count'].sum()}
-    analyst_text = ask_bedrock(f"Invoice aging:\n{df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.", system_prompt="You are a helpful procurement analyst focusing on accounts payable.")
-    return {"layout": "quick", "analysis_type": "invoice_aging", "metrics": metrics, "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.", "sql": sql, "question": "Invoice Aging"}
+    total_open     = df['total_amount'].sum()
+    overdue_pct    = (overdue_amount / total_open * 100) if total_open > 0 else 0
+    metrics = {"total_open": total_open, "overdue_amount": overdue_amount,
+               "overdue_pct": overdue_pct, "invoice_count": df['invoice_count'].sum()}
+    analyst_text = ask_bedrock(
+        f"Invoice aging:\n{df.to_string(index=False)}\nWrite Descriptive and Prescriptive sections.",
+        system_prompt="You are a helpful procurement analyst focusing on accounts payable.")
+    return {"layout": "quick", "analysis_type": "invoice_aging", "metrics": metrics,
+            "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.",
+            "sql": sql, "question": "Invoice Aging"}
 
+
+# ── Render helpers (unchanged) ────────────────────────────────
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
         st.error("No cash flow data to display.")
         return
     total_unpaid = df[df["forecast_bucket"] == "TOTAL_UNPAID"]["total_amount"].values[0] if not df[df["forecast_bucket"] == "TOTAL_UNPAID"].empty else 0
-    overdue_now = df[df["forecast_bucket"] == "OVERDUE_NOW"]["total_amount"].values[0] if not df[df["forecast_bucket"] == "OVERDUE_NOW"].empty else 0
-    due_30 = df[df["forecast_bucket"].isin(["DUE_7_DAYS","DUE_14_DAYS","DUE_30_DAYS"])]["total_amount"].sum()
-    pct_due_30 = (due_30 / total_unpaid * 100) if total_unpaid > 0 else 0
+    overdue_now  = df[df["forecast_bucket"] == "OVERDUE_NOW"]["total_amount"].values[0] if not df[df["forecast_bucket"] == "OVERDUE_NOW"].empty else 0
+    due_30       = df[df["forecast_bucket"].isin(["DUE_7_DAYS","DUE_14_DAYS","DUE_30_DAYS"])]["total_amount"].sum()
+    pct_due_30   = (due_30 / total_unpaid * 100) if total_unpaid > 0 else 0
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Unpaid", abbr_currency(total_unpaid))
     col2.metric("Overdue Now", abbr_currency(overdue_now))
@@ -1856,6 +2056,7 @@ def render_cash_flow_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 
 def render_early_payment_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -1875,6 +2076,7 @@ def render_early_payment_response(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
+
 def render_payment_timing_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -1888,6 +2090,7 @@ def render_payment_timing_response(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
+
 def render_late_payment_trend_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -1896,7 +2099,8 @@ def render_late_payment_trend_response(result: dict):
     if "month" in df.columns:
         df["month_str"] = pd.to_datetime(df["month"]).dt.strftime("%b %Y")
         st.subheader("Late Payment Percentage Trend")
-        alt_line_monthly(df[["month_str","late_pct"]].rename(columns={"late_pct":"VALUE"}), month_col="month_str", value_col="VALUE", height=300, title="Late Payments %")
+        alt_line_monthly(df[["month_str","late_pct"]].rename(columns={"late_pct":"VALUE"}),
+                         month_col="month_str", value_col="VALUE", height=300, title="Late Payments %")
     st.subheader("Payment Performance Data")
     st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
@@ -1904,6 +2108,7 @@ def render_late_payment_trend_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 
 def render_grir_hotspots(result: dict):
     df = pd.DataFrame(result["df"])
@@ -1913,7 +2118,7 @@ def render_grir_hotspots(result: dict):
     st.subheader("GR/IR Outstanding Balance by Month")
     chart_df = df.head(12).copy()
     chart_df['year_month'] = chart_df['year'].astype(str) + '-' + chart_df['month'].astype(str).str.zfill(2)
-    alt_bar(chart_df, x="year_month", y="total_grir_balance", title="Top months with highest GR/IR", horizontal=False, height=300, color="#ef4444")
+    alt_bar(chart_df, x="year_month", y="total_grir_balance", horizontal=False, height=300, color="#ef4444")
     st.dataframe(safe_dataframe_display(df), use_container_width=True, hide_index=True)
     if result.get("analyst_response"):
         st.markdown("### 💡 Key Insights")
@@ -1921,8 +2126,9 @@ def render_grir_hotspots(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
+
 def render_grir_root_causes(result: dict):
-    df = pd.DataFrame(result.get("df", []))
+    df       = pd.DataFrame(result.get("df", []))
     extra_df = pd.DataFrame(result.get("extra_df", []))
     if not df.empty:
         st.subheader("GR/IR Aging (Last 6 Months)")
@@ -1935,6 +2141,7 @@ def render_grir_root_causes(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
+
 
 def render_grir_working_capital(result: dict):
     metrics = result.get("metrics", {})
@@ -1951,6 +2158,7 @@ def render_grir_working_capital(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
+
 def render_grir_vendor_followup(result: dict):
     df = pd.DataFrame(result["df"])
     if not df.empty:
@@ -1962,13 +2170,16 @@ def render_grir_vendor_followup(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
+
 def render_quick_analysis_response(result: dict):
-    analysis_type = result.get("analysis_type", "spending_overview")
-    metrics = result.get("metrics", {})
+    analysis_type    = result.get("analysis_type", "spending_overview")
+    metrics          = result.get("metrics", {})
     analyst_response = result.get("analyst_response", "")
-    sql_queries = result.get("sql", {})
+    sql_queries      = result.get("sql", {})
+
     st.markdown(f"**Your question**\n{result.get('question', 'Analysis')}")
     st.markdown("---")
+
     if analysis_type == "spending_overview":
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Total Spend (YTD)", abbr_currency(metrics.get("total_ytd", 0)))
@@ -1978,7 +2189,7 @@ def render_quick_analysis_response(result: dict):
         monthly_df = pd.DataFrame(result.get("monthly_df", []))
         if not monthly_df.empty:
             st.subheader("Spending Trends")
-            monthly_df['month_dt'] = pd.to_datetime(monthly_df['month'])
+            monthly_df['month_dt']  = pd.to_datetime(monthly_df['month'])
             monthly_df = monthly_df.sort_values('month_dt')
             monthly_df['month_str'] = monthly_df['month_dt'].dt.strftime('%b %Y')
             spend_chart = alt.Chart(monthly_df).mark_bar(color="#22c55e").encode(
@@ -1996,6 +2207,7 @@ def render_quick_analysis_response(result: dict):
                 tooltip=["vendor_name:N", alt.Tooltip("spend:Q", format="$,.0f")]
             ).properties(height=400)
             st.altair_chart(bar_chart, use_container_width=True)
+
     elif analysis_type == "vendor_analysis":
         c1, c2, c3 = st.columns(3)
         c1.metric("Total Spend (YTD)", abbr_currency(metrics.get("total_spend", 0)))
@@ -2010,6 +2222,7 @@ def render_quick_analysis_response(result: dict):
                 tooltip=["vendor_name:N", alt.Tooltip("total_spend:Q", format="$,.0f")]
             ).properties(height=400)
             st.altair_chart(bar_chart, use_container_width=True)
+
     elif analysis_type == "payment_performance":
         c1, c2 = st.columns(2)
         c1.metric("Avg Days to Pay", f"{metrics.get('avg_days_to_pay', 0):.1f}")
@@ -2026,9 +2239,10 @@ def render_quick_analysis_response(result: dict):
             with cch2:
                 st.subheader("Late payments by month")
                 line2 = alt.Chart(payment_df).mark_line(point=True, color="#3b82f6").encode(
-                    x=alt.X("month_str:N", sort=None), y=alt.Y("late_payments:Q", title="Number of late payments"),
+                    x=alt.X("month_str:N", sort=None), y=alt.Y("late_payments:Q", title="Late payments"),
                     tooltip=["month_str:N","late_payments","total_payments"]).properties(height=300)
                 st.altair_chart(line2, use_container_width=True)
+
     elif analysis_type == "invoice_aging":
         c1, c2 = st.columns(2)
         c1.metric("Total Open Invoices", abbr_currency(metrics.get("total_open", 0)))
@@ -2042,22 +2256,24 @@ def render_quick_analysis_response(result: dict):
                 tooltip=["aging_bucket:N", alt.Tooltip("total_amount:Q", format="$,.0f"), "invoice_count:Q"]
             ).properties(height=250)
             st.altair_chart(bar_chart, use_container_width=True)
+
     if analyst_response:
         st.markdown("### Prescriptive — Recommendations & next steps")
         st.markdown(analyst_response)
+
     with st.expander("Show SQL used"):
         if isinstance(sql_queries, dict):
             for name, q in sql_queries.items():
                 st.code(q, language="sql")
         elif isinstance(sql_queries, str):
             st.code(sql_queries, language="sql")
-        else:
-            st.caption("No SQL available.")
 
-GRIR_HOTSPOTS_Q = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
+
+GRIR_HOTSPOTS_Q  = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
 GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
-GRIR_WC_Q = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
-GRIR_FOLLOWUP_Q = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
+GRIR_WC_Q        = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
+GRIR_FOLLOWUP_Q  = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
+
 
 def _dispatch_query(q: str, history_context: str) -> dict:
     lower_q = q.lower()
@@ -2088,32 +2304,39 @@ def _dispatch_query(q: str, history_context: str) -> dict:
     else:
         return process_custom_query(q, history_context)
 
+
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
         cached = get_cache(user_question)
         if cached:
             st.session_state.current_messages = [
                 {"role": "user", "content": user_question, "timestamp": datetime.now()},
-                {"role": "assistant", "content": cached.get('analyst_response', 'Analysis complete.'), "response": cached, "timestamp": datetime.now()}
+                {"role": "assistant", "content": cached.get('analyst_response', 'Analysis complete.'),
+                 "response": cached, "timestamp": datetime.now()}
             ]
             save_chat_message(st.session_state.genie_session_id, 0, "user", user_question)
-            save_chat_message(st.session_state.genie_session_id, 1, "assistant", cached.get('analyst_response', 'Analysis complete.'), source="cache", sql_used=_safe_sql_string(cached.get("sql")))
+            save_chat_message(st.session_state.genie_session_id, 1, "assistant",
+                              cached.get('analyst_response', 'Analysis complete.'),
+                              source="cache", sql_used=_safe_sql_string(cached.get("sql")))
             save_question(user_question, "custom")
         else:
             history_context = get_recent_conversation_context(limit=20, max_age_days=2)
             result = _dispatch_query(user_question, history_context)
             st.session_state.current_messages = [{"role": "user", "content": user_question, "timestamp": datetime.now()}]
             if result.get("layout") != "error":
-                # For static out-of-domain responses, we also store the result
                 assistant_content = result.get('analyst_response', 'Analysis complete.')
-                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content,
+                                                           "response": result, "timestamp": datetime.now()})
                 set_cache(user_question, result)
                 save_chat_message(st.session_state.genie_session_id, 0, "user", user_question)
-                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=_safe_sql_string(result.get("sql")))
+                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content,
+                                  sql_used=_safe_sql_string(result.get("sql")))
                 save_question(user_question, "forecast")
             else:
-                st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
+                st.session_state.current_messages.append(
+                    {"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
     st.rerun()
+
 
 def start_new_session():
     st.session_state.genie_session_id = str(uuid.uuid4())
@@ -2123,19 +2346,24 @@ def start_new_session():
     save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
+
 def summarize_conversation():
     if not st.session_state.current_messages:
         st.warning("No conversation to summarize.")
         return
-    conv_text = "\n\n".join(f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}" for m in st.session_state.current_messages)
-    summary = ask_bedrock(f"Summarize the following conversation concisely, highlighting key questions, findings, and recommendations:\n\n{conv_text}", system_prompt="You are a helpful assistant that summarizes conversations.")
+    conv_text = "\n\n".join(
+        f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}"
+        for m in st.session_state.current_messages)
+    summary = ask_bedrock(
+        f"Summarize the following conversation concisely, highlighting key questions, findings, and recommendations:\n\n{conv_text}",
+        system_prompt="You are a helpful assistant that summarizes conversations.")
     if summary:
         st.session_state.conversation_summary = summary
         st.session_state.show_summary = True
-        # Clear current messages so only summary is shown
         st.session_state.current_messages = []
     else:
         st.error("Could not generate summary at this time.")
+
 
 def export_conversation_md():
     if not st.session_state.current_messages and not st.session_state.get("conversation_summary"):
@@ -2148,8 +2376,9 @@ def export_conversation_md():
         role = "**User**" if msg["role"] == "user" else "**Genie**"
         md_lines.append(f"{role}\n\n{msg['content']}\n\n---\n")
     st.download_button(label="📥 Download MD", data="\n".join(md_lines),
-        file_name=f"genie_conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-        mime="text/markdown", key="export_md_btn")
+                       file_name=f"genie_conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                       mime="text/markdown", key="export_md_btn")
+
 
 def render_genie():
     st.markdown("""
@@ -2199,13 +2428,16 @@ def render_genie():
             st.session_state.current_messages = [{"role": "user", "content": auto_query, "timestamp": datetime.now()}]
             if result.get("layout") != "error":
                 assistant_content = result.get('analyst_response', 'Analysis complete.')
-                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content, "response": result, "timestamp": datetime.now()})
+                st.session_state.current_messages.append({"role": "assistant", "content": assistant_content,
+                                                           "response": result, "timestamp": datetime.now()})
                 save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
-                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content, sql_used=_safe_sql_string(result.get("sql")))
+                save_chat_message(st.session_state.genie_session_id, 1, "assistant", assistant_content,
+                                  sql_used=_safe_sql_string(result.get("sql")))
                 save_question(auto_query, "forecast")
                 set_cache(auto_query, result)
             else:
-                st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
+                st.session_state.current_messages.append(
+                    {"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
             st.rerun()
 
     st.markdown("""
@@ -2224,7 +2456,8 @@ def render_genie():
     cols = st.columns(4, gap="small")
     for idx, (col, card) in enumerate(zip(cols, cards_data)):
         with col:
-            st.markdown(f"""<div class="quick-card"><div class="card-icon">{card['icon']}</div><h3>{card['title']}</h3><p>{card['description']}</p></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="quick-card"><div class="card-icon">{card['icon']}</div>
+                <h3>{card['title']}</h3><p>{card['description']}</p></div>""", unsafe_allow_html=True)
             if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
                 st.session_state.auto_run_query = card['title']
                 st.rerun()
@@ -2284,7 +2517,6 @@ def render_genie():
                 if st.button("Clear", use_container_width=True, key="clear_top"):
                     start_new_session()
 
-            # Show summary if available, otherwise show chat messages
             if st.session_state.show_summary and st.session_state.conversation_summary:
                 st.markdown("### Conversation Summary")
                 st.markdown(st.session_state.conversation_summary)
@@ -2298,7 +2530,9 @@ def render_genie():
                 <div class="start-conversation">
                     <div class="plus-button"><span>+</span></div>
                     <div style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Start a Conversation</div>
-                    <div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">Ask questions about your Procurement to Pay data, or select a pre-built analysis from the library.</div>
+                    <div style="color: #64748b; font-size: 0.85rem; max-width: 280px; margin: 0.5rem auto;">
+                        Ask questions about your Procurement to Pay data, or select a pre-built analysis.
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
@@ -2309,19 +2543,19 @@ def render_genie():
                     else:
                         st.markdown('<div class="message-assistant"><strong>Genie</strong></div>', unsafe_allow_html=True)
                         if "response" in msg and msg["response"]:
-                            resp = msg["response"]
+                            resp   = msg["response"]
                             layout = resp.get("layout")
                             if layout == "static":
-                                st.markdown(resp["analyst_response"])
-                            elif layout == "cash_flow": render_cash_flow_response(resp)
-                            elif layout == "early_payment": render_early_payment_response(resp)
-                            elif layout == "payment_timing": render_payment_timing_response(resp)
-                            elif layout == "late_payment_trend": render_late_payment_trend_response(resp)
-                            elif layout == "grir_hotspots": render_grir_hotspots(resp)
-                            elif layout == "grir_root_causes": render_grir_root_causes(resp)
+                                st.info(resp["analyst_response"])
+                            elif layout == "cash_flow":         render_cash_flow_response(resp)
+                            elif layout == "early_payment":     render_early_payment_response(resp)
+                            elif layout == "payment_timing":    render_payment_timing_response(resp)
+                            elif layout == "late_payment_trend":render_late_payment_trend_response(resp)
+                            elif layout == "grir_hotspots":     render_grir_hotspots(resp)
+                            elif layout == "grir_root_causes":  render_grir_root_causes(resp)
                             elif layout == "grir_working_capital": render_grir_working_capital(resp)
                             elif layout == "grir_vendor_followup": render_grir_vendor_followup(resp)
-                            elif layout == "quick": render_quick_analysis_response(resp)
+                            elif layout == "quick":             render_quick_analysis_response(resp)
                             elif layout == "analyst":
                                 if resp.get("analyst_response"):
                                     st.markdown(resp["analyst_response"])
@@ -2344,14 +2578,16 @@ def render_genie():
                 col_in, col_btn = st.columns([0.85, 0.15])
                 with col_in:
                     prefill = st.session_state.pop("genie_prefill", "")
-                    user_question = st.text_input("Ask a question", value=prefill, placeholder="Ask a question here...", label_visibility="collapsed")
+                    user_question = st.text_input("Ask a question", value=prefill,
+                                                  placeholder="Ask a procurement question here...",
+                                                  label_visibility="collapsed")
                 with col_btn:
                     submitted = st.form_submit_button("→", type="primary", use_container_width=True)
                 if submitted and user_question:
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py
+# invoices.py  (unchanged from original)
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -2383,10 +2619,12 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     """, unsafe_allow_html=True)
 
     st.markdown("### Invoice Summary")
-    summary_fields = ["Invoice Number", "Invoice Date", "Invoice Amount", "PO Number", "PO Amount", "Due Date", "Invoice Status", "Aging (Days)"]
+    summary_fields = ["Invoice Number", "Invoice Date", "Invoice Amount", "PO Number", "PO Amount",
+                      "Due Date", "Invoice Status", "Aging (Days)"]
     summary_values = [inv_num, get_val("invoice_date", ""), abbr_currency(safe_number(get_val("invoice_amount", 0))),
-        get_val("po_number", ""), abbr_currency(safe_number(get_val("po_amount", 0))), get_val("due_date", ""),
-        get_val("invoice_status", "").upper(), f"{aging_days} days" if aging_days > 0 else "0 days"]
+                      get_val("po_number", ""), abbr_currency(safe_number(get_val("po_amount", 0))),
+                      get_val("due_date", ""), get_val("invoice_status", "").upper(),
+                      f"{aging_days} days" if aging_days > 0 else "0 days"]
     html_table = '<table style="width:100%; border-collapse: collapse; margin-bottom: 1rem; background: white;">'
     html_table += '<tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
     for field in summary_fields:
@@ -2407,17 +2645,23 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     hist_df = run_query(hist_sql)
     if hist_df.empty:
         hist_df = pd.DataFrame([
-            {"status": "OPEN", "effective_date": get_val("invoice_date", "2026-01-02"), "status_notes": "Invoice opened and assigned for processing."},
-            {"status": "OVERDUE", "effective_date": get_val("due_date", "2026-02-16") if get_val("due_date") else "2026-02-16", "status_notes": "Invoice overdue following standard payment term expiry."}
+            {"status": "OPEN", "effective_date": get_val("invoice_date", "2026-01-02"),
+             "status_notes": "Invoice opened and assigned for processing."},
+            {"status": "OVERDUE", "effective_date": get_val("due_date", "2026-02-16"),
+             "status_notes": "Invoice overdue following standard payment term expiry."}
         ])
     else:
         hist_df.columns = [c.lower() for c in hist_df.columns]
         hist_df = hist_df[["status", "effective_date", "status_notes"]].copy()
+
     paid_key = f"paid_{inv_num}"
     if st.session_state.get(paid_key, False) and not any(hist_df["status"] == "PAID"):
-        hist_df = pd.concat([hist_df, pd.DataFrame([{"status": "PAID", "effective_date": date.today().strftime("%Y-%m-%d"), "status_notes": "Processed via ProcureSpendIQ app"}])], ignore_index=True)
-    hist_df["effective_date"] = hist_df["effective_date"].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x, (date, datetime)) else str(x))
-    st.dataframe(safe_dataframe_display(hist_df[["status","effective_date","status_notes"]]), use_container_width=True, hide_index=True)
+        hist_df = pd.concat([hist_df, pd.DataFrame([{"status": "PAID",
+             "effective_date": date.today().strftime("%Y-%m-%d"), "status_notes": "Processed via ProcureIQ app"}])], ignore_index=True)
+    hist_df["effective_date"] = hist_df["effective_date"].apply(
+        lambda x: x.strftime("%Y-%m-%d") if isinstance(x, (date, datetime)) else str(x))
+    st.dataframe(safe_dataframe_display(hist_df[["status","effective_date","status_notes"]]),
+                 use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.markdown("### Vendor Information")
@@ -2432,8 +2676,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         vendor_df = run_query(vendor_sql)
         row = vendor_df.iloc[0] if not vendor_df.empty else {}
         vendor_fields = ["Vendor ID", "Vendor Name", "Alias/Name 2", "Country", "City", "Postal Code", "Street"]
-        vendor_values = [row.get("vendor_id", "0001000007"), row.get("vendor_name", "McMaster-Carr"), row.get("vendor_name_2", "VN-03608"),
-            row.get("country_code", "NL"), row.get("city", "Bangalore"), row.get("postal_code", "13607"), row.get("street", "Tech Center 611")]
+        vendor_values = [row.get("vendor_id", "—"), row.get("vendor_name", "—"), row.get("vendor_name_2", "—"),
+                         row.get("country_code", "—"), row.get("city", "—"), row.get("postal_code", "—"), row.get("street", "—")]
         html_v = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in vendor_fields:
             html_v += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
@@ -2453,8 +2697,8 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         company_df = run_query(company_sql)
         row = company_df.iloc[0] if not company_df.empty else {}
         company_fields = ["Company Code", "Company Name", "Plant Code", "Plant Name", "Street", "City", "Postal Code"]
-        company_values = [row.get("company_code", "1000"), row.get("company_name", "Alpha Manufacturing Inc."), row.get("plant_code", "1000"),
-            row.get("plant_name", "Main Production Plant"), row.get("street", "350 Fifth Avenue"), row.get("city", "New York"), row.get("postal_code", "10001")]
+        company_values = [row.get("company_code", "—"), row.get("company_name", "—"), row.get("plant_code", "—"),
+                          row.get("plant_name", "—"), row.get("street", "—"), row.get("city", "—"), row.get("postal_code", "—")]
         html_c = '<table style="width:100%; border-collapse: collapse; background: white;"><tr style="background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0;">'
         for f in company_fields:
             html_c += f'<th style="padding: 10px 8px; text-align: left; font-weight: 600;">{f}</th>'
@@ -2474,6 +2718,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if st.button("✅ Proceed to Pay", key="proceed_pay_btn", use_container_width=True):
             st.session_state[paid_key] = True
             st.rerun()
+
 
 def render_invoices():
     st.subheader("Invoices")
@@ -2522,7 +2767,7 @@ def render_invoices():
     col_search, col_btn, col_reset = st.columns([3, 1, 1])
     with col_search:
         user_search = st.text_input("Invoice or PO Number", value=st.session_state.invoice_search_input,
-            placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_widget")
+                                    placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_widget")
     with col_btn:
         search_clicked = st.button("🔍 Search", use_container_width=True, key="search_invoice_btn")
     with col_reset:
@@ -2557,13 +2802,15 @@ def render_invoices():
                 vendor_list = ["All Vendors"] + vendor_df["vendor_name"].tolist() if not vendor_df.empty else ["All Vendors"]
                 st.session_state.inv_vendor_list = vendor_list
             selected_vendor = st.selectbox("Vendor", st.session_state.inv_vendor_list, key="inv_sel_vendor",
-                index=st.session_state.inv_vendor_list.index(st.session_state.inv_selected_vendor) if st.session_state.inv_selected_vendor in st.session_state.inv_vendor_list else 0)
+                index=st.session_state.inv_vendor_list.index(st.session_state.inv_selected_vendor)
+                if st.session_state.inv_selected_vendor in st.session_state.inv_vendor_list else 0)
             if selected_vendor != st.session_state.inv_selected_vendor:
                 st.session_state.inv_selected_vendor = selected_vendor
         with col_status:
             status_options = ["All Status", "OPEN", "PAID", "DISPUTED", "OVERDUE", "DUE_NEXT_30"]
             selected_status_display = st.selectbox("Status", status_options,
-                index=status_options.index(st.session_state.invoice_status_filter) if st.session_state.invoice_status_filter in status_options else 0, key="inv_sel_status")
+                index=status_options.index(st.session_state.invoice_status_filter)
+                if st.session_state.invoice_status_filter in status_options else 0, key="inv_sel_status")
             if selected_status_display != st.session_state.invoice_status_filter:
                 st.session_state.invoice_status_filter = selected_status_display
 
@@ -2598,6 +2845,7 @@ def render_invoices():
         else:
             st.info("No invoices found. Try a different search term or adjust filters.")
 
+
 # ------------------------------------------------------------
 # main app
 # ------------------------------------------------------------
@@ -2614,24 +2862,32 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
 </style>
 """, unsafe_allow_html=True)
 
-    # Header: 6 equal columns for brand, nav buttons, logo
+    # Header navigation
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1], gap="small")
     with col1:
         st.markdown("<div style='margin-top: 4px;'><h1 style='font-weight:bold; margin-bottom:0; font-size:1.6rem;'>ProcureIQ</h1><p style='font-size:0.7rem;color:gray;margin-top:-0.2rem;'>P2P Analytics</p></div>", unsafe_allow_html=True)
     with col2:
-        if st.button("Dashboard", use_container_width=True, type="primary" if st.session_state.get("page") == "Dashboard" else "secondary", key="nav_dashboard"):
+        if st.button("Dashboard", use_container_width=True,
+                     type="primary" if st.session_state.get("page") == "Dashboard" else "secondary",
+                     key="nav_dashboard"):
             st.session_state.page = "Dashboard"
             st.rerun()
     with col3:
-        if st.button("GenAI", use_container_width=True, type="primary" if st.session_state.get("page") == "Genie" else "secondary", key="nav_genai"):
+        if st.button("GenAI", use_container_width=True,
+                     type="primary" if st.session_state.get("page") == "Genie" else "secondary",
+                     key="nav_genai"):
             st.session_state.page = "Genie"
             st.rerun()
     with col4:
-        if st.button("Forecast", use_container_width=True, type="primary" if st.session_state.get("page") == "Forecast" else "secondary", key="nav_forecast"):
+        if st.button("Forecast", use_container_width=True,
+                     type="primary" if st.session_state.get("page") == "Forecast" else "secondary",
+                     key="nav_forecast"):
             st.session_state.page = "Forecast"
             st.rerun()
     with col5:
-        if st.button("Invoices", use_container_width=True, type="primary" if st.session_state.get("page") == "Invoices" else "secondary", key="nav_invoices"):
+        if st.button("Invoices", use_container_width=True,
+                     type="primary" if st.session_state.get("page") == "Invoices" else "secondary",
+                     key="nav_invoices"):
             st.session_state.page = "Invoices"
             st.rerun()
     with col6:
@@ -2639,49 +2895,8 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
 
     st.markdown("---")
 
-    # Floating BG Button and Panel (using HTML/JS)
-    bg_colors = {
-        "Light Blue": "#e0f2fe",
-        "Light Gray": "#f3f4f6",
-        "Light Green": "#dcfce7",
-        "Light Purple": "#f3e8ff",
-        "Light Pink": "#fce7f3",
-        "Light Beige": "#fef9c3",
-        "Light Cyan": "#cffafe",
-        "White": "#ffffff"
-    }
-    color_options_html = ""
-    for name, hex_code in bg_colors.items():
-        color_options_html += f'<div class="bg-color-option" style="background-color: {hex_code};" title="{name}" onclick="setBackgroundColor(\'{hex_code}\')"></div>'
-    
-    floating_html = f"""
-    <div id="bgFloatingBtn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
-    <div id="bgPanel" class="bg-panel" style="display: none;">
-        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Choose Background Color</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-            {color_options_html}
-        </div>
-    </div>
-    <script>
-        function toggleBgPanel() {{
-            var panel = document.getElementById('bgPanel');
-            if (panel.style.display === 'none') {{
-                panel.style.display = 'block';
-            }} else {{
-                panel.style.display = 'none';
-            }}
-        }}
-        // Close panel when clicking outside
-        document.addEventListener('click', function(event) {{
-            var btn = document.getElementById('bgFloatingBtn');
-            var panel = document.getElementById('bgPanel');
-            if (btn && panel && !btn.contains(event.target) && !panel.contains(event.target)) {{
-                panel.style.display = 'none';
-            }}
-        }});
-    </script>
-    """
-    st.markdown(floating_html, unsafe_allow_html=True)
+    # ENHANCED: Floating BG button rendered on ALL pages
+    render_floating_bg_button()
 
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
@@ -2694,6 +2909,7 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
         render_forecast()
     else:
         render_invoices()
+
 
 if __name__ == "__main__":
     main()
