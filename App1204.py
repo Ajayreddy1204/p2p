@@ -1299,9 +1299,22 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_tab="Due"; st.session_state.na_page=0; st.rerun()
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-        if   current_tab=="Overdue":  df=overdue_df;  sl="Overdue";  tbg="#FEE2E2"; tc="#991B1B"; card_bg="#FFF0F3"
-        elif current_tab=="Disputed": df=disputed_df; sl="Disputed"; tbg="#FEF3C7"; tc="#92400E"; card_bg="#FFF9EC"
-        else:                         df=due_df;       sl="Due soon"; tbg="#DBEAFE"; tc="#1E3A8A"; card_bg="#F0F4FF"
+        # Card bg = light pink for all; tag colours differ by type
+        # Overdue  → light blue tag
+        # Disputed → light red tag
+        # Due      → light green tag
+        if   current_tab=="Overdue":
+            df=overdue_df;  sl="Overdue";
+            tbg="#DBEAFE"; tc="#1E40AF"   # light blue tag
+            card_bg="#FFF0F5"             # light pink card
+        elif current_tab=="Disputed":
+            df=disputed_df; sl="Disputed";
+            tbg="#FEE2E2"; tc="#B91C1C"   # light red tag
+            card_bg="#FFF0F5"             # light pink card
+        else:
+            df=due_df;       sl="Due soon";
+            tbg="#DCFCE7"; tc="#166534"   # light green tag
+            card_bg="#FFF0F5"             # light pink card
 
         if df.empty:
             st.markdown('<div style="padding:1rem;color:#64748b;">No items in this category</div>', unsafe_allow_html=True)
@@ -1469,22 +1482,32 @@ def render_charts(rng_start, rng_end, vendor_where):
                     {"status":"Paid","cnt":450},{"status":"Pending","cnt":180},
                     {"status":"Disputed","cnt":33},{"status":"Other","cnt":30}])
             total = status_df["cnt"].sum()
-            status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0
+            status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
+            status_df["pct_label"]  = status_df["percentage"].apply(lambda x: f"{x}%")
             cs = alt.Scale(domain=["Paid","Pending","Disputed","Other"],
                            range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
-            donut = alt.Chart(status_df).mark_arc(innerRadius=50, outerRadius=90).encode(
-                theta=alt.Theta("cnt:Q"),
+            base_chart = alt.Chart(status_df).encode(
+                theta=alt.Theta("cnt:Q", stack=True),
                 color=alt.Color("status:N", scale=cs,
-                                legend=alt.Legend(orient="right",title=None,labelFontSize=11)),
-                tooltip=["status:N","cnt:Q","percentage:Q"]
-            ).properties(height=280)
+                                legend=alt.Legend(orient="right", title=None,
+                                                  labelFontSize=11, symbolSize=100)),
+            )
+            donut = base_chart.mark_arc(
+                innerRadius=50, outerRadius=90, stroke="white", strokeWidth=2
+            ).encode(tooltip=["status:N","cnt:Q","percentage:Q"])
+            # Percentage labels on arcs
+            pct_text = base_chart.mark_text(
+                radius=110, size=10, fontWeight="bold", color="#374151"
+            ).encode(text=alt.Text("pct_label:N"))
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
-                align="center",baseline="middle",fontSize=26,fontWeight="bold",color="#111827"
+                align="center", baseline="middle", fontSize=26,
+                fontWeight="bold", color="#111827"
             ).encode(text="t:N")
             cl = alt.Chart(pd.DataFrame({"t":["TOTAL"]})).mark_text(
-                align="center",baseline="middle",fontSize=11,color="#6b7280",dy=18
+                align="center", baseline="middle", fontSize=11, color="#6b7280", dy=18
             ).encode(text="t:N")
-            st.altair_chart(donut + ct + cl, use_container_width=True)
+            st.altair_chart((donut + pct_text + ct + cl).properties(height=280),
+                            use_container_width=True)
 
     with col2:
         with st.container(border=True):
@@ -2339,15 +2362,17 @@ def render_genie():
             domain=["Paid","Pending","Disputed","Other"],
             range=["#22c55e","#f59e0b","#ef4444","#3b82f6"]
         )
-        # Donut with percentage text labels on arcs
+        # Donut with percentage labels on arcs
         base = alt.Chart(inv_df).encode(
             theta=alt.Theta("cnt:Q", stack=True),
             color=alt.Color("status:N", scale=color_scale,
                             legend=alt.Legend(orient="right", title=None,
                                               labelFontSize=12, symbolSize=120)),
         )
-        donut = base.mark_arc(innerRadius=55, outerRadius=95, stroke="white", strokeWidth=2)
-        text  = base.mark_text(radius=115, size=11, fontWeight="bold", color="#374151").encode(
+        donut = base.mark_arc(innerRadius=55, outerRadius=95, stroke="white", strokeWidth=2).encode(
+            tooltip=["status:N", "cnt:Q", alt.Tooltip("pct:Q", format=".1f", title="Pct%")]
+        )
+        pct_text = base.mark_text(radius=115, size=11, fontWeight="bold", color="#374151").encode(
             text=alt.Text("label:N")
         )
         center_val   = alt.Chart(pd.DataFrame({"v":[str(total_inv)]})).mark_text(
@@ -2356,7 +2381,7 @@ def render_genie():
         center_label = alt.Chart(pd.DataFrame({"v":["TOTAL"]})).mark_text(
             align="center", baseline="middle", fontSize=11, color="#6b7280", dy=20
         ).encode(text="v:N")
-        chart = (donut + text + center_val + center_label).properties(height=260)
+        chart = (donut + pct_text + center_val + center_label).properties(height=260)
         st.altair_chart(chart, use_container_width=True)
 
     st.markdown("---")
@@ -2804,6 +2829,8 @@ def render_invoices():
     else: st.info("No invoices found.")
 
 # ── Main app ──────────────────────────────────────────────────
+
+# ── Main app ──────────────────────────────────────────────────
 def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
@@ -2815,212 +2842,29 @@ def main():
 
     inject_dashboard_css()
 
-    # ── Extra layout CSS ─────────────────────────────────────────
-    st.markdown("""
-<style>
-.block-container { padding-top: 0 !important; padding-bottom: 0 !important; }
-button { font-weight: 500 !important; border-radius: 8px !important; }
-
-/* ── Header row: make all columns same height and vertically centered ── */
-div[data-testid="stHorizontalBlock"].nav-row {
-    align-items: center !important;
-    min-height: 56px !important;
-}
-div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-/* First col (brand) — left-align */
-div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"]:first-child {
-    justify-content: flex-start !important;
-}
-/* Last col (logo) — right-align */
-div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"]:last-child {
-    justify-content: flex-end !important;
-}
-/* Nav buttons — vertically centred, consistent height */
-div[data-testid="stHorizontalBlock"].nav-row button {
-    height: 40px !important;
-    min-height: 40px !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    vertical-align: middle !important;
-}
-/* Brand block — vertically centred */
-.piq-brand {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    line-height: 1.2;
-    padding: 6px 0;
-}
-.piq-brand h1 {
-    font-size: 1.55rem;
-    font-weight: 800;
-    color: #111827;
-    margin: 0;
-    padding: 0;
-    line-height: 1;
-}
-.piq-brand p {
-    font-size: 0.68rem;
-    color: #9ca3af;
-    margin: 0;
-    padding: 0;
-    line-height: 1;
-}
-/* Logo image — centred vertically */
-.piq-logo {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    height: 100%;
-}
-.piq-logo img {
-    width: 110px;
-    height: auto;
-    object-fit: contain;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # ── Header navigation ──────────────────────────────────────────────────────
-    # Use a plain st.columns layout wrapped in a CSS class that forces
-    # vertical alignment. All 6 cells share the same flex row so brand,
-    # nav buttons, and logo sit on exactly the same baseline.
-    pg = st.session_state.page
-
-    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5, nav_col6 = st.columns(
-        [1.4, 1, 1, 1, 1, 1.2], gap="small"
-    )
-
-    with nav_col1:
-        st.markdown(
-            "<div class='piq-brand'><h1>ProcureIQ</h1><p>P2P Analytics</p></div>",
-            unsafe_allow_html=True,
-        )
-
-    with nav_col2:
-        if st.button(
-            "Dashboard", use_container_width=True, key="nav_dashboard",
-            type="primary" if pg == "Dashboard" else "secondary",
-        ):
-            st.session_state.page = "Dashboard"; st.rerun()
-
-    with nav_col3:
-        if st.button(
-            "GenAI", use_container_width=True, key="nav_genai",
-            type="primary" if pg == "Genie" else "secondary",
-        ):
-            st.session_state.page = "Genie"; st.rerun()
-
-    with nav_col4:
-        if st.button(
-            "Forecast", use_container_width=True, key="nav_forecast",
-            type="primary" if pg == "Forecast" else "secondary",
-        ):
-            st.session_state.page = "Forecast"; st.rerun()
-
-    with nav_col5:
-        if st.button(
-            "Invoices", use_container_width=True, key="nav_invoices",
-            type="primary" if pg == "Invoices" else "secondary",
-        ):
-            st.session_state.page = "Invoices"; st.rerun()
-
-    with nav_col6:
-        st.markdown(
-            f"<div class='piq-logo'><img src='{LOGO_URL}'/></div>",
-            unsafe_allow_html=True,
-        )
-
-    # Force the columns row to use our nav-row class via JS (Streamlit doesn't
-    # expose a direct class hook, so we inject it after render)
-    st.markdown("""
-<script>
-(function() {
-    // Tag the first stHorizontalBlock as nav-row so our CSS targets it
-    var blocks = window.parent.document.querySelectorAll(
-        'div[data-testid="stHorizontalBlock"]'
-    );
-    if (blocks.length > 0) blocks[0].classList.add('nav-row');
-})();
-</script>
-""", unsafe_allow_html=True)
-
-    st.markdown(
-        "<hr style='margin:6px 0 10px 0;border:none;border-top:1px solid #e5e7eb;'/>",
-        unsafe_allow_html=True,
-    )
-
-    # ── Page routing ───────────────────────────────────────────────────────────
-    if   pg == "Dashboard": render_dashboard()
-    elif pg == "Genie":     render_genie()
-    elif pg == "Forecast":  render_forecast()
-    else:                   render_invoices()
-
-    # ── BG Button: fixed bottom-right ─────────────────────────────────────────
-    render_bg_button_sidebar()
-
-if __name__=="__main__":
-    main()    # ── Header CSS — matches screenshot exactly ──────────────────
-    pg = st.session_state.page
+    # ── Global layout + header CSS ─────────────────────────────
+    bg = st.session_state.get("bg_color", "#ffffff")
     st.markdown(f"""
 <style>
-.block-container {{ padding-top: 0 !important; padding-bottom: 0 !important; }}
-
-/* ── App-level background ── */
-.stApp {{ background-color: {st.session_state.get("bg_color","#ffffff")} !important; }}
-.main > .block-container {{ background-color: {st.session_state.get("bg_color","#ffffff")} !important; }}
-
-/* ── Header layout ── */
-.piq-header-row {{
-    display: flex !important;
-    align-items: center !important;
-    min-height: 60px !important;
-    padding: 8px 0 !important;
+/* ── Reset block-container padding so header is not glued to top ── */
+.block-container {{
+    padding-top: 1.5rem !important;
+    padding-bottom: 1rem !important;
+    max-width: 100% !important;
 }}
-/* Brand */
-.piq-brand {{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-width: 140px;
-    padding-right: 8px;
+/* ── Background ── */
+.stApp, .main > .block-container {{
+    background-color: {bg} !important;
 }}
-.piq-brand-name {{
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #111827;
-    line-height: 1.1;
-    letter-spacing: -0.3px;
+/* ── All buttons: base style ── */
+button {{
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    transition: all 0.18s ease !important;
 }}
-.piq-brand-sub {{
-    font-size: 0.65rem;
-    color: #9ca3af;
-    line-height: 1;
-    margin-top: 2px;
-}}
-/* Logo */
-.piq-logo {{
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    min-width: 130px;
-}}
-.piq-logo img {{
-    height: 50px;
-    width: auto;
-    object-fit: contain;
-}}
-
-/* ── Nav buttons: pill style matching screenshot ── */
-/* All nav buttons: rounded, light grey outline */
-div[data-testid="column"]:nth-child(2) button,
-div[data-testid="column"]:nth-child(3) button,
-div[data-testid="column"]:nth-child(4) button,
-div[data-testid="column"]:nth-child(5) button {{
+/* ── Nav bar: pill-style buttons matching screenshot ── */
+/* Inactive pills: white bg, light grey border */
+.nav-pill button {{
     border-radius: 50px !important;
     height: 40px !important;
     min-height: 40px !important;
@@ -3029,116 +2873,118 @@ div[data-testid="column"]:nth-child(5) button {{
     border: 1.5px solid #d1d5db !important;
     background: white !important;
     color: #374151 !important;
-    padding: 0 20px !important;
-    transition: all 0.15s ease !important;
     box-shadow: none !important;
+    padding: 0 22px !important;
 }}
-div[data-testid="column"]:nth-child(2) button:hover,
-div[data-testid="column"]:nth-child(3) button:hover,
-div[data-testid="column"]:nth-child(4) button:hover,
-div[data-testid="column"]:nth-child(5) button:hover {{
+.nav-pill button:hover {{
     border-color: #2563eb !important;
     color: #2563eb !important;
     background: #f0f7ff !important;
     box-shadow: none !important;
     transform: none !important;
 }}
-/* Active/primary nav button: solid blue fill */
-div[data-testid="column"]:nth-child(2) button[kind="primary"],
-div[data-testid="column"]:nth-child(3) button[kind="primary"],
-div[data-testid="column"]:nth-child(4) button[kind="primary"],
-div[data-testid="column"]:nth-child(5) button[kind="primary"] {{
+/* Active pill: solid blue */
+.nav-pill button[kind="primary"] {{
     background: #2563eb !important;
     background-color: #2563eb !important;
     color: white !important;
     border-color: #2563eb !important;
     font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.35) !important;
 }}
-div[data-testid="column"]:nth-child(2) button[kind="primary"]:hover,
-div[data-testid="column"]:nth-child(3) button[kind="primary"]:hover,
-div[data-testid="column"]:nth-child(4) button[kind="primary"]:hover,
-div[data-testid="column"]:nth-child(5) button[kind="primary"]:hover {{
+.nav-pill button[kind="primary"]:hover {{
     background: #1d4ed8 !important;
     color: white !important;
     transform: none !important;
 }}
-
-/* Align all header columns vertically centred */
-div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"] {{
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:first-child {{
-    justify-content: flex-start !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:last-child {{
-    justify-content: flex-end !important;
-}}
+/* ── KPI + chart misc ── */
+.kpi-card {{ border-radius:16px; padding:1rem 1.2rem; min-height:100px;
+             display:flex; flex-direction:column; justify-content:center; }}
+.kpi-card-yellow {{ background:linear-gradient(135deg,#fef9c3 0%,#fef08a 100%); }}
+.kpi-card-cyan   {{ background:linear-gradient(135deg,#cffafe 0%,#a5f3fc 100%); }}
+.kpi-card-pink   {{ background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 100%); }}
+.kpi-card-purple {{ background:linear-gradient(135deg,#f3e8ff 0%,#e9d5ff 100%); }}
+.kpi-card-green  {{ background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%); }}
+.kpi-title {{ font-size:.7rem; font-weight:600; color:#374151; text-transform:uppercase;
+              letter-spacing:.5px; margin-bottom:.3rem; }}
+.kpi-value {{ font-size:2rem; font-weight:800; color:#111827; line-height:1.1; }}
+.kpi-delta {{ font-size:.9rem; font-weight:600; margin-top:.25rem; }}
+.kpi-delta-negative {{ color:#dc2626; }}
+.kpi-delta-positive {{ color:#16a34a; }}
+.grir-card {{ border-radius:14px; padding:.9rem 1rem; border:1px solid #e2e8f0;
+              box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; flex-direction:column;
+              gap:.2rem; min-height:90px; justify-content:center; }}
+.grir-card-title {{ font-size:.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.6px; }}
+.grir-card-value {{ font-size:1.8rem; font-weight:800; color:#111827; line-height:1.1; }}
+.chart-title {{ font-size:1.1rem; font-weight:700; color:#111827; margin-bottom:.5rem; }}
+.message-user {{ background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:white;
+    padding:10px 16px; border-radius:18px 18px 4px 18px; margin:8px 0;
+    max-width:80%; margin-left:auto; text-align:right; }}
+.message-assistant {{ background:#f1f5f9; color:#1e293b; padding:10px 16px;
+    border-radius:18px 18px 18px 4px; margin:8px 0; max-width:85%; }}
+.start-conversation {{ text-align:center; padding:2rem 1rem; background:#f8fafc; border-radius:20px; margin:1rem 0; }}
+.chat-messages {{ max-height:400px; overflow-y:auto; padding:.5rem; margin-bottom:1rem;
+    background:#fafcff; border-radius:16px; border:1px solid #e2e8f0; }}
+.quick-card {{ background:white; border-radius:16px; padding:1.2rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid #e2e8f0;
+    text-align:center; height:100%; display:flex; flex-direction:column; }}
+.quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 .4rem 0; }}
+.quick-card p  {{ font-size:.8rem; color:#64748b; flex-grow:1; margin:0 0 .8rem 0; }}
 </style>
 """, unsafe_allow_html=True)
 
-        # ── Header: single HTML row — brand | nav cols | logo ──────────────────────
-    # Brand and logo are pure HTML (no Streamlit widget overhead).
-    # Nav buttons stay as st.button so Streamlit routing works.
-    # We use a 6-column layout: brand | D | G | F | I | logo
-    # The brand and logo cols use st.markdown; the 4 nav cols use st.button.
+    # ── Header row ─────────────────────────────────────────────
+    pg = st.session_state.page
 
-    hcol_brand, hcol_d, hcol_g, hcol_f, hcol_i, hcol_logo = st.columns(
-        [1.6, 0.85, 0.85, 0.85, 0.85, 1.4], gap="small"
+    c_brand, c_dash, c_genie, c_fore, c_inv, c_logo = st.columns(
+        [1.5, 0.9, 0.9, 0.9, 0.9, 1.3], gap="small"
     )
 
-    with hcol_brand:
-        st.markdown(
-            "<div class='piq-brand'>"
-            "<span class='piq-brand-name'>ProcureIQ</span>"
-            "<span class='piq-brand-sub'>P2P Analytics</span>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
+    with c_brand:
+        st.markdown("""
+<div style="display:flex;flex-direction:column;justify-content:center;
+            line-height:1.1;padding:4px 0;">
+  <span style="font-size:1.5rem;font-weight:800;color:#111827;
+               letter-spacing:-0.3px;line-height:1;">ProcureIQ</span>
+  <span style="font-size:0.65rem;color:#9ca3af;line-height:1;
+               margin-top:2px;">P2P Analytics</span>
+</div>""", unsafe_allow_html=True)
 
-    with hcol_d:
-        if st.button("Dashboard", key="nav_dashboard", use_container_width=True,
-                     type="primary" if pg == "Dashboard" else "secondary"):
-            st.session_state.page = "Dashboard"; st.rerun()
+    # Nav pills — each wrapped in a div.nav-pill so CSS targets exactly these
+    for col, label, page_key, nav_key in [
+        (c_dash,  "Dashboard", "Dashboard", "nav_dashboard"),
+        (c_genie, "Genie",     "Genie",     "nav_genai"),
+        (c_fore,  "Forecast",  "Forecast",  "nav_forecast"),
+        (c_inv,   "Invoices",  "Invoices",  "nav_invoices"),
+    ]:
+        with col:
+            st.markdown("<div class='nav-pill'>", unsafe_allow_html=True)
+            if st.button(label, key=nav_key, use_container_width=True,
+                         type="primary" if pg == page_key else "secondary"):
+                st.session_state.page = page_key
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    with hcol_g:
-        if st.button("Genie", key="nav_genai", use_container_width=True,
-                     type="primary" if pg == "Genie" else "secondary"):
-            st.session_state.page = "Genie"; st.rerun()
-
-    with hcol_f:
-        if st.button("Forecast", key="nav_forecast", use_container_width=True,
-                     type="primary" if pg == "Forecast" else "secondary"):
-            st.session_state.page = "Forecast"; st.rerun()
-
-    with hcol_i:
-        if st.button("Invoices", key="nav_invoices", use_container_width=True,
-                     type="primary" if pg == "Invoices" else "secondary"):
-            st.session_state.page = "Invoices"; st.rerun()
-
-    with hcol_logo:
-        st.markdown(
-            f"<div class='piq-logo'><img src='{LOGO_URL}' alt='YASH'/></div>",
-            unsafe_allow_html=True,
-        )
+    with c_logo:
+        st.markdown(f"""
+<div style="display:flex;align-items:center;justify-content:flex-end;height:100%;">
+  <img src="{LOGO_URL}" style="height:48px;width:auto;object-fit:contain;"/>
+</div>""", unsafe_allow_html=True)
 
     st.markdown(
-        "<div style='height:4px;'></div>",
+        "<hr style='margin:8px 0 12px 0;border:none;border-top:1px solid #e5e7eb;'/>",
         unsafe_allow_html=True,
     )
 
-        # ── Page routing ───────────────────────────────────────────────────────────
+    # ── Page routing ────────────────────────────────────────────
     if   pg == "Dashboard": render_dashboard()
     elif pg == "Genie":     render_genie()
     elif pg == "Forecast":  render_forecast()
     else:                   render_invoices()
 
-    # ── BG Button: fixed bottom-right ─────────────────────────────────────────
+    # ── BG picker (bottom-right) ────────────────────────────────
     render_bg_button_sidebar()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
