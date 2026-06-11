@@ -384,6 +384,17 @@ def inject_dashboard_css():
         text-align:center; height:100%; display:flex; flex-direction:column; }}
     .quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 0.4rem 0; }}
     .quick-card p  {{ font-size:0.8rem; color:#64748b; flex-grow:1; margin:0 0 0.8rem 0; }}
+    /* BG button column — visually anchored bottom right */
+    div[data-testid="stButton"] button[data-testid="baseButton-secondary"]#bg_toggle_btn_btn,
+    button[key="bg_toggle_btn"] {{
+        border-radius: 50px !important;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        border: none !important;
+        box-shadow: 0 3px 10px rgba(37,99,235,0.35) !important;
+    }}
     </style>""", unsafe_allow_html=True)
 
 def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yellow"):
@@ -406,21 +417,136 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
   <div class="grir-card-value">{value}</div>
 </div>""", unsafe_allow_html=True)
 
-# ── BG Button — reliable Streamlit-native sidebar implementation ──
+# ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
-    with st.sidebar:
-        st.markdown("---")
-        with st.expander("🎨 BG Theme", expanded=False):
-            st.markdown("**Choose background colour:**")
-            current_bg = st.session_state.get("bg_color", "#ffffff")
-            for name, hex_code in BG_COLOR_OPTIONS.items():
-                selected_marker = "✅ " if hex_code == current_bg else ""
-                btn_type = "primary" if hex_code == current_bg else "secondary"
-                if st.button(f"{selected_marker}{name}", key=f"bg_{name}",
-                             use_container_width=True, type=btn_type):
-                    st.session_state["bg_color"] = hex_code
-                    st.rerun()
-            st.caption("Applies immediately to all pages.")
+    """
+    Renders a BG colour picker anchored at the bottom-right corner.
+    Uses a fixed-position HTML label as the visual button, and Streamlit
+    radio buttons hidden behind it via CSS for reliable interaction.
+    The actual colour selection is done via normal Streamlit selectbox
+    in a bottom-right anchored container.
+    """
+    current_bg = st.session_state.get("bg_color", "#ffffff")
+
+    # Toggle panel visibility
+    if "show_bg_panel" not in st.session_state:
+        st.session_state.show_bg_panel = False
+
+    # Inject the floating BG button (pure CSS, no JS needed for the button itself)
+    st.markdown("""
+<style>
+#bg-fixed-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+.bg-pill-btn {
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    color: white;
+    border-radius: 50px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    border: 2px solid rgba(255,255,255,0.25);
+    user-select: none;
+    letter-spacing: 0.5px;
+}
+.bg-panel-box {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    border: 1px solid #e2e8f0;
+    width: 220px;
+}
+.bg-panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+.bg-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 7px;
+}
+.bg-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.bg-swatch:hover { transform: scale(1.15); border-color: #2563eb; }
+.bg-swatch.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.25); }
+</style>
+""", unsafe_allow_html=True)
+
+    # The actual BG toggle button — Streamlit native, positioned via CSS container
+    # We render it inside a fixed-CSS wrapper using st.markdown for the visual shell
+    # and st.button for the actual click logic
+
+    # Build colour swatches HTML (clicking sets query param then we read it)
+    color_names = list(BG_COLOR_OPTIONS.keys())
+    color_hexes = list(BG_COLOR_OPTIONS.values())
+
+    swatches = ""
+    for name, hx in BG_COLOR_OPTIONS.items():
+        active_cls = "active" if hx == current_bg else ""
+        swatches += f'''<div class="bg-swatch {active_cls}" style="background:{hx};"
+            title="{name}" onclick="window.parent.document.querySelector('[data-testid=stApp]').style.backgroundColor='{hx}';
+            var allBC=window.parent.document.querySelectorAll('.main>.block-container');
+            allBC.forEach(function(el){{el.style.backgroundColor='{hx}'}});"></div>'''
+
+    # Show or hide the panel based on session_state toggle
+    panel_display = "block" if st.session_state.show_bg_panel else "none"
+
+    st.markdown(f"""
+<div id="bg-fixed-wrapper">
+  <div id="bg-panel-container" style="display:{panel_display};">
+    <div class="bg-panel-box">
+      <div class="bg-panel-title">🎨 Background Theme</div>
+      <div class="bg-swatch-grid">{swatches}</div>
+      <div style="margin-top:8px;font-size:11px;color:#94a3b8;text-align:center;">
+        Click a colour to apply
+      </div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+    # Streamlit BG toggle button — rendered normally, positioned by CSS
+    # We use st.columns trick to push it to right edge
+    spacer, btn_col = st.columns([0.92, 0.08])
+    with btn_col:
+        btn_label = "✕ BG" if st.session_state.show_bg_panel else "🎨 BG"
+        if st.button(btn_label, key="bg_toggle_btn", use_container_width=True):
+            st.session_state.show_bg_panel = not st.session_state.show_bg_panel
+            st.rerun()
+
+    # If panel is open, show colour buttons using native Streamlit selectbox
+    if st.session_state.show_bg_panel:
+        spacer2, panel_col = st.columns([0.7, 0.3])
+        with panel_col:
+            with st.container(border=True):
+                st.markdown("**🎨 Choose Background:**")
+                for name, hx in BG_COLOR_OPTIONS.items():
+                    is_active = (hx == current_bg)
+                    icon = "✅ " if is_active else "⬜ "
+                    if st.button(f"{icon}{name}", key=f"bg_clr_{name}", use_container_width=True,
+                                 type="primary" if is_active else "secondary"):
+                        st.session_state["bg_color"] = hx
+                        st.session_state.show_bg_panel = False
+                        st.rerun()
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=300, show_spinner=False)
@@ -993,51 +1119,87 @@ OUT_OF_DOMAIN_MSG = ("Hello! I am ProcureIQ Assistant. I can help you with procu
     "and related business data. Please ask a procurement or dashboard-related question.")
 
 def is_relevant_question(q: str) -> bool:
+    """
+    Strict whitelist-only: ONLY returns True when procurement keywords are present.
+    Any greeting, small talk, or general knowledge question returns False immediately.
+    """
     ql = q.lower().strip()
-    non_proc = [
-        r"^(hi|hello|hey|howdy)\b", r"^good\s*(morning|afternoon|evening|night)\b",
-        r"^how are you", r"^who are you", r"^what (are|is) you",
-        r"^tell me a joke", r"^what('s| is) (the )?weather",
-        r"^what('s| is) (your )?name", r"^what (do|can) you do\??$",
-        r"^(thank(s| you)|thx)\b", r"^(bye|goodbye|see you)\b",
-        r"^what('s| is) (your )?favorite", r"^are you (a |an )?(ai|bot|robot|human)\??$",
-        r"^capital of\b", r"^who (invented|discovered|created)\b",
+
+    # Step 1: Hard-block non-procurement patterns
+    non_proc_patterns = [
+        r"^(hi|hello|hey|howdy|hiya|yo)\b",
+        r"^good\s*(morning|afternoon|evening|night|day)\b",
+        r"^how are you", r"^how('s| is) (it going|everything|life|your day)",
+        r"^who are you", r"^what (are|is) you\b",
+        r"^tell me (a joke|something funny|a story)",
+        r"^(crack|tell).*(joke|funny)",
+        r"^what('s| is) (the )?weather",
+        r"^what('s| is) (your )?(name|favorite|hobby|age)",
+        r"^what (do|can) you do\??$",
+        r"^(thanks|thank you|thx|ty)\b",
+        r"^(bye|goodbye|see you|cya|ttyl)\b",
+        r"^are you (a |an )?(ai|bot|robot|human|person|machine)\??$",
+        r"^capital of\b",
+        r"^who (invented|discovered|created|founded|built)\b",
+        r"^what is (the )?(meaning of life|ai|machine learning|blockchain|crypto)",
+        r"^(define|explain|what is)\s+(love|life|happiness|success|beauty)",
+        r"^(how|what).*(recipe|cook|bake|movie|music|song|book|game|sport|football|cricket)\b",
+        r"^(write|compose|create)\s+(a |an )?(poem|story|song|joke|essay)\b",
+        r"^(translate|convert)\s+\w+\s+to\b",
+        r"^what('s| is) (today's )?(date|time|day)\b",
+        r"^\d+\s*[\+\-\*\/]\s*\d+",
     ]
-    for pat in non_proc:
-        if re.search(pat, ql): return False
-    keywords = [
-        "spend","vendor","invoice","po","purchase order","payment","due","overdue","dispute",
-        "gr/ir","cash flow","forecast","dashboard","kpi","trend","analysis","procurement","p2p",
-        "pay","receipt","goods","price","quantity","status","active vendors","total spend",
-        "pending","processing time","autoprocessed","aging","accrual","payable","ap",
-        "accounts payable","early payment","discount","plant","company code","cycle time",
-        "first pass","on-time","late payment","duplicate","supplier","delivery",
-        "partial payment","full payment","budget","contract","requisition","working capital",
-        "grir","gr ir","clearing","reconcil","invoice count","po count","vendor count",
+    for pat in non_proc_patterns:
+        if re.search(pat, ql):
+            return False
+
+    # Step 2: Strict procurement keyword whitelist — MUST match at least one
+    procurement_keywords = [
+        "spend","vendor","invoice","invoices","purchase order","payment","payments",
+        "due date","overdue","dispute","disputed","gr/ir","grir","gr ir",
+        "cash flow","forecast","dashboard","kpi","metric","procurement","p2p",
+        "procure","accounts payable","payable","payables","accrual","aging","aged",
+        "processing time","cycle time","autoprocess","first pass","late payment",
+        "on-time payment","early payment","duplicate payment","supplier",
+        "working capital","total spend","active vendor","pending invoice",
+        "clearing","reconcil","goods receipt","delivery accuracy",
+        "days payable","dpo","spend analysis","vendor analysis","invoice status",
+        "po amount","po number","po date","purchase requisition",
     ]
-    return any(kw in ql for kw in keywords)
+    for kw in procurement_keywords:
+        if kw in ql:
+            return True
+
+    # Nothing matched → not a procurement question
+    return False
 
 def generate_sql(question: str) -> str:
+    """Generate SQL via Bedrock. Returns empty string if generation fails (no hardcoded fallback)."""
     sql = ask_bedrock(f"Question: {question}\n\nGenerate SQL.", SYS_SEMANTIC)
     if sql:
         sql = re.sub(r"```sql\s*","",sql); sql = re.sub(r"```\s*","",sql).strip()
         if not sql.lower().startswith("select"): sql=""
-    return sql or f"""SELECT SUM(COALESCE(invoice_amount_local,0)) AS total_spend,
-        COUNT(DISTINCT invoice_number) AS invoice_count FROM {DATABASE}.fact_all_sources_vw
-        WHERE UPPER(invoice_status) NOT IN ('CANCELLED','REJECTED')"""
+    return sql  # Empty string if Bedrock couldn't generate — caller handles this
 
 SYS_ANALYST = "You are a helpful senior procurement analyst. Respond in markdown with Descriptive (What the data shows) and Prescriptive (Recommendations) sections."
 
 def process_custom_query(query: str, history: str="") -> dict:
+    # ALWAYS check relevance first — this is the primary gate
     if not is_relevant_question(query):
         return {"layout":"static","analyst_response":OUT_OF_DOMAIN_MSG,"question":query}
     sql = generate_sql(query)
-    if not is_safe_sql(sql):
-        return {"layout":"error","message":"Could not generate safe SQL."}
+    if not sql or not is_safe_sql(sql):
+        # If SQL generation failed, still try to give a helpful answer via Bedrock text
+        txt = ask_bedrock(
+            f'{history}\nUser asked: "{query}"\nNo SQL was generated. Provide a general procurement answer.',
+            SYS_ANALYST)
+        if txt:
+            return {"layout":"static","analyst_response":txt,"question":query}
+        return {"layout":"error","message":"Could not generate SQL for this question. Please try rephrasing with more specific procurement terms."}
     sql = ensure_limit(sql)
     df = run_query(sql)
     if df.empty:
-        return {"layout":"error","message":"Query returned no data. Try rephrasing."}
+        return {"layout":"error","message":"Query returned no data. Try rephrasing with more specific terms like vendor name, date range, or invoice status."}
     preview = df.head(10).to_string(index=False,max_colwidth=40)
     txt = ask_bedrock(f'{history}\nUser asked: "{query}"\nData:\n{preview}\nSQL:\n{sql}', SYS_ANALYST)
     return {"layout":"analyst","sql":sql,"df":df.to_dict(orient="records"),"question":query,"analyst_response":txt or preview}
@@ -1798,15 +1960,16 @@ def main():
 
     st.markdown("---")
 
-    # ── BG Button: reliable Streamlit sidebar implementation ──
-    render_bg_button_sidebar()
-
     if "page" not in st.session_state: st.session_state.page="Dashboard"
     pg=st.session_state.page
     if   pg=="Dashboard": render_dashboard()
     elif pg=="Genie":     render_genie()
     elif pg=="Forecast":  render_forecast()
     else:                 render_invoices()
+
+    # ── BG Button: always rendered at bottom-right after page content ──
+    st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+    render_bg_button_sidebar()
 
 if __name__=="__main__":
     main()
