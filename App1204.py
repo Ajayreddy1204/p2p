@@ -719,7 +719,7 @@ def inject_dashboard_css():
     .grir-card-title {{ font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.6px; }}
     .grir-card-value {{ font-size:1.8rem; font-weight:800; color:#111827; line-height:1.1; }}
     .chart-title {{ font-size:1.1rem; font-weight:700; color:#111827; margin-bottom:0.5rem; }}
-    .main > .block-container {{ background-color:{bg} !important; padding-top:0.5rem !important; }}
+    .main > .block-container {{ background-color:{bg} !important; }}
     .stApp {{ background-color:{bg} !important; }}
     .message-user {{ background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:white;
         padding:10px 16px; border-radius:18px 18px 4px 18px; margin:8px 0;
@@ -1121,7 +1121,39 @@ def render_filters():
     current_preset     = st.session_state.preset
     vendor_list        = st.session_state["vendor_list_stable"]
 
-    col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.8], gap="small")
+    # ── Inject CSS: force preset buttons to never wrap text ─────
+    st.markdown("""
+<style>
+/* Filter row: all columns vertically centred */
+div[data-testid="stHorizontalBlock"].filter-row {
+    align-items: center !important;
+}
+/* Preset buttons: single line, consistent height */
+div[data-testid="stHorizontalBlock"].preset-row button {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+    border-radius: 8px !important;
+    line-height: 38px !important;
+}
+/* Date input and selectbox height alignment */
+div[data-testid="stDateInput"] input,
+div[data-testid="stSelectbox"] > div > div {
+    height: 38px !important;
+    line-height: 38px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+    # Layout: date(1.4) | vendor(1.4) | [Last30(1.4) QTD(0.8) YTD(0.8) Custom(0.8)]
+    # Total ratio sums to ~6.6 — "Last 30 Days" gets enough room to fit on one line
+    col_date, col_vendor, col_l30, col_qtd, col_ytd, col_custom = st.columns(
+        [1.4, 1.4, 1.35, 0.75, 0.75, 0.75], gap="small"
+    )
 
     # ── Date range picker ──────────────────────────────────────
     with col_date:
@@ -1135,51 +1167,47 @@ def render_filters():
         if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
             ns, ne = date_range
             if (ns, ne) != (rng_start, rng_end):
-                # Only update if this came from manual user edit, not a preset click
                 if not st.session_state.get("_preset_clicked", False):
                     st.session_state.date_range = (ns, ne)
                     st.session_state.preset     = "Custom"
-                    # Force vendor list reload on next render
                     st.session_state.pop("vendor_list_stable", None)
                 else:
                     st.session_state._preset_clicked = False
 
-    # ── Vendor selector — ONE selectbox, ONE stable key, never duplicates ──
+    # ── Vendor selector ────────────────────────────────────────
     with col_vendor:
-        # Compute index safely
         try:
             v_idx = vendor_list.index(selected_vendor)
         except ValueError:
             v_idx = 0
-
-        # Single widget — key never changes, options list never changes mid-render
         chosen = st.selectbox(
             "Vendor",
             options=vendor_list,
             index=v_idx,
             label_visibility="collapsed",
-            key="vendor_selectbox_stable",   # stable key — never regenerated
+            key="vendor_selectbox_stable",
         )
-        # Write back only when the value actually changed
         if chosen != st.session_state.selected_vendor:
             st.session_state.selected_vendor = chosen
 
-    # ── Preset buttons ─────────────────────────────────────────
-    with col_preset:
-        presets = ["Last 30 Days", "QTD", "YTD", "Custom"]
-        p_cols  = st.columns(4, gap="small")
-        for i2, p in enumerate(presets):
-            with p_cols[i2]:
-                btn_type = "primary" if p == current_preset else "secondary"
-                if st.button(p, key=f"preset_{p}", use_container_width=True, type=btn_type):
-                    st.session_state._preset_clicked = True
-                    if p != "Custom":
-                        ns2, ne2 = compute_range_preset(p)
-                        st.session_state.date_range = (ns2, ne2)
-                        # Force vendor list reload for new date range
-                        st.session_state.pop("vendor_list_stable", None)
-                    st.session_state.preset = p
-                    st.rerun()
+    # ── Preset buttons — each in its own sized column so text never wraps ──
+    preset_map = [
+        (col_l30,    "Last 30 Days"),
+        (col_qtd,    "QTD"),
+        (col_ytd,    "YTD"),
+        (col_custom, "Custom"),
+    ]
+    for p_col, p in preset_map:
+        with p_col:
+            btn_type = "primary" if p == current_preset else "secondary"
+            if st.button(p, key=f"preset_{p}", use_container_width=True, type=btn_type):
+                st.session_state._preset_clicked = True
+                if p != "Custom":
+                    ns2, ne2 = compute_range_preset(p)
+                    st.session_state.date_range = (ns2, ne2)
+                    st.session_state.pop("vendor_list_stable", None)
+                st.session_state.preset = p
+                st.rerun()
 
     return (
         st.session_state.date_range[0],
@@ -2733,7 +2761,7 @@ def main():
 <style>
 /* ── Reset block-container padding so header is not glued to top ── */
 .block-container {{
-    padding-top: 1.5rem !important;
+    padding-top: 2.8rem !important;
     padding-bottom: 1rem !important;
     max-width: 100% !important;
 }}
@@ -2746,6 +2774,9 @@ button {{
     font-weight: 500 !important;
     border-radius: 8px !important;
     transition: all 0.18s ease !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }}
 
 /* ════════════════════════════════════════════
