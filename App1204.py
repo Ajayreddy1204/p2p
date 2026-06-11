@@ -770,116 +770,87 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    BG colour picker — compact popup matching screenshot.
-    Shows the native st.color_picker (gradient canvas + hue slider + hex input).
-    Appears above the BG button at bottom-right when clicked.
-    Selecting any colour immediately applies to app background.
+    BG colour picker — circular button bottom-right of Spend Trend chart.
+    Click opens a compact popup: gradient canvas + hue slider + hex input
+    (matches the screenshot exactly). Selecting a colour immediately sets
+    the app background. Called from render_charts() after the Spend Trend
+    container, so it sits visually at the bottom-right of that chart.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
     if "show_bg_panel" not in st.session_state:
         st.session_state.show_bg_panel = False
 
-    # Minimal CSS — only style the BG pill button itself
-    st.markdown("""<style>
-/* BG pill button */
-button[data-testid="baseButton-secondary"][aria-label="BG"],
-button[data-testid="baseButton-secondary"][aria-label="✕ BG"] {
+    # ── CSS: circular BG button + compact colour picker ─────────
+    st.markdown("""
+<style>
+/* ── Circular BG button ── */
+div[data-testid="stButton"].bg-circle-btn > button {
+    width:  44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
     background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
     color: white !important;
     border: none !important;
-    border-radius: 50px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.5px !important;
-    box-shadow: 0 3px 12px rgba(37,99,235,0.4) !important;
-    min-height: 34px !important;
-    padding: 0 16px !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.45) !important;
+    line-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
-/* colour picker popup — compact width */
-div[data-testid="stColorPicker"] {
-    width: 240px !important;
+div[data-testid="stButton"].bg-circle-btn > button:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 20px rgba(37,99,235,0.55) !important;
 }
-div[data-testid="stColorPicker"] > div > div {
-    width: 240px !important;
-}
-</style>""", unsafe_allow_html=True)
+/* Compact picker panel */
+.bg-picker-panel div[data-testid="stColorPicker"] label { display: none !important; }
+.bg-picker-panel div[data-testid="stColorPicker"] > div { margin: 0 !important; }
+</style>
+""", unsafe_allow_html=True)
 
-    # Panel: colour picker in a compact right-aligned box
+    # ── Picker panel (opens above the button) ───────────────────
     if st.session_state.show_bg_panel:
-        _, pcol = st.columns([0.6, 0.4])
+        _, pcol = st.columns([0.58, 0.42])
         with pcol:
+            st.markdown("<div class='bg-picker-panel'>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown(
                     "<div style='font-size:11px;font-weight:700;color:#64748b;"
                     "text-transform:uppercase;letter-spacing:0.6px;"
-                    "margin-bottom:6px;'>🎨 Background</div>",
+                    "margin-bottom:4px;'>🎨 Background Colour</div>",
                     unsafe_allow_html=True,
                 )
-                # Native colour picker: gradient canvas + hue slider + hex input
-                # Matches the screenshot exactly
+                # ── Native colour picker ─────────────────────────────────
+                # Renders gradient saturation/brightness canvas,
+                # rainbow hue slider, and hex input — exactly like screenshot
                 safe_val = current_bg if (
                     current_bg.startswith("#") and len(current_bg) in (4, 7)
                 ) else "#ffffff"
                 picked = st.color_picker(
-                    "colour", value=safe_val,
+                    "bg", value=safe_val,
                     key="bg_cp", label_visibility="collapsed",
                 )
                 if picked != current_bg:
                     st.session_state["bg_color"] = picked
                     st.session_state.show_bg_panel = False
                     st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-                # Quick preset swatches (small circles, click to apply instantly)
-                st.markdown(
-                    "<div style='font-size:10px;color:#94a3b8;margin:6px 0 4px;'>Presets</div>",
-                    unsafe_allow_html=True,
-                )
-                sw_cols = st.columns(len(BG_COLOR_OPTIONS), gap="small")
-                for sc, (nm, hx) in zip(sw_cols, BG_COLOR_OPTIONS.items()):
-                    is_act = (hx == current_bg)
-                    ring   = "0 0 0 2.5px #2563eb" if is_act else "0 1px 3px rgba(0,0,0,0.2)"
-                    border = "#2563eb" if is_act else "#e2e8f0"
-                    sc.markdown(
-                        f'<div onclick="" title="{nm}" style="width:22px;height:22px;'
-                        f'border-radius:50%;background:{hx};border:2px solid {border};'
-                        f'box-shadow:{ring};cursor:pointer;margin:0 auto;"></div>',
-                        unsafe_allow_html=True,
-                    )
-                # Preset buttons row 1
-                pb1 = st.columns(4, gap="small")
-                items = list(BG_COLOR_OPTIONS.items())
-                for i, bc in enumerate(pb1):
-                    nm1, hx1 = items[i]
-                    with bc:
-                        if st.button(
-                            nm1.replace("Light ",""), key=f"bgp_{nm1}",
-                            use_container_width=True,
-                            type="primary" if hx1 == current_bg else "secondary",
-                        ):
-                            st.session_state["bg_color"] = hx1
-                            st.session_state.show_bg_panel = False
-                            st.rerun()
-                # Preset buttons row 2
-                pb2 = st.columns(4, gap="small")
-                for i, bc in enumerate(pb2):
-                    nm2, hx2 = items[i + 4]
-                    with bc:
-                        if st.button(
-                            nm2.replace("Light ",""), key=f"bgp2_{nm2}",
-                            use_container_width=True,
-                            type="primary" if hx2 == current_bg else "secondary",
-                        ):
-                            st.session_state["bg_color"] = hx2
-                            st.session_state.show_bg_panel = False
-                            st.rerun()
-
-    # BG pill button — right-aligned
-    _, bcol = st.columns([0.92, 0.08])
+    # ── Circular BG button — right-aligned ──────────────────────
+    _, bcol = st.columns([0.95, 0.05])
     with bcol:
-        btn_lbl = "✕ BG" if st.session_state.show_bg_panel else "BG"
-        if st.button(btn_lbl, key="bg_pill_btn", use_container_width=True):
+        st.markdown("<div class='bg-circle-btn'>", unsafe_allow_html=True)
+        lbl = "✕" if st.session_state.show_bg_panel else "BG"
+        if st.button(lbl, key="bg_pill_btn", use_container_width=False):
             st.session_state.show_bg_panel = not st.session_state.show_bg_panel
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=600, show_spinner=False)
@@ -1264,11 +1235,10 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     urgent = oc + dc + duc
 
     with st.container(border=True):
-        st.markdown(f"<div style='font-size:18px;font-weight:900;color:#1a1a1a;padding:0.2rem 0.5rem;'>"
-                    f"Needs Attention <span style='font-weight:700;color:#6b7280;'>({urgent:,})</span></div>",
+        st.markdown(f"<div style='font-size:16px;font-weight:800;color:#1a1a1a;padding:0.1rem 0.3rem 0.3rem 0.3rem;'>"
+                    f"Needs Attention <span style='font-weight:600;color:#6b7280;font-size:14px;'>({urgent:,})</span></div>",
                     unsafe_allow_html=True)
         tc1, tc2, tc3 = st.columns([1,1,1], gap="small")
-        # Wrap tab row in .na-tabs-row for CSS targeting
         st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
         with tc1:
             t = "primary" if current_tab == "Overdue" else "secondary"
@@ -1284,7 +1254,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
         # ── Tag colours per tab ───────────────────────────────────────────────
         if current_tab == "Overdue":
@@ -1625,6 +1595,10 @@ def render_charts(rng_start, rng_end, vendor_where):
                 ).properties(height=280),
                 use_container_width=True,
             )
+
+    # ── BG circular button — bottom-right of Spend Trend chart ──
+    render_bg_button_sidebar()
+
 def render_dashboard():
     """
     Main dashboard page.
@@ -1680,7 +1654,7 @@ def render_dashboard():
     render_kpi_rows(cur_kpi, prev_kpi)
 
     # ── Needs Attention: 1 UNION query ───────────────────────────────────────
-    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
     render_needs_attention(rng_start, rng_end, vendor_where)
 
     # ── Charts: 1 merged CTE query ───────────────────────────────────────────
@@ -2626,14 +2600,66 @@ def render_genie():
                         else: st.markdown(msg["content"])
                 st.markdown('</div>',unsafe_allow_html=True)
 
-            with st.form(key="genie_chat_form",clear_on_submit=True):
-                ci,cb=st.columns([0.85,0.15])
+            # ── Ask a question input box — clearly visible ──────────
+            st.markdown("""
+<style>
+/* Make the Genie question input clearly visible */
+div[data-testid="stForm"] {
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 10px 12px !important;
+    background: white !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+    margin-top: 8px !important;
+}
+div[data-testid="stForm"] input[type="text"] {
+    font-size: 14px !important;
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    height: 44px !important;
+    background: #f9fafb !important;
+    color: #111827 !important;
+}
+div[data-testid="stForm"] input[type="text"]:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+    background: white !important;
+    outline: none !important;
+}
+div[data-testid="stForm"] input[type="text"]::placeholder {
+    color: #9ca3af !important;
+    font-size: 13px !important;
+}
+/* Submit button */
+div[data-testid="stForm"] button[type="submit"] {
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    background: #2563eb !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+            with st.form(key="genie_chat_form", clear_on_submit=True):
+                ci, cb = st.columns([0.85, 0.15])
                 with ci:
-                    prefill=st.session_state.pop("genie_prefill","")
-                    uq=st.text_input("Ask a question",value=prefill,placeholder="Ask a procurement question here...",label_visibility="collapsed")
+                    prefill = st.session_state.pop("genie_prefill", "")
+                    uq = st.text_input(
+                        "Ask a procurement question",
+                        value=prefill,
+                        placeholder="💬  Ask a procurement question here…",
+                        label_visibility="collapsed",
+                    )
                 with cb:
-                    submitted=st.form_submit_button("→",type="primary",use_container_width=True)
-                if submitted and uq: process_user_question(uq)
+                    submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+                if submitted and uq:
+                    process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
@@ -3009,8 +3035,7 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
     elif pg == "Forecast":  render_forecast()
     else:                   render_invoices()
 
-    # ── BG picker (bottom-right) ────────────────────────────────
-    render_bg_button_sidebar()
+    # BG button is rendered inside render_charts (bottom-right of Spend Trend)
 
 
 if __name__ == "__main__":
