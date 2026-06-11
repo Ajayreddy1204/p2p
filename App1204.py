@@ -1360,8 +1360,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 """, unsafe_allow_html=True)
 
     # ── Outer wrapper ─────────────────────────────────────────────────────────
-    st.markdown("<div class='na-outer'>", unsafe_allow_html=True)
-
     # Title
     st.markdown(
         f"<div class='na-title'>Needs Attention "
@@ -1536,7 +1534,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)  # na-outer
+    # end render_needs_attention
 
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
@@ -2837,7 +2835,7 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     border-radius: 12px !important;
     font-size: 14px !important;
     color: #111827 !important;
-    background: white !important;
+    background: #f3f4f6 !important;
     padding: 0 18px !important;
     box-shadow: none !important;
     outline: none !important;
