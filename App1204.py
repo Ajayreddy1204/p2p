@@ -847,48 +847,58 @@ def render_bg_button_sidebar():
     if "show_bg_panel" not in st.session_state:
         st.session_state.show_bg_panel = False
 
-    # ── CSS: circular BG button + compact colour picker ─────────
+    # ── CSS: circular BG button ─────────────────────────────────
+    # Target button by data-testid key — most reliable in Snowflake
     st.markdown("""
 <style>
-/* ── Circular BG button ── */
-div[data-testid="stButton"].bg-circle-btn > button {
-    width:  44px !important;
-    height: 44px !important;
-    min-height: 44px !important;
+/* ── BG circle button — target by key attribute ── */
+button[data-testid="baseButton-secondary"][key="bg_pill_btn"],
+div[data-testid="stButton"]:has(> button[key="bg_pill_btn"]) button,
+div[data-testid="stButton"] button[aria-label="BG"],
+div[data-testid="stButton"] button[aria-label="X"] {
+    width:       46px !important;
+    height:      46px !important;
+    min-width:   46px !important;
+    min-height:  46px !important;
+    max-width:   46px !important;
     border-radius: 50% !important;
-    padding: 0 !important;
-    font-size: 11px !important;
+    padding:     0 !important;
+    font-size:   12px !important;
     font-weight: 800 !important;
-    background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-    color: white !important;
-    border: none !important;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.45) !important;
-    line-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    letter-spacing: 0.3px !important;
-    cursor: pointer !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    background:  linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+    color:       white !important;
+    border:      none !important;
+    box-shadow:  0 4px 14px rgba(37,99,235,0.45) !important;
+    line-height: 46px !important;
+    text-align:  center !important;
+    cursor:      pointer !important;
+    flex-shrink: 0 !important;
+    transition:  transform 0.15s ease, box-shadow 0.15s ease !important;
 }
-div[data-testid="stButton"].bg-circle-btn > button:hover {
-    transform: scale(1.1) !important;
+/* Override use_container_width stretching */
+div[data-testid="stButton"]:has(> button[aria-label="BG"]),
+div[data-testid="stButton"]:has(> button[aria-label="X"]) {
+    width:    46px !important;
+    max-width:46px !important;
+    flex:     0 0 46px !important;
+}
+button[data-testid="baseButton-secondary"][aria-label="BG"]:hover,
+button[data-testid="baseButton-secondary"][aria-label="X"]:hover {
+    transform:  scale(1.12) !important;
     box-shadow: 0 6px 20px rgba(37,99,235,0.55) !important;
+    background: #1d4ed8 !important;
 }
-/* Compact picker panel */
+/* Color picker panel */
 .bg-picker-panel div[data-testid="stColorPicker"] label { display: none !important; }
 .bg-picker-panel div[data-testid="stColorPicker"] > div { margin: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Picker panel (opens above the button) ───────────────────
-    # ── BG button — circular pill ─────────────────────────────────
-    st.markdown("<div class='bg-circle-btn'>", unsafe_allow_html=True)
-    lbl = "✕" if st.session_state.show_bg_panel else "BG"
-    if st.button(lbl, key="bg_pill_btn", use_container_width=True):
+    # ── BG circle button ───────────────────────────────────────────
+    lbl = "X" if st.session_state.show_bg_panel else "BG"
+    if st.button(lbl, key="bg_pill_btn", use_container_width=False):
         st.session_state.show_bg_panel = not st.session_state.show_bg_panel
         st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Picker panel: opens above the button ─────────────────────
     if st.session_state.show_bg_panel:
@@ -2552,12 +2562,20 @@ def start_new_session():
     st.rerun()
 
 def summarize_conversation():
-    if not st.session_state.current_messages: st.warning("No conversation."); return
-    txt="\n\n".join(f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}" for m in st.session_state.current_messages)
-    s=ask_bedrock(f"Summarize concisely:\n\n{txt}","You summarize conversations.")
+    """Summarise current conversation. Sets show_summary=True so button stays highlighted."""
+    if not st.session_state.current_messages:
+        return  # Caller checks messages exist before calling — no false warning here
+    txt = "\n\n".join(
+        f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}"
+        for m in st.session_state.current_messages
+    )
+    s = ask_bedrock(f"Summarize concisely:\n\n{txt}", "You summarize conversations.")
     if s:
-        st.session_state.conversation_summary=s; st.session_state.show_summary=True; st.session_state.current_messages=[]
-    else: st.error("Could not generate summary.")
+        st.session_state.conversation_summary = s
+        st.session_state.show_summary = True
+        # Keep messages — user can keep chatting; summary shown above chat
+    else:
+        st.error("Could not generate summary.")
 
 def export_conversation_md():
     if not st.session_state.current_messages and not st.session_state.get("conversation_summary"):
@@ -2571,252 +2589,198 @@ def export_conversation_md():
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
-    for k,v in [("genie_session_id",None),("current_messages",[]),("genie_prefill",""),("show_summary",False),("conversation_summary","")]:
-        if k not in st.session_state: st.session_state[k]=v
+    # ── Session state init ────────────────────────────────────────────────────
+    for k, v in [("genie_session_id", None), ("current_messages", []),
+                 ("genie_prefill", ""), ("show_summary", False),
+                 ("conversation_summary", ""), ("show_chats_panel", False)]:
+        if k not in st.session_state:
+            st.session_state[k] = v
     if st.session_state.genie_session_id is None:
-        st.session_state.genie_session_id=str(uuid.uuid4())
-        save_chat_session(st.session_state.genie_session_id,label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        st.session_state.genie_session_id = str(uuid.uuid4())
+        save_chat_session(st.session_state.genie_session_id,
+                          label=f"Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    auto_query=st.session_state.pop("auto_run_query",None)
+    # ── Auto-run query from quick cards or nav ────────────────────────────────
+    auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
-            hc=get_recent_conversation_context(limit=20,max_age_days=2)
-            result=_dispatch_query(auto_query,hc)
-            st.session_state.current_messages=[{"role":"user","content":auto_query,"timestamp":datetime.now()}]
-            if result.get("layout")!="error":
-                ac=result.get('analyst_response','Analysis complete.')
-                st.session_state.current_messages.append({"role":"assistant","content":ac,"response":result,"timestamp":datetime.now()})
-                save_chat_message(st.session_state.genie_session_id,0,"user",auto_query)
-                save_chat_message(st.session_state.genie_session_id,1,"assistant",ac,sql_used=_safe_sql_string(result.get("sql")))
-                save_question(auto_query,"forecast"); set_cache(auto_query,result)
+            hc = get_recent_conversation_context(limit=20, max_age_days=2)
+            result = _dispatch_query(auto_query, hc)
+            st.session_state.current_messages = [
+                {"role": "user", "content": auto_query, "timestamp": datetime.now()}
+            ]
+            if result.get("layout") != "error":
+                ac = result.get("analyst_response", "Analysis complete.")
+                st.session_state.current_messages.append(
+                    {"role": "assistant", "content": ac, "response": result,
+                     "timestamp": datetime.now()}
+                )
+                save_chat_message(st.session_state.genie_session_id, 0, "user", auto_query)
+                save_chat_message(st.session_state.genie_session_id, 1, "assistant", ac,
+                                  sql_used=_safe_sql_string(result.get("sql")))
+                save_question(auto_query, "forecast")
+                set_cache(auto_query, result)
             else:
-                st.session_state.current_messages.append({"role":"assistant","content":result.get("message","Error"),"timestamp":datetime.now()})
-            st.rerun()
+                st.session_state.current_messages.append(
+                    {"role": "assistant", "content": result.get("message", "Error"),
+                     "timestamp": datetime.now()}
+                )
+        st.rerun()
 
-    st.markdown("""<div style="margin-bottom:1rem;">
-        <h1 style="font-size:1.8rem;font-weight:600;color:#1e293b;margin-bottom:0.25rem;">Welcome to ProcureIQ Genie</h1>
-        <p style="color:#64748b;font-size:0.9rem;">Let Genie run one of these quick analyses for you</p></div>""",
-        unsafe_allow_html=True)
-
-    cards=[{"title":"Spending Overview","desc":"Track total spend, monthly trends and major changes"},
-           {"title":"Vendor Analysis","desc":"Understand vendor-wise spend, concentration, and dependency"},
-           {"title":"Payment Performance","desc":"Identify delays, late payments, and cycle time issues"},
-           {"title":"Invoice Aging","desc":"See overdue invoices, risk buckets, and problem areas"}]
-    cols=st.columns(4,gap="small")
-    for idx,(col,card) in enumerate(zip(cols,cards)):
-        with col:
-            st.markdown(f'<div class="quick-card">'
-                        f'<h3>{card["title"]}</h3><p>{card["desc"]}</p></div>',unsafe_allow_html=True)
-            if st.button("Ask Genie",key=f"card_{idx}",use_container_width=True):
-                st.session_state.auto_run_query=card['title']; st.rerun()
-
-    st.markdown("---")
-    # ── Genie form CSS — injected first so it's always active on page load ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ALL CSS for the Genie page — injected once at the top
+    # ══════════════════════════════════════════════════════════════════════════
     st.markdown("""
 <style>
-/* Form wrapper: flex row, input + button side by side */
-div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 10px !important;
-    width: 100% !important;
+/* ── Page title ── */
+.genie-welcome h1 {
+    font-size: 1.75rem; font-weight: 700; color: #1e293b; margin-bottom: 4px;
 }
-/* Input column: flex-grow so it fills all available space */
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    width: 100% !important;
-    flex-wrap: nowrap !important;
+.genie-welcome p { font-size: 0.9rem; color: #64748b; margin: 0; }
+
+/* ── Quick-analysis cards ── */
+.quick-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px 14px 10px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    min-height: 130px;
+    display: flex; flex-direction: column;
 }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
+.quick-card-icon {
+    font-size: 1.6rem; margin-bottom: 8px; line-height: 1;
 }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:last-child {
-    flex: 0 0 54px !important;
-    width: 54px !important;
-    min-width: 54px !important;
+.quick-card h3 {
+    font-size: 0.92rem; font-weight: 700; color: #1e293b;
+    margin: 0 0 5px 0;
 }
-/* Input: 100% of its column, no label gap */
-div[data-testid="stForm"] div[data-testid="stTextInput"] {
-    width: 100% !important;
+.quick-card p {
+    font-size: 0.78rem; color: #64748b; flex-grow: 1;
+    margin: 0 0 10px 0; line-height: 1.4;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input {
-    width: 100% !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    font-size: 14px !important;
-    color: #111827 !important;
-    background: #f3f4f6 !important;
-    padding: 0 18px !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #5b8dee !important;
-    box-shadow: 0 0 0 3px rgba(91,141,238,0.15) !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #b0b8c8 !important;
-    font-size: 13.5px !important;
-}
-/* Circular blue → submit button */
-div[data-testid="stForm"] button[kind="primaryFormSubmit"],
-div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
-    width: 48px !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    background: #2563eb !important;
-    color: white !important;
+
+/* ── Left panel expanders ── */
+.genie-left-panel div[data-testid="stExpander"] {
     border: none !important;
-    box-shadow: 0 3px 12px rgba(37,99,235,0.35) !important;
-    line-height: 48px !important;
-    text-align: center !important;
-    flex-shrink: 0 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
-div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 5px 16px rgba(37,99,235,0.45) !important;
-    transform: scale(1.07) !important;
+.genie-left-panel div[data-testid="stExpander"] summary {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
+    padding: 8px 4px !important;
 }
-</style>
-""", unsafe_allow_html=True)
-
-    left_info,right_chat=st.columns([0.35,0.65],gap="large")
-
-    with left_info:
-        with st.container(border=True):
-            # ── Saved insights ─────────────────────────────────────
-            with st.expander("Saved Insights"):
-                ins = get_saved_insights_cached(page="genie")
-                if ins:
-                    for i in ins[:5]:
-                        if st.button(f"{i['title'][:40]}", key=f"insight_{i['id']}",
-                                     use_container_width=True):
-                            st.session_state.auto_run_query = i["question"]; st.rerun()
-                else:
-                    st.caption("No saved insights yet")
-
-            # ── Frequently asked by you ────────────────────────────
-            with st.expander("Frequently Asked by You"):
-                faqs = get_frequent_questions_by_user_cached(5)
-                if faqs:
-                    for faq in faqs[:5]:
-                        if st.button(f"{faq['query'][:40]}", key=f"faq_{faq['query'][:20]}",
-                                     use_container_width=True):
-                            st.session_state.genie_prefill = faq["query"]; st.rerun()
-                else:
-                    for sug in ["Total spend YTD and trends","Top vendors by spend","Overdue invoices summary"]:
-                        if st.button(f"{sug}", key=f"sug_{sug[:15]}", use_container_width=True):
-                            st.session_state.genie_prefill = sug; st.rerun()
-
-            # ── Most frequent (all users) ──────────────────────────
-            with st.expander("Most Frequent (All)"):
-                af = get_frequent_questions_all_cached(5)
-                if af:
-                    for faq in af[:5]:
-                        st.markdown(
-                            f"<div style='text-align:left;color:#374151;font-size:0.85rem;padding:3px 0;'>{faq['query'][:45]}</div>",
-                            unsafe_allow_html=True)
-                else:
-                    st.caption("No questions yet")
-
-            # Memory panels hidden as per user request
-
-    with right_chat:
-        # ── Single CSS block for entire right panel ─────────────────────────
-        st.markdown("""
-<style>
-/* Header buttons */
-.genie-header button {
-    height: 36px !important; min-height: 36px !important;
-    border-radius: 8px !important; font-size: 13px !important;
-    font-weight: 500 !important; white-space: nowrap !important;
+/* Left panel buttons — left-aligned, no border */
+.genie-left-panel button {
+    text-align: left !important;
+    justify-content: flex-start !important;
+    background: transparent !important;
+    border: none !important;
+    color: #374151 !important;
+    font-size: 12.5px !important;
+    padding: 4px 6px !important;
+    height: auto !important;
+    min-height: 28px !important;
+    box-shadow: none !important;
+    font-weight: 400 !important;
 }
-/* Empty state box */
-.genie-empty-state {
-    background:#f8fafc; border-radius:14px; padding:2.5rem 1rem;
-    text-align:center; margin:8px 0 10px 0; min-height:240px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+.genie-left-panel button:hover {
+    background: #f1f5f9 !important;
+    color: #2563eb !important;
+    border: none !important;
 }
-.genie-empty-plus  { font-size:2.2rem; color:#94a3b8; margin-bottom:10px; }
-.genie-empty-title { font-size:1rem; font-weight:600; color:#1e293b; margin-bottom:5px; }
-.genie-empty-sub   { font-size:0.82rem; color:#64748b; max-width:260px; line-height:1.5; }
-/* Chat messages */
+
+/* ── Right panel: AI Assistant ── */
+.genie-right-container {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px 16px 12px 16px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+/* Header buttons row */
+.genie-right-container .stHorizontalBlock button {
+    height: 34px !important;
+    min-height: 34px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    padding: 0 12px !important;
+}
+
+/* ── Empty state ── */
+.genie-empty {
+    background: #f8fafc; border-radius: 12px;
+    padding: 2.2rem 1rem; text-align: center;
+    margin: 8px 0 6px 0; min-height: 200px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+}
+.genie-empty-icon  { font-size: 1.8rem; color: #cbd5e1; margin-bottom: 8px; }
+.genie-empty-title { font-size: 0.98rem; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.genie-empty-sub   { font-size: 0.8rem; color: #94a3b8; max-width: 240px; line-height: 1.4; }
+
+/* ── Chat messages ── */
 .chat-messages {
-    max-height:380px; overflow-y:auto; padding:6px 2px;
-    margin-bottom:8px; background:#fafcff;
-    border-radius:12px; border:1px solid #e8edf3;
+    max-height: 360px; overflow-y: auto; padding: 4px 2px;
+    margin-bottom: 6px; background: #fafcff;
+    border-radius: 10px; border: 1px solid #e8edf3;
 }
-/* ── Ask input form — always visible ── */
+
+/* ── Resume panel ── */
+.resume-panel {
+    background: #f0f7ff; border-radius: 10px; padding: 10px 12px;
+    border: 1px solid #bfdbfe; margin: 4px 0 8px 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ASK INPUT FORM — full width, always visible
+   ══════════════════════════════════════════════════════════════ */
 div[data-testid="stForm"] {
-    background: #f8fafc !important;
+    background: white !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 14px !important;
     padding: 8px 10px !important;
     box-shadow: none !important;
-    margin-top: 10px !important;
+    margin-top: 8px !important;
     width: 100% !important;
 }
-/* Input: full width, light grey bg */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    flex-wrap: nowrap !important;
+    display: flex !important; align-items: center !important;
+    gap: 8px !important; width: 100% !important; flex-wrap: nowrap !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
+    flex: 1 1 auto !important; min-width: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
-    flex: 0 0 52px !important;
-    width: 52px !important;
+    flex: 0 0 50px !important; width: 50px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
     width: 100% !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
-    width: 100% !important;
-    height: 46px !important;
-    min-height: 46px !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    font-size: 14px !important;
-    color: #111827 !important;
-    background: #f3f4f6 !important;
-    padding: 0 16px !important;
-    box-shadow: none !important;
-    outline: none !important;
+    width: 100% !important; height: 46px !important; min-height: 46px !important;
+    border: 1.5px solid #e2e8f0 !important; border-radius: 10px !important;
+    font-size: 14px !important; color: #111827 !important;
+    background: #f3f4f6 !important; padding: 0 16px !important;
+    box-shadow: none !important; outline: none !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important;
-    background: white !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+    border-color: #2563eb !important; background: white !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.10) !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important; font-size: 13px !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display:none !important; }
-/* Circular → button */
+div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+/* Circular submit button */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 46px !important; height: 46px !important; min-height: 46px !important;
@@ -2824,102 +2788,227 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     font-size: 20px !important; font-weight: 700 !important;
     background: #2563eb !important; color: white !important;
     border: none !important;
-    box-shadow: 0 3px 10px rgba(37,99,235,0.30) !important;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.28) !important;
     line-height: 46px !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     background: #1d4ed8 !important;
-}
-.resume-panel {
-    background:#f0f7ff; border-radius:12px; padding:12px 14px;
-    border:1px solid #c7dfff; margin:6px 0 10px 0;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.38) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-        # ── Header row ───────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 1 — Title + Quick-analysis cards
+    # ══════════════════════════════════════════════════════════════════════════
+    st.markdown("""
+<div class="genie-welcome">
+  <h1>Welcome to ProcureIQ Genie</h1>
+  <p>Let Genie run one of these quick analyses for you</p>
+</div>""", unsafe_allow_html=True)
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+    # 4 cards — icon text (ASCII/unicode safe for Snowflake)
+    card_data = [
+        {"icon": "[Chart]",  "title": "Spending Overview",
+         "desc": "Track total spend, monthly trends and major changes"},
+        {"icon": "[Vendor]", "title": "Vendor Analysis",
+         "desc": "Understand vendor-wise spend, concentration, and dependency"},
+        {"icon": "[Clock]",  "title": "Payment Performance",
+         "desc": "Identify delays, late payments, and cycle time issues"},
+        {"icon": "[List]",   "title": "Invoice Aging",
+         "desc": "See overdue invoices, risk buckets, and problem areas"},
+    ]
+    card_cols = st.columns(4, gap="small")
+    for idx, (col, card) in enumerate(zip(card_cols, card_data)):
+        with col:
+            st.markdown(
+                f"<div class='quick-card'>"
+                f"<div class='quick-card-icon'>{card['icon']}</div>"
+                f"<h3>{card['title']}</h3>"
+                f"<p>{card['desc']}</p>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
+                st.session_state.auto_run_query = card["title"]
+                st.rerun()
+
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 2 — Left panel + Right AI Assistant panel
+    # ══════════════════════════════════════════════════════════════════════════
+    left_col, right_col = st.columns([0.32, 0.68], gap="medium")
+
+    # ── LEFT PANEL ────────────────────────────────────────────────────────────
+    with left_col:
+        st.markdown("<div class='genie-left-panel'>", unsafe_allow_html=True)
         with st.container(border=True):
-            st.markdown("<div class='genie-header'>", unsafe_allow_html=True)
-            h1, h2, h3, h4, h5 = st.columns([1.6, 0.72, 0.88, 0.88, 0.66])
-            with h1:
-                st.markdown("**AI Assistant**")
-            with h2:
+            # Saved Insights
+            with st.expander("Saved Insights"):
+                ins = get_saved_insights_cached(page="genie")
+                if ins:
+                    for i in ins[:5]:
+                        if st.button(i["title"][:45], key=f"insight_{i['id']}",
+                                     use_container_width=True):
+                            st.session_state.auto_run_query = i["question"]
+                            st.rerun()
+                else:
+                    st.caption("No saved insights yet")
+
+            # Frequently asked by you
+            with st.expander("Frequently Asked by You"):
+                faqs = get_frequent_questions_by_user_cached(5)
+                if faqs:
+                    for faq in faqs[:5]:
+                        if st.button(faq["query"][:45], key=f"faq_{faq['query'][:20]}",
+                                     use_container_width=True):
+                            st.session_state.genie_prefill = faq["query"]
+                            st.rerun()
+                else:
+                    for sug in ["Total spend YTD and trends",
+                                "Top vendors by spend",
+                                "Overdue invoices summary"]:
+                        if st.button(sug, key=f"sug_{sug[:15]}", use_container_width=True):
+                            st.session_state.genie_prefill = sug
+                            st.rerun()
+
+            # Most frequent (all)
+            with st.expander("Most Frequent (All)"):
+                af = get_frequent_questions_all_cached(5)
+                if af:
+                    for faq in af[:5]:
+                        st.markdown(
+                            f"<div style='text-align:left;color:#374151;"
+                            f"font-size:0.83rem;padding:3px 0;cursor:default;'>"
+                            f"{faq['query'][:45]}</div>",
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.caption("No questions yet")
+
+            # Long-term Memory (from screenshot — show it)
+            memories = get_all_user_memories()
+            mem_count = len(memories)
+            with st.expander(f"Long-term Memory ({mem_count} facts)"):
+                if memories:
+                    for m in memories[:6]:
+                        type_tag = {"preference": "pref", "entity": "entity",
+                                    "context": "ctx", "insight": "insight"}.get(m["type"], m["type"])
+                        st.markdown(
+                            f"<div style='font-size:0.78rem;color:#475569;"
+                            f"padding:2px 0;border-bottom:1px solid #f1f5f9;'>"
+                            f"<b>{m['key']}</b>: {str(m['value'])[:35]}"
+                            f"<span style='color:#94a3b8;font-size:0.7rem;"
+                            f"margin-left:6px;'>[{type_tag}]</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.caption("No memories yet.")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
+    with right_col:
+        with st.container(border=True):
+            # Header: title + action buttons
+            hc1, hc2, hc3, hc4, hc5 = st.columns([1.5, 0.7, 0.85, 0.85, 0.65])
+            with hc1:
+                st.markdown("<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b>",
+                            unsafe_allow_html=True)
+            with hc2:
                 chats_on = st.session_state.get("show_chats_panel", False)
                 if st.button("Chats", key="genie_chats_btn", use_container_width=True,
-                             type="primary" if not chats_on else "secondary"):
-                    st.session_state["show_chats_panel"] = not chats_on; st.rerun()
-            with h3:
-                summarize_active = st.session_state.get("show_summary", False)
+                             type="primary" if chats_on else "secondary"):
+                    st.session_state["show_chats_panel"] = not chats_on
+                    st.rerun()
+            with hc3:
+                # Highlighted (primary) when summary is visible
+                sum_active = (st.session_state.get("show_summary", False)
+                              and bool(st.session_state.get("conversation_summary", "")))
                 if st.button("Summarize", key="summarize_top", use_container_width=True,
-                             type="primary" if summarize_active else "secondary"):
+                             type="primary" if sum_active else "secondary"):
                     if st.session_state.current_messages:
-                        if summarize_active:
-                            # Toggle off
+                        if sum_active:
+                            # Toggle off: hide summary
                             st.session_state.show_summary = False
                             st.session_state.conversation_summary = ""
-                            st.rerun()
                         else:
-                            summarize_conversation()
-                            st.rerun()
-                    # If no messages: do nothing (no wrong warning message)
-            with h4:
+                            # Generate summary and highlight button
+                            summarize_conversation()   # sets show_summary=True internally
+                        st.rerun()
+                    elif sum_active:
+                        # Already showing summary — clicking again dismisses it
+                        st.session_state.show_summary = False
+                        st.session_state.conversation_summary = ""
+                        st.rerun()
+                    # No messages and no summary: do nothing silently
+            with hc4:
                 if st.button("Export MD", key="export_md_top", use_container_width=True):
                     if st.session_state.current_messages or st.session_state.conversation_summary:
                         export_conversation_md()
-                    else: st.warning("No conversation to export.")
-            with h5:
+            with hc5:
                 if st.button("Clear", key="clear_top", use_container_width=True):
                     start_new_session()
-            st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("<hr style='margin:6px 0 8px 0;border:none;border-top:1px solid #f1f5f9;'/>",
-                        unsafe_allow_html=True)
 
-            # ── Resume chats panel ────────────────────────────────────────────
+            st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
+                        "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
+
+            # ── Chats: resume previous conversations ──────────────────────────
             if st.session_state.get("show_chats_panel", False):
-                conn2 = sqlite3.connect(DB_PATH); c2 = conn2.cursor()
-                c2.execute("""SELECT session_id, session_label, created_at, last_updated
-                              FROM chat_sessions WHERE user_name=?
-                              ORDER BY last_updated DESC LIMIT 10""",
-                           (get_current_user(),))
-                recent_sessions = c2.fetchall()
-                session_data = []
-                for sess in recent_sessions:
-                    c2.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?", (sess[0],))
-                    mc = c2.fetchone()[0]
+                conn_c = sqlite3.connect(DB_PATH); cur_c = conn_c.cursor()
+                cur_c.execute("""SELECT session_id, session_label, created_at
+                                 FROM chat_sessions WHERE user_name=?
+                                 ORDER BY last_updated DESC LIMIT 10""",
+                              (get_current_user(),))
+                recent = cur_c.fetchall(); session_data = []
+                for sess in recent:
+                    cur_c.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?",
+                                  (sess[0],))
+                    mc = cur_c.fetchone()[0]
                     if mc > 0:
-                        session_data.append({"session_id":sess[0],"label":sess[1],
-                                             "created_at":sess[2],"msg_count":mc})
-                conn2.close()
+                        session_data.append({"session_id": sess[0], "label": sess[1],
+                                             "created_at": sess[2], "msg_count": mc})
+                conn_c.close()
+
                 st.markdown("""<div class="resume-panel">
                     <b>Resume a Previous Conversation</b><br>
-                    <small>Pick one to continue, or start fresh.</small>
+                    <small style='color:#64748b;'>Pick one to continue, or start fresh.</small>
                 </div>""", unsafe_allow_html=True)
+
                 if session_data:
                     for sess in session_data[:5]:
                         try:
-                            created_dt = datetime.fromisoformat(str(sess["created_at"]))
-                            age_h = int((datetime.now()-created_dt).total_seconds()/3600)
-                            age_s = f"{age_h}h ago" if age_h<24 else f"{age_h//24}d ago"
-                        except Exception: age_s="–"
-                        ci2, cb2 = st.columns([0.7,0.3])
-                        with ci2:
-                            st.markdown(f"<div style='font-size:.82rem;font-weight:600;"
-                                        f"color:#1e293b;'>{sess['label']}</div>"
-                                        f"<div style='font-size:.72rem;color:#94a3b8;'>"
-                                        f"{sess['msg_count']} messages · {age_s}</div>",
-                                        unsafe_allow_html=True)
-                        with cb2:
-                            if st.button("Resume", key=f"resume_{sess['session_id'][:8]}",
+                            dt = datetime.fromisoformat(str(sess["created_at"]))
+                            age_h = int((datetime.now() - dt).total_seconds() / 3600)
+                            age_s = f"{age_h}h ago" if age_h < 24 else f"{age_h // 24}d ago"
+                        except Exception:
+                            age_s = "–"
+                        ri, rb = st.columns([0.7, 0.3])
+                        with ri:
+                            st.markdown(
+                                f"<div style='font-size:.82rem;font-weight:600;"
+                                f"color:#1e293b;'>{sess['label']}</div>"
+                                f"<div style='font-size:.72rem;color:#94a3b8;'>"
+                                f"{sess['msg_count']} messages · {age_s}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        with rb:
+                            if st.button("Resume", key=f"res_{sess['session_id'][:8]}",
                                          use_container_width=True, type="primary"):
-                                msgs2 = load_session_messages(sess["session_id"])
+                                msgs_r = load_session_messages(sess["session_id"])
                                 st.session_state.genie_session_id = sess["session_id"]
                                 st.session_state.current_messages = [
-                                    {"role":m["role"],"content":m["content"],
-                                     "timestamp":m["timestamp"]} for m in msgs2]
-                                st.session_state["show_chats_panel"] = False; st.rerun()
+                                    {"role": m["role"], "content": m["content"],
+                                     "timestamp": m["timestamp"]} for m in msgs_r
+                                ]
+                                st.session_state["show_chats_panel"] = False
+                                st.rerun()
                         st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
                 else:
-                    st.caption("No previous conversations found.")
+                    st.caption("No previous conversations.")
+
                 if st.button("Start a New Conversation", key="start_new_conv",
                              use_container_width=True):
                     start_new_session()
@@ -2927,73 +3016,99 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
 
             # ── Summary ───────────────────────────────────────────────────────
             if st.session_state.show_summary and st.session_state.conversation_summary:
-                st.markdown("### Conversation Summary")
+                st.markdown("**Conversation Summary**")
                 st.markdown(st.session_state.conversation_summary)
-                if st.button("Dismiss Summary", key="dismiss_summary", use_container_width=True):
-                    st.session_state.show_summary=False; st.session_state.conversation_summary=""; st.rerun()
+                if st.button("Dismiss", key="dismiss_summary", use_container_width=True):
+                    st.session_state.show_summary = False
+                    st.session_state.conversation_summary = ""
+                    st.rerun()
                 st.markdown("---")
 
-            # ── Empty state or messages ───────────────────────────────────────
+            # ── Empty state ───────────────────────────────────────────────────
             elif (not st.session_state.current_messages
-                  and not st.session_state.get("show_chats_panel",False)):
+                  and not st.session_state.get("show_chats_panel", False)):
                 st.markdown("""
-<div class="genie-empty-state">
-  <div class="genie-empty-plus">+</div>
+<div class="genie-empty">
+  <div class="genie-empty-icon">+</div>
   <div class="genie-empty-title">Start a Conversation</div>
   <div class="genie-empty-sub">Ask questions about your Procurement to Pay data.</div>
 </div>""", unsafe_allow_html=True)
 
+            # ── Chat messages ─────────────────────────────────────────────────
             elif st.session_state.current_messages:
-                st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
                 for msg in st.session_state.current_messages:
-                    if msg["role"]=="user":
-                        st.markdown(f'<div class="message-user"><strong>You</strong><br/>'
-                                    f'{html.escape(msg["content"])}</div>',unsafe_allow_html=True)
+                    if msg["role"] == "user":
+                        st.markdown(
+                            f'<div class="message-user"><strong>You</strong><br/>'
+                            f'{html.escape(msg["content"])}</div>',
+                            unsafe_allow_html=True,
+                        )
                     else:
-                        st.markdown('<div class="message-assistant"><strong>Genie</strong></div>',
-                                    unsafe_allow_html=True)
+                        st.markdown(
+                            '<div class="message-assistant"><strong>Genie</strong></div>',
+                            unsafe_allow_html=True,
+                        )
                         if "response" in msg and msg["response"]:
-                            resp=msg["response"]; layout=resp.get("layout")
-                            if layout=="static":               st.info(resp["analyst_response"])
-                            elif layout=="cash_flow":          render_cash_flow_response(resp)
-                            elif layout=="early_payment":      render_early_payment_response(resp)
-                            elif layout=="payment_timing":     render_payment_timing_response(resp)
-                            elif layout=="late_payment_trend": render_late_payment_trend_response(resp)
-                            elif layout=="grir_hotspots":      render_grir_hotspots(resp)
-                            elif layout=="grir_root_causes":   render_grir_root_causes(resp)
-                            elif layout=="grir_working_capital": render_grir_working_capital(resp)
-                            elif layout=="grir_vendor_followup": render_grir_vendor_followup(resp)
-                            elif layout=="quick":              render_quick_analysis_response(resp)
-                            elif layout=="analyst":
+                            resp = msg["response"]
+                            layout = resp.get("layout")
+                            if layout == "static":
+                                st.info(resp["analyst_response"])
+                            elif layout == "cash_flow":
+                                render_cash_flow_response(resp)
+                            elif layout == "early_payment":
+                                render_early_payment_response(resp)
+                            elif layout == "payment_timing":
+                                render_payment_timing_response(resp)
+                            elif layout == "late_payment_trend":
+                                render_late_payment_trend_response(resp)
+                            elif layout == "grir_hotspots":
+                                render_grir_hotspots(resp)
+                            elif layout == "grir_root_causes":
+                                render_grir_root_causes(resp)
+                            elif layout == "grir_working_capital":
+                                render_grir_working_capital(resp)
+                            elif layout == "grir_vendor_followup":
+                                render_grir_vendor_followup(resp)
+                            elif layout == "quick":
+                                render_quick_analysis_response(resp)
+                            elif layout == "analyst":
                                 if resp.get("analyst_response"):
                                     st.markdown(resp["analyst_response"])
-                                # Always show table if data available
+                                # Load data — stored as list of dicts (to_dict orient=records)
                                 try:
-                                    df2 = pd.DataFrame(resp.get("df", []))
+                                    raw_df = resp.get("df", [])
+                                    if isinstance(raw_df, list) and len(raw_df) > 0:
+                                        df_r = pd.DataFrame(raw_df)
+                                    elif isinstance(raw_df, dict):
+                                        df_r = pd.DataFrame([raw_df])
+                                    else:
+                                        df_r = pd.DataFrame()
                                 except Exception:
-                                    df2 = pd.DataFrame()
-                                if not df2.empty:
+                                    df_r = pd.DataFrame()
+                                if not df_r.empty:
                                     st.markdown("**Supporting Data**")
-                                    st.dataframe(safe_dataframe_display(df2),
-                                                 use_container_width=True, hide_index=True)
-                                    ch = auto_chart(df2)
-                                    if ch:
-                                        st.altair_chart(ch, use_container_width=True)
-                                sql_str = _safe_sql_string(resp.get("sql",""))
-                                if sql_str and sql_str.strip():
+                                    # st.dataframe is always visible (no HTML wrapper issues)
+                                    st.dataframe(
+                                        safe_dataframe_display(df_r),
+                                        use_container_width=True,
+                                        hide_index=True,
+                                    )
+                                    ch_r = auto_chart(df_r)
+                                    if ch_r:
+                                        st.altair_chart(ch_r, use_container_width=True)
+                                sql_s = _safe_sql_string(resp.get("sql", ""))
+                                if sql_s and sql_s.strip():
                                     with st.expander("View SQL"):
-                                        st.code(sql_str, language="sql")
-                            elif layout=="error": st.error(resp.get("message","Unknown error"))
-                        else: st.markdown(msg["content"])
-                st.markdown('</div>', unsafe_allow_html=True)
+                                        st.code(sql_s, language="sql")
+                            elif layout == "error":
+                                st.error(resp.get("message", "Unknown error"))
+                        else:
+                            st.markdown(msg["content"])
+                pass  # end chat messages
 
-            # form rendered below (outside container)
-            pass
-
-
-        # ── Ask input — outside container, always rendered first ────────
+        # ── Ask input — full width, always visible ───────────────────────────
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.90, 0.10])
+            fi, fb = st.columns([0.93, 0.07])
             with fi:
                 prefill = st.session_state.pop("genie_prefill", "")
                 uq = st.text_input(
@@ -3002,7 +3117,9 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                     label_visibility="collapsed",
                 )
             with fb:
-                submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+                submitted = st.form_submit_button(
+                    "->", type="primary", use_container_width=True
+                )
             if submitted and uq:
                 process_user_question(uq)
 
