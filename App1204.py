@@ -1268,106 +1268,180 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     f"Needs Attention <span style='font-weight:700;color:#6b7280;'>({urgent:,})</span></div>",
                     unsafe_allow_html=True)
         tc1, tc2, tc3 = st.columns([1,1,1], gap="small")
+        # Wrap tab row in .na-tabs-row for CSS targeting
+        st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
         with tc1:
-            t = "primary" if current_tab=="Overdue" else "secondary"
+            t = "primary" if current_tab == "Overdue" else "secondary"
             if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
-                st.session_state.na_tab="Overdue"; st.session_state.na_page=0; st.rerun()
+                st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
         with tc2:
-            t = "primary" if current_tab=="Disputed" else "secondary"
+            t = "primary" if current_tab == "Disputed" else "secondary"
             if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
-                st.session_state.na_tab="Disputed"; st.session_state.na_page=0; st.rerun()
+                st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
         with tc3:
-            t = "primary" if current_tab=="Due" else "secondary"
+            t = "primary" if current_tab == "Due" else "secondary"
             if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
-                st.session_state.na_tab="Due"; st.session_state.na_page=0; st.rerun()
+                st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-        # Card bg = light pink for all; tag colours differ by type
-        # Overdue  → light blue tag
-        # Disputed → light red tag
-        # Due      → light green tag
-        if   current_tab=="Overdue":
-            df=overdue_df;  sl="Overdue";
-            tbg="#DBEAFE"; tc="#1E40AF"   # light blue tag
-            card_bg="#FFF0F5"             # light pink card
-        elif current_tab=="Disputed":
-            df=disputed_df; sl="Disputed";
-            tbg="#FEE2E2"; tc="#B91C1C"   # light red tag
-            card_bg="#FFF0F5"             # light pink card
-        else:
-            df=due_df;       sl="Due soon";
-            tbg="#DCFCE7"; tc="#166534"   # light green tag
-            card_bg="#FFF0F5"             # light pink card
 
-        if df.empty:
-            st.markdown('<div style="padding:1rem;color:#64748b;">No items in this category</div>', unsafe_allow_html=True)
+        # ── Tag colours per tab ───────────────────────────────────────────────
+        if current_tab == "Overdue":
+            df = overdue_df;  sl = "Overdue";
+            tbg = "#DBEAFE"; tc = "#1E40AF"      # blue tag
+        elif current_tab == "Disputed":
+            df = disputed_df; sl = "Disputed";
+            tbg = "#FEE2E2"; tc = "#B91C1C"      # red tag
         else:
-            ipp = 8; tot = len(df); tp = max(1,(tot+ipp-1)//ipp)
-            si = page*ipp; ei = min(si+ipp, tot)
-            page_df = df.iloc[si:ei]; gi = 0
-            # Inject CSS that paints every stContainer in the NA section pink
-            st.markdown(f"""<style>
-.na-card-{current_tab.lower()} div[data-testid="stVerticalBlockBorderWrapper"] {{
-    background-color: {card_bg} !important;
-    border: 1.5px solid #f9c6d5 !important;
-    border-radius: 14px !important;
-    box-shadow: 0 2px 8px rgba(249,110,152,0.10) !important;
+            df = due_df;      sl = "Due soon";
+            tbg = "#DCFCE7"; tc = "#166534"      # green tag
+
+        # ── Card CSS — white bg, light pink tint, grey border (matches screenshot) ──
+        st.markdown(f"""
+<style>
+/* ── NA card container ── */
+.na-cards-wrap div[data-testid="stVerticalBlockBorderWrapper"] {{
+    background-color: #FFF5F7 !important;
+    border: 1.5px solid #e8d0d8 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}}
+/* invoice-number button inside card: grey outlined box top-left */
+.na-cards-wrap button[data-testid="baseButton-secondary"] {{
+    background: white !important;
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 8px !important;
+    color: #374151 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+    width: auto !important;
+    text-align: left !important;
+}}
+.na-cards-wrap button[data-testid="baseButton-secondary"]:hover {{
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+    background: white !important;
+}}
+/* Tab buttons (Overdue / Disputed / Due) — full-width tall pills */
+.na-tabs-row button {{
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+}}
+.na-tabs-row button[kind="secondary"] {{
+    background: white !important;
+    border: 1.5px solid #d1d5db !important;
+    color: #374151 !important;
+}}
+.na-tabs-row button[kind="primary"] {{
+    background: #2563eb !important;
+    color: white !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
 }}
 </style>""", unsafe_allow_html=True)
 
-            st.markdown(f"<div class='na-card-{current_tab.lower()}'>", unsafe_allow_html=True)
+        if df.empty:
+            st.markdown(
+                '<div style="padding:1.5rem;color:#64748b;text-align:center;">'
+                'No items in this category</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
+            si  = page * ipp; ei2 = min(si + ipp, tot)
+            page_df = df.iloc[si:ei2]; gi = 0
+
+            # Wrap all cards in .na-cards-wrap so CSS above scopes correctly
+            st.markdown("<div class='na-cards-wrap'>", unsafe_allow_html=True)
             for chunk_start in range(0, len(page_df), 4):
-                row_chunk = page_df.iloc[chunk_start:chunk_start+4]
+                row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
                 cols = st.columns(4, gap="medium")
                 for col, (_, r) in zip(cols, row_chunk.iterrows()):
                     with col:
                         with st.container(border=True):
-                            ref = format_invoice_number(str(r.get("ref_no","—")).strip() or "—")
+                            # ── Row 1: invoice number button (grey outlined box) ──
+                            ref = format_invoice_number(
+                                str(r.get("ref_no", "—")).strip() or "—"
+                            )
                             bk = f"na_card_{si}_{gi}_{ref[:30]}"
-                            # Invoice number button + vendor name
                             if st.button(ref, key=bk):
                                 st.session_state["invoice_search_from_card"] = ref
                                 st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref); st.rerun()
-                            vname = html.escape(str(r.get("vendor_name","—")))
-                            amt   = safe_number(r.get("amount"))
-                            ddr   = r.get("due_date")
-                            dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
-                            # Status tag + amount + due date — all in one HTML block
+                                st.experimental_set_query_params(invoice=ref)
+                                st.rerun()
+
+                            # ── Row 2: vendor name (left) + status tag (right) ──
+                            vname = html.escape(str(r.get("vendor_name", "—")))
                             st.markdown(
                                 f"<div style='display:flex;justify-content:space-between;"
-                                f"align-items:flex-start;margin-top:4px;'>"
-                                f"<div style='color:#64748b;font-size:11px;max-width:60%;'>{vname}</div>"
-                                f"<div style='text-align:right;'>"
-                                f"<span style='background:{tbg};color:{tc};font-size:11px;"
-                                f"padding:2px 8px;border-radius:999px;display:inline-block;"
-                                f"margin-bottom:4px;font-weight:600;'>{sl}</span>"
-                                f"<div style='font-weight:700;font-size:13px;color:#111827;'>"
-                                f"{abbr_currency(amt)}</div>"
-                                f"<div style='color:#94a3b8;font-size:10px;'>Due: {dd}</div>"
-                                f"</div></div>",
+                                f"align-items:center;margin:8px 0 4px 0;'>"
+                                f"<span style='color:#6b7280;font-size:12px;"
+                                f"font-weight:400;'>{vname}</span>"
+                                f"<span style='background:{tbg};color:{tc};"
+                                f"font-size:11px;font-weight:700;padding:3px 10px;"
+                                f"border-radius:999px;white-space:nowrap;'>{sl}</span>"
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
+
+                            # ── Row 3: amount (bold) + due date (small grey) ──
+                            amt = safe_number(r.get("amount"))
+                            ddr = r.get("due_date")
+                            dd  = (
+                                pd.to_datetime(ddr).date().isoformat()
+                                if pd.notna(ddr) else "—"
+                            )
+                            st.markdown(
+                                f"<div style='text-align:right;margin-top:2px;'>"
+                                f"<div style='font-weight:800;font-size:15px;"
+                                f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
+                                f"<div style='color:#94a3b8;font-size:10px;"
+                                f"margin-top:2px;'>Due: {dd}</div>"
+                                f"</div>",
                                 unsafe_allow_html=True,
                             )
                     gi += 1
-                st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-            st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
-            pc1, pc2, pc3 = st.columns([1,1,1], gap="small")
+            # ── Pagination ────────────────────────────────────────────────────
+            st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+            pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
             with pc1:
                 if page > 0:
                     if st.button("← Prev", key="na_prev", use_container_width=True):
-                        st.session_state.na_page = max(0, page-1); st.rerun()
+                        st.session_state.na_page = max(0, page - 1); st.rerun()
                 else:
-                    st.markdown("<div style='text-align:center;color:#d1d5db;padding:10px;'>← Prev</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        "<div style='text-align:center;color:#d1d5db;padding:10px;'>← Prev</div>",
+                        unsafe_allow_html=True,
+                    )
             with pc2:
-                st.markdown(f"<div style='text-align:center;color:#6b7280;padding:10px;'>{page+1} of {tp}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='text-align:center;color:#6b7280;padding:10px;'>"
+                    f"{page + 1} of {tp}</div>",
+                    unsafe_allow_html=True,
+                )
             with pc3:
-                if page < tp-1:
+                if page < tp - 1:
                     if st.button("Next →", key="na_next", use_container_width=True):
-                        st.session_state.na_page = min(tp-1, page+1); st.rerun()
+                        st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
                 else:
-                    st.markdown("<div style='text-align:center;color:#d1d5db;padding:10px;'>Next →</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        "<div style='text-align:center;color:#d1d5db;padding:10px;'>Next →</div>",
+                        unsafe_allow_html=True,
+                    )
+
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
                      end_lit_6m: str) -> tuple:
