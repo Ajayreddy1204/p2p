@@ -801,16 +801,32 @@ def inject_dashboard_css():
         text-align:center; height:100%; display:flex; flex-direction:column; }}
     .quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 0.4rem 0; }}
     .quick-card p  {{ font-size:0.8rem; color:#64748b; flex-grow:1; margin:0 0 0.8rem 0; }}
-    /* BG button column — visually anchored bottom right */
-    div[data-testid="stButton"] button[data-testid="baseButton-secondary"]#bg_toggle_btn_btn,
-    button[key="bg_toggle_btn"] {{
-        border-radius: 50px !important;
-        background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-        color: white !important;
-        font-weight: 700 !important;
-        font-size: 12px !important;
-        border: none !important;
-        box-shadow: 0 3px 10px rgba(37,99,235,0.35) !important;
+    /* ── BG CIRCLE BUTTON — global, fires on every page ── */
+    button[data-testid="baseButton-secondary"][aria-label="BG"],
+    button[data-testid="baseButton-secondary"][aria-label="X"] {{
+        width:52px!important;height:52px!important;
+        min-width:52px!important;max-width:52px!important;
+        min-height:52px!important;max-height:52px!important;
+        border-radius:50%!important;padding:0!important;margin:0!important;
+        background:white!important;color:#374151!important;
+        border:2px solid #e5e7eb!important;
+        box-shadow:0 2px 12px rgba(0,0,0,0.15)!important;
+        font-size:13px!important;font-weight:700!important;
+        line-height:52px!important;text-align:center!important;
+        overflow:hidden!important;display:flex!important;
+        align-items:center!important;justify-content:center!important;
+    }}
+    button[data-testid="baseButton-secondary"][aria-label="BG"]:hover,
+    button[data-testid="baseButton-secondary"][aria-label="X"]:hover {{
+        transform:scale(1.1)!important;
+        box-shadow:0 4px 18px rgba(0,0,0,0.20)!important;
+        background:#f9fafb!important;border-color:#9ca3af!important;
+    }}
+    div[data-testid="stButton"]:has(button[aria-label="BG"]),
+    div[data-testid="stButton"]:has(button[aria-label="X"]) {{
+        width:52px!important;max-width:52px!important;
+        min-width:52px!important;flex:0 0 52px!important;
+        padding:0!important;margin:0!important;
     }}
     </style>""", unsafe_allow_html=True)
 
@@ -848,53 +864,75 @@ def render_bg_button_sidebar():
         st.session_state.show_bg_panel = False
 
     # ── CSS: circular BG button ─────────────────────────────────
-    # Target button by data-testid key — most reliable in Snowflake
+    # ── BG circle button — inject CSS globally + render button ──────
     st.markdown("""
 <style>
-/* ── BG circle button — white with grey text, matches screenshot ── */
-div[data-testid="stButton"] button[aria-label="BG"],
-div[data-testid="stButton"] button[aria-label="X"],
-div[data-testid="stButton"]:has(button[aria-label="BG"]) button,
-div[data-testid="stButton"]:has(button[aria-label="X"]) button {
-    width:         48px !important;
-    height:        48px !important;
-    min-width:     48px !important;
-    min-height:    48px !important;
-    max-width:     48px !important;
+/* === BG CIRCLE BUTTON — every possible selector === */
+
+/* Target the wrapper column that contains bg_pill_btn */
+div[data-testid="stColumn"]:has(button[data-testid="baseButton-secondary"]) {
+    min-width: 0 !important;
+    width: auto !important;
+    flex: none !important;
+}
+
+/* The button itself — all states */
+button[data-testid="baseButton-secondary"][aria-label="BG"],
+button[data-testid="baseButton-secondary"][aria-label="X"],
+button[data-testid="baseButton-secondary"][aria-label="BG"]:focus,
+button[data-testid="baseButton-secondary"][aria-label="BG"]:active,
+button[data-testid="baseButton-secondary"][aria-label="X"]:focus,
+button[data-testid="baseButton-secondary"][aria-label="X"]:active {
+    width:         52px !important;
+    min-width:     52px !important;
+    max-width:     52px !important;
+    height:        52px !important;
+    min-height:    52px !important;
+    max-height:    52px !important;
     border-radius: 50% !important;
     padding:       0 !important;
+    margin:        0 !important;
     font-size:     13px !important;
     font-weight:   700 !important;
+    line-height:   52px !important;
+    text-align:    center !important;
     background:    white !important;
     color:         #374151 !important;
-    border:        1.5px solid #e5e7eb !important;
-    box-shadow:    0 2px 10px rgba(0,0,0,0.12) !important;
-    line-height:   48px !important;
-    text-align:    center !important;
+    border:        2px solid #e5e7eb !important;
+    box-shadow:    0 2px 12px rgba(0,0,0,0.15), 0 0 0 0 transparent !important;
+    outline:       none !important;
     cursor:        pointer !important;
+    display:       flex !important;
+    align-items:   center !important;
+    justify-content: center !important;
     flex-shrink:   0 !important;
-    transition:    box-shadow 0.15s ease, transform 0.15s ease !important;
+    overflow:      hidden !important;
+    transition:    box-shadow 0.18s ease, transform 0.18s ease !important;
 }
+button[data-testid="baseButton-secondary"][aria-label="BG"]:hover,
+button[data-testid="baseButton-secondary"][aria-label="X"]:hover {
+    transform:    scale(1.1) !important;
+    box-shadow:   0 4px 18px rgba(0,0,0,0.20) !important;
+    background:   #f9fafb !important;
+    border-color: #9ca3af !important;
+}
+/* Parent stButton div: constrain to circle size */
 div[data-testid="stButton"]:has(button[aria-label="BG"]),
 div[data-testid="stButton"]:has(button[aria-label="X"]) {
-    width:    48px !important;
-    max-width:48px !important;
-    flex:     0 0 48px !important;
+    width:     52px !important;
+    max-width: 52px !important;
+    min-width: 52px !important;
+    flex:      0 0 52px !important;
+    padding:   0 !important;
+    margin:    0 !important;
 }
-div[data-testid="stButton"] button[aria-label="BG"]:hover,
-div[data-testid="stButton"] button[aria-label="X"]:hover {
-    transform:  scale(1.08) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
-    background: #f9fafb !important;
-    border-color: #d1d5db !important;
-}
-/* Color picker panel */
+/* Colour picker */
 .bg-picker-panel div[data-testid="stColorPicker"] label { display: none !important; }
-.bg-picker-panel div[data-testid="stColorPicker"] > div { margin: 0 !important; }
+.bg-picker-panel div[data-testid="stColorPicker"] > div  { margin: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-    # ── BG circle button ───────────────────────────────────────────
+    # ── BG circle button — use_container_width=False is critical ─────
     lbl = "X" if st.session_state.show_bg_panel else "BG"
     if st.button(lbl, key="bg_pill_btn", use_container_width=False):
         st.session_state.show_bg_panel = not st.session_state.show_bg_panel
@@ -2738,62 +2776,105 @@ def render_genie():
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ASK INPUT FORM — full width, always visible
+   ASK INPUT FORM — full width stretching to submit button
    ══════════════════════════════════════════════════════════════ */
 div[data-testid="stForm"] {
     background: white !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 14px !important;
-    padding: 8px 10px !important;
-    box-shadow: none !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06) !important;
     margin-top: 8px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
 }
+/* Outer vertical block inside form: remove all padding */
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
+}
+/* Horizontal row: flex, no gaps eating width */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important; align-items: center !important;
-    gap: 8px !important; width: 100% !important; flex-wrap: nowrap !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
+/* Input column: grow to fill ALL remaining space */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important; min-width: 0 !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
 }
+/* Button column: fixed narrow */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
-    flex: 0 0 50px !important; width: 50px !important;
+    flex: 0 0 52px !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    padding: 0 !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"],
+/* Input element: truly 100% of its column */
+div[data-testid="stForm"] div[data-testid="stTextInput"] {
+    width: 100% !important; padding: 0 !important; margin: 0 !important;
+}
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important;
+    width: 100% !important; padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
-    width: 100% !important; height: 46px !important; min-height: 46px !important;
-    border: 1.5px solid #e2e8f0 !important; border-radius: 10px !important;
-    font-size: 14px !important; color: #111827 !important;
-    background: #f3f4f6 !important; padding: 0 16px !important;
-    box-shadow: none !important; outline: none !important;
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    color: #111827 !important;
+    background: #f5f5f5 !important;
+    padding: 0 18px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important; background: white !important;
+    border-color: #2563eb !important;
+    background: white !important;
     box-shadow: 0 0 0 3px rgba(37,99,235,0.10) !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #9ca3af !important; font-size: 13px !important;
+    color: #9ca3af !important;
+    font-size: 13.5px !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+div[data-testid="stForm"] div[data-testid="stTextInput"] label {
+    display: none !important;
+}
 /* Circular submit button */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
-    width: 46px !important; height: 46px !important; min-height: 46px !important;
-    border-radius: 50% !important; padding: 0 !important;
-    font-size: 20px !important; font-weight: 700 !important;
-    background: #2563eb !important; color: white !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    background: #2563eb !important;
+    color: white !important;
     border: none !important;
-    box-shadow: 0 3px 10px rgba(37,99,235,0.28) !important;
-    line-height: 46px !important;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.30) !important;
+    line-height: 48px !important;
+    text-align: center !important;
 }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     background: #1d4ed8 !important;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.38) !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.40) !important;
+    transform: scale(1.05) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -2810,21 +2891,21 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
 
     # 4 cards — icon text (ASCII/unicode safe for Snowflake)
     card_data = [
-        {"icon": "&#9632;&#8203;",   "title": "Spending Overview",
+        {"title": "Spending Overview",
          "icon_bg": "#EEF2FF", "icon_color": "#4F46E5",
-         "icon_char": "$",
+         "icon_char": "📊",
          "desc": "Track total spend, monthly trends and major changes"},
-        {"icon": "&#9632;&#8203;",   "title": "Vendor Analysis",
+        {"title": "Vendor Analysis",
          "icon_bg": "#F0FDF4", "icon_color": "#16A34A",
-         "icon_char": "V",
+         "icon_char": "🏭",
          "desc": "Understand vendor-wise spend, concentration, and dependency"},
-        {"icon": "&#9632;&#8203;",   "title": "Payment Performance",
+        {"title": "Payment Performance",
          "icon_bg": "#FFF7ED", "icon_color": "#EA580C",
-         "icon_char": "T",
+         "icon_char": "⏱️",
          "desc": "Identify delays, late payments, and cycle time issues"},
-        {"icon": "&#9632;&#8203;",   "title": "Invoice Aging",
+        {"title": "Invoice Aging",
          "icon_bg": "#FFF1F2", "icon_color": "#E11D48",
-         "icon_char": "i",
+         "icon_char": "📅",
          "desc": "See overdue invoices, risk buckets, and problem areas"},
     ]
     card_cols = st.columns(4, gap="small")
@@ -3120,7 +3201,7 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
 
         # ── Ask input — full width, always visible ───────────────────────────
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.93, 0.07])
+            fi, fb = st.columns([0.92, 0.08])
             with fi:
                 prefill = st.session_state.pop("genie_prefill", "")
                 uq = st.text_input(
