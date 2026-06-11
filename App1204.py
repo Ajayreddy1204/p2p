@@ -1432,26 +1432,53 @@ div[data-testid="stVerticalBlockBorderWrapper"].na-card-item {
     padding: 0 !important;
     overflow: hidden !important;
 }
-/* ── Invoice number button inside each card ── */
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item
-    button[data-testid="baseButton-secondary"] {
-    background: #f3f4f6 !important;
-    border: 1px solid #d1d5db !important;
+
+/* ── Invoice number button: grey pill, ALL states ── */
+/* Base state */
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"],
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[kind="secondary"] {
+    background:   #f3f4f6 !important;
+    border:       1px solid #d1d5db !important;
     border-radius: 8px !important;
-    color: #374151 !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    padding: 0 12px !important;
-    box-shadow: none !important;
+    color:        #374151 !important;
+    font-size:    13px !important;
+    font-weight:  700 !important;
+    height:       32px !important;
+    min-height:   32px !important;
+    padding:      0 12px !important;
+    box-shadow:   none !important;
+    outline:      none !important;
+    outline-offset: 0 !important;
+    -webkit-box-shadow: none !important;
     width: auto !important;
 }
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item
-    button[data-testid="baseButton-secondary"]:hover {
-    background: #e9eaf0 !important;
-    border-color: #2563eb !important;
-    color: #2563eb !important;
+/* Hover */
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:hover,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:hover {
+    background:   #efefef !important;
+    border-color: #9ca3af !important;
+    color:        #374151 !important;
+    box-shadow:   none !important;
+    outline:      none !important;
+}
+/* Focus — kill Streamlit's default blue ring completely */
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus-visible,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus-within,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:active,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:focus,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:focus-visible,
+div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:active {
+    background:         #f3f4f6 !important;
+    border:             1px solid #d1d5db !important;
+    border-color:       #d1d5db !important;
+    color:              #374151 !important;
+    box-shadow:         none !important;
+    -webkit-box-shadow: none !important;
+    outline:            none !important;
+    outline-width:      0 !important;
+    outline-offset:     0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
