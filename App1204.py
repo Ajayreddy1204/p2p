@@ -582,11 +582,11 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         border-color: #2563eb;
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
-    /* Additional line / border for the panel – satisfies "show line" */
+    /* Small pointer arrow to make the panel look connected to the button */
     .bg-panel::before {{
         content: '';
         position: absolute;
-        top: -8px;
+        bottom: 100%;
         right: 20px;
         width: 0;
         height: 0;
@@ -646,7 +646,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         var panel = document.getElementById('procureiq-bg-panel');
         if (!btn || !panel) return;
 
-        // Remove old listeners by cloning and replacing
+        // Remove old listener by cloning and replacing
         var newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
         newBtn.addEventListener('click', function(e) {{
@@ -1552,7 +1552,8 @@ def is_relevant_question(question: str) -> bool:
         # Greetings & pleasantries
         r"^(hi|hello|hey|howdy|hiya|yo|sup|greetings|good\s*(morning|afternoon|evening|night|day))\b",
         r"^(what's up|how's it going|how are you doing|how do you do|nice to meet you)\b",
-        r"^(how are you)\b",          # added explicit "how are you"
+        r"^(how are you)\b",                     # explicit "how are you"
+        r"^(how are you\?)$",                    # with question mark
         # Personal questions about the assistant
         r"^(what|who) are you\??",
         r"^(how old are you|what is your age|when were you born)\b",
@@ -1609,8 +1610,8 @@ def is_relevant_question(question: str) -> bool:
             return True
 
     # If no procurement keyword and no non-procurement pattern matched, consider irrelevant
-    return False
-
+    return False   # <-- CRITICAL: changed from True to False
+    
 OUT_OF_DOMAIN_RESPONSE = (
     "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
     "vendor information, invoice status, forecasting, spend analytics, dashboard metrics, "
