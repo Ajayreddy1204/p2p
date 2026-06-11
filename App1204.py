@@ -433,7 +433,7 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 
 # ------------------------------------------------------------
 # dashboard.py
-# ENHANCED: BG button CSS, all KPIs from Athena, no hardcoded values
+# ENHANCED: normal BG button (non-floating) at bottom right, background color picker with requested colors
 # ------------------------------------------------------------
 def inject_dashboard_css(bg_color: str = "#ffffff"):
     st.markdown(f"""
@@ -517,75 +517,76 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
 
-    /* ── ENHANCED: Floating BG button (Robust) ── */
-    .bg-floating-btn {{
+    /* ── NORMAL BG BUTTON (non-floating style, fixed at bottom right) ── */
+    .bg-normal-btn {{
         position: fixed;
         bottom: 24px;
         right: 24px;
         z-index: 9999;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        color: white;
-        border-radius: 50%;
-        width: 52px;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 700;
+        background: white;
+        color: #1e293b;
+        border-radius: 30px;
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         transition: all 0.2s ease;
-        border: 2px solid rgba(255,255,255,0.3);
+        border: 1px solid #cbd5e1;
+        font-family: inherit;
+        backdrop-filter: blur(0px);
         user-select: none;
     }}
-    .bg-floating-btn:hover {{
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(37,99,235,0.5);
+    .bg-normal-btn:hover {{
+        background-color: #f8fafc;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+        border-color: #94a3b8;
     }}
     .bg-panel {{
         position: fixed;
         bottom: 86px;
         right: 24px;
         background: white;
-        border-radius: 14px;
+        border-radius: 16px;
         padding: 16px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.15);
         z-index: 9998;
-        width: 230px;
+        width: 260px;
         border: 1px solid #e2e8f0;
         display: none;
     }}
     .bg-panel-title {{
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 700;
         color: #1e293b;
         margin-bottom: 12px;
+        text-align: center;
     }}
     .bg-colors-grid {{
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        gap: 10px;
     }}
     .bg-color-swatch {{
         width: 100%;
         aspect-ratio: 1;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
         border: 2px solid transparent;
         transition: all 0.15s ease;
         box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }}
     .bg-color-swatch:hover {{
-        transform: scale(1.12);
+        transform: scale(1.08);
         border-color: #2563eb;
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
 </style>
 
-<div id="procureiq-bg-btn" class="bg-floating-btn">BG</div>
+<div id="procureiq-bg-btn" class="bg-normal-btn">🎨 Theme</div>
 <div id="procureiq-bg-panel" class="bg-panel">
-    <div class="bg-panel-title">🎨 Background Theme</div>
+    <div class="bg-panel-title">Background Color</div>
     <div class="bg-colors-grid">
         <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe"></div>
         <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6"></div>
@@ -596,7 +597,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe"></div>
         <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff"></div>
     </div>
-    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
+    <div style="margin-top:12px; font-size:11px; color:#94a3b8; text-align:center;">Click any color to change background</div>
 </div>
 
 <script>
@@ -1533,31 +1534,45 @@ def generate_sql_from_semantic(question: str) -> str:
 def is_relevant_question(question: str) -> bool:
     q_lower = question.lower().strip()
 
+    # Comprehensive list of non-procurement patterns (greetings, jokes, personal, off-topic)
     non_procurement_patterns = [
-        r"^(hi|hello|hey|howdy|hiya|yo)\b",
-        r"^good\s*(morning|afternoon|evening|night)\b",
-        r"^how are you",
-        r"^who are you",
-        r"^what (are|is) you",
-        r"^tell me a joke",
-        r"^what('s| is) (the )?weather",
-        r"^what('s| is) (your )?name",
-        r"^what (do|can) you do",
-        r"^(thank(s| you)|thanks a lot|thx)\b",
-        r"^(bye|goodbye|see you|ttyl)\b",
-        r"^what('s| is) (your )?favorite",
-        r"^(are you|you are) (a |an )?(ai|bot|robot|human|assistant)\??$",
-        r"^what (is|are) \d+",
-        r"^(calculate|compute) \d",
-        r"^capital of\b",
-        r"^who (is|was|invented|created|discovered)\b",
-        r"^when (was|did|is)\b(?!.*invoice|.*po|.*vendor|.*payment|.*spend)",
-        r"^(what|how) (many|much) (people|countries|languages)\b",
+        # Greetings & pleasantries
+        r"^(hi|hello|hey|howdy|hiya|yo|sup|greetings|good\s*(morning|afternoon|evening|night|day))\b",
+        r"^(what's up|how's it going|how are you doing|how do you do|nice to meet you)\b",
+        # Personal questions about the assistant
+        r"^(what|who) are you\??",
+        r"^(how old are you|what is your age|when were you born)\b",
+        r"^(where do you live|where are you from|what is your location)\b",
+        r"^(do you have (a |an )?(feelings|emotions|consciousness|free will|soul|personality))\b",
+        r"^(are you (a |an )?(human|real|alive|sentient|robot|ai|bot|assistant|helpful\s*assistant))\??",
+        r"^(what is your (purpose|function|job|role|mission))\b",
+        r"^(who (created|made|programmed|built) you)\??",
+        r"^(what can you do|tell me your capabilities|what are your features)\b",
+        r"^(what(’|')s your (favorite|preferred) (color|food|movie|song|book|sport|animal|season))\b",
+        # Jokes & humor
+        r"^(tell me (a|some) joke|make me laugh|say something funny|tell a joke|tell me something funny)\b",
+        r"^(joke|funny|humor|laugh)\b",
+        # Off-topic & general knowledge
+        r"^(what is the (meaning of life|answer to everything|purpose of existence))\b",
+        r"^(how (to |do I )?(bake a cake|cook|drive|swim|fly a plane|build a house|change a tire))\b",
+        r"^(explain (quantum physics|string theory|general relativity|the big bang|black holes|evolution))\b",
+        r"^(what is (ai|artificial intelligence|machine learning|deep learning|neural network))\b",
+        r"^(capital of (france|germany|italy|spain|portugal|england|usa|canada|mexico|japan|china|india|australia))\b",
+        r"^(who (is|was) (einstein|newton|galileo|darwin|plato|aristotle|socrates|napoleon|caesar|cleopatra|shakespeare))\b",
+        r"^(when (was|did) (ww2|world war 2|the renaissance|the industrial revolution|the moon landing))\b",
+        r"^(calculate|compute|solve) (\d|one|two|three|four|five|six|seven|eight|nine|ten|\+|\-|\*|\/|\%)\b",
+        r"^(weather|temperature) (in|for) [a-z]+\b",
+        r"^(news|headlines|latest events)\b",
+        # Simple thank you / goodbye
+        r"^(thank(s| you)|thanks a lot|thx|appreciate it|cheers)\b",
+        r"^(bye|goodbye|see you|farewell|ttyl|catch you later|cya)\b",
     ]
+
     for pattern in non_procurement_patterns:
-        if re.search(pattern, q_lower):
+        if re.search(pattern, q_lower, re.IGNORECASE):
             return False
 
+    # Procurement-related keywords (strong signal)
     procurement_keywords = [
         "spend", "vendor", "invoice", "po", "purchase order", "payment",
         "due", "overdue", "dispute", "gr/ir", "cash flow", "forecast",
@@ -1569,11 +1584,21 @@ def is_relevant_question(question: str) -> bool:
         "first pass", "on-time", "late payment", "duplicate", "supplier",
         "delivery", "weighted", "partial payment", "full payment", "budget",
         "contract", "requisition", "three-way match", "two-way match",
+        "athena", "sql", "query", "data", "analytics", "report", "summary",
+        "outstanding", "balance", "po receipt", "goods receipt", "ir",
+        "clearing", "reconciliation", "working capital", "follow-up", "hotspot",
+        "root cause", "remediation", "action", "playbook", "insight", "recommend",
     ]
     for kw in procurement_keywords:
         if kw in q_lower:
             return True
-    return False
+
+    # If no keyword matches but the question is not caught by non-procurement patterns,
+    # we consider it relevant (safe fallback). This ensures valid procurement questions
+    # that might not contain exact keywords (e.g., "Show me unpaid invoices").
+    # To be conservative, we return False only for explicit non-procurement patterns.
+    # For all other cases, we assume it's procurement-related.
+    return True
 
 OUT_OF_DOMAIN_RESPONSE = (
     "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
@@ -2579,7 +2604,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr></table>'
+    html_table += '</tr></tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2631,7 +2656,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</tr></table>'
+        html_v += '</table></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2798,7 +2823,7 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
-    # Inject CSS with working BG button (no separate render_floating_bg_button call)
+    # Inject CSS with normal BG button at bottom right (non-floating style)
     inject_dashboard_css("#ffffff")
 
     st.markdown("""
