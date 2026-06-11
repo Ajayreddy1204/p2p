@@ -517,7 +517,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
 
-    /* ── ENHANCED: Floating BG button ── */
+    /* ── ENHANCED: Floating BG button (Robust) ── */
     .bg-floating-btn {{
         position: fixed;
         bottom: 24px;
@@ -582,24 +582,37 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
 </style>
+
+<div id="procureiq-bg-btn" class="bg-floating-btn">BG</div>
+<div id="procureiq-bg-panel" class="bg-panel">
+    <div class="bg-panel-title">🎨 Background Theme</div>
+    <div class="bg-colors-grid">
+        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe"></div>
+        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6"></div>
+        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7"></div>
+        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff"></div>
+        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3"></div>
+        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3"></div>
+        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe"></div>
+        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff"></div>
+    </div>
+    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
+</div>
+
 <script>
-    /* ── BG Panel toggle ── */
-    function toggleBgPanel() {{
-        var panel = document.getElementById('procureiq-bg-panel');
-        if (!panel) return;
-        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-    }}
-    /* ── Apply and persist background color ── */
+(function() {{
     function applyBgColor(color) {{
         var targets = [
             document.querySelector('.stApp'),
             document.querySelector('.main'),
-        ].concat(Array.from(document.querySelectorAll('.main > .block-container')));
-        targets.forEach(function(el) {{ if (el) el.style.backgroundColor = color; }});
+            document.querySelector('.main > .block-container')
+        ].filter(function(el) {{ return el !== null; }});
+        targets.forEach(function(el) {{ el.style.backgroundColor = color; }});
         try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
-        document.getElementById('procureiq-bg-panel').style.display = 'none';
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (panel) panel.style.display = 'none';
     }}
-    /* ── Load saved color on DOM ready ── */
+
     function loadSavedBg() {{
         try {{
             var saved = localStorage.getItem('procureiq_bg_color');
@@ -607,54 +620,61 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
                 var targets = [
                     document.querySelector('.stApp'),
                     document.querySelector('.main'),
-                ].concat(Array.from(document.querySelectorAll('.main > .block-container')));
-                targets.forEach(function(el) {{ if (el) el.style.backgroundColor = saved; }});
+                    document.querySelector('.main > .block-container')
+                ].filter(function(el) {{ return el !== null; }});
+                targets.forEach(function(el) {{ el.style.backgroundColor = saved; }});
             }}
         }} catch(e) {{}}
     }}
-    /* Close panel when clicking outside */
-    document.addEventListener('click', function(e) {{
-        var btn   = document.getElementById('procureiq-bg-btn');
+
+    function initBgControls() {{
+        var btn = document.getElementById('procureiq-bg-btn');
         var panel = document.getElementById('procureiq-bg-panel');
-        if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {{
-            panel.style.display = 'none';
+        if (!btn || !panel) return;
+
+        // Replace button to avoid duplicate listeners
+        var newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        document.getElementById('procureiq-bg-btn').addEventListener('click', function(e) {{
+            e.stopPropagation();
+            var p = document.getElementById('procureiq-bg-panel');
+            if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        }});
+
+        // Attach to swatches
+        var swatches = document.querySelectorAll('.bg-color-swatch');
+        swatches.forEach(function(sw) {{
+            var newSw = sw.cloneNode(true);
+            sw.parentNode.replaceChild(newSw, sw);
+            newSw.addEventListener('click', function(e) {{
+                e.stopPropagation();
+                var color = this.getAttribute('data-color') || this.style.backgroundColor;
+                if (color) applyBgColor(color);
+            }});
+        }});
+
+        // Close panel when clicking outside
+        document.addEventListener('click', function(e) {{
+            var btnElem = document.getElementById('procureiq-bg-btn');
+            var panelElem = document.getElementById('procureiq-bg-panel');
+            if (btnElem && panelElem && !btnElem.contains(e.target) && !panelElem.contains(e.target)) {{
+                panelElem.style.display = 'none';
+            }}
+        }});
+    }}
+
+    loadSavedBg();
+    initBgControls();
+
+    var observer = new MutationObserver(function(mutations) {{
+        if (document.getElementById('procureiq-bg-btn') && document.getElementById('procureiq-bg-panel')) {{
+            initBgControls();
+            loadSavedBg();
         }}
     }});
-    /* Run on load and after Streamlit re-renders */
-    if (document.readyState === 'loading') {{
-        document.addEventListener('DOMContentLoaded', loadSavedBg);
-    }} else {{
-        loadSavedBg();
-    }}
-    /* Streamlit rerenders the DOM — re-apply after a short delay */
-    setTimeout(loadSavedBg, 800);
-    setTimeout(loadSavedBg, 1800);
+    observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
 </script>
-""", unsafe_allow_html=True)
-
-def render_floating_bg_button():
-    """Render the floating BG customization button and panel (bottom-right, all pages)."""
-    colors = [
-        ("#e0f2fe", "Light Blue"),
-        ("#f3f4f6", "Light Gray"),
-        ("#dcfce7", "Light Green"),
-        ("#f3e8ff", "Light Purple"),
-        ("#fce7f3", "Light Pink"),
-        ("#fef9c3", "Light Beige"),
-        ("#cffafe", "Light Cyan"),
-        ("#ffffff", "White"),
-    ]
-    swatches_html = "".join(
-        f'<div class="bg-color-swatch" style="background:{hex_c};" title="{name}" onclick="applyBgColor(\'{hex_c}\')"></div>'
-        for hex_c, name in colors
-    )
-    st.markdown(f"""
-<div id="procureiq-bg-btn" class="bg-floating-btn" onclick="toggleBgPanel()">BG</div>
-<div id="procureiq-bg-panel" class="bg-panel">
-    <div class="bg-panel-title">🎨 Background Theme</div>
-    <div class="bg-colors-grid">{swatches_html}</div>
-    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
-</div>
 """, unsafe_allow_html=True)
 
 def format_invoice_number(invoice_num):
@@ -757,17 +777,16 @@ def render_filters():
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
-
-# ── ENHANCED KPI fetching ────────────────────────────────────
+# ── ENHANCED KPI fetching with correct columns ─────────────────
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
     """
-    ENHANCED: Fetch all KPIs from Athena views.
-    Returns a dict with all KPI values — no hardcoded fallbacks beyond 0.
+    Fetch all KPIs from Athena without relying on views that lack posting_date.
+    Returns a dict with correct values.
     """
     result = {}
 
-    # ── 1. Main KPI block from fact_all_sources_vw ─────────
+    # 1. Main KPIs from fact_all_sources_vw
     main_sql = f"""
         SELECT
             COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN'
@@ -792,8 +811,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
         result["active_pos"] = result["total_pos"] = result["pending_inv"] = 0
         result["total_spend"] = 0.0
 
-    # ── 2. Active Vendors — FIXED: from dim_vendor_vw ──────
-    # Uses COUNT(DISTINCT vendor_name) from dim_vendor_vw for accuracy
+    # 2. Active Vendors
     vendor_sql = f"""
         SELECT COUNT(DISTINCT v.vendor_name) AS active_vendors
         FROM {DATABASE}.fact_all_sources_vw f
@@ -806,81 +824,65 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
     if not vdf.empty:
         result["active_vendors"] = safe_int(vdf.iloc[0]["active_vendors"])
     else:
-        # Global fallback: all distinct vendors in dim table
-        fallback_sql = f"""
-            SELECT COUNT(DISTINCT vendor_name) AS active_vendors
-            FROM {DATABASE}.dim_vendor_vw
-            WHERE vendor_name IS NOT NULL
-        """
+        fallback_sql = f"SELECT COUNT(DISTINCT vendor_name) AS active_vendors FROM {DATABASE}.dim_vendor_vw WHERE vendor_name IS NOT NULL"
         fdf = run_query(fallback_sql)
         result["active_vendors"] = safe_int(fdf.iloc[0]["active_vendors"]) if not fdf.empty else 0
 
-    # ── 3. Avg Processing Time — from dedicated view ────────
-    cycle_sql = f"""
-        SELECT AVG(avg_cycle_time_days) AS avg_processing_days
-        FROM {DATABASE}.payment_processing_cycle_time_vw
-        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
+    # 3. Avg Processing Time – compute from fact table (safe)
+    proc_sql = f"""
+        SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
+        FROM {DATABASE}.fact_all_sources_vw
+        WHERE UPPER(invoice_status) = 'PAID'
+          AND payment_date IS NOT NULL
+          AND posting_date BETWEEN {start_lit} AND {end_lit}
     """
-    cdf = run_query(cycle_sql)
-    if not cdf.empty and not pd.isna(cdf.iloc[0]["avg_processing_days"]):
-        result["avg_processing_days"] = safe_number(cdf.iloc[0]["avg_processing_days"])
+    pdf = run_query(proc_sql)
+    if not pdf.empty and not pd.isna(pdf.iloc[0]["avg_processing_days"]):
+        result["avg_processing_days"] = safe_number(pdf.iloc[0]["avg_processing_days"])
     else:
-        # Fallback: compute from fact table
-        fb_sql = f"""
-            SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
-            FROM {DATABASE}.fact_all_sources_vw
-            WHERE UPPER(invoice_status) = 'PAID'
-              AND payment_date IS NOT NULL
-              AND posting_date BETWEEN {start_lit} AND {end_lit}
-        """
-        fbdf = run_query(fb_sql)
-        result["avg_processing_days"] = safe_number(fbdf.iloc[0]["avg_processing_days"]) if not fbdf.empty else 0.0
+        result["avg_processing_days"] = 0.0
 
-    # ── 4. First Pass Rate — from full_payment_rate_vw ─────
+    # 4. First Pass Rate – from invoice_status_history_vw
     fp_sql = f"""
-        SELECT AVG(full_payment_rate) AS first_pass_rate
-        FROM {DATABASE}.full_payment_rate_vw
-        WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-    """
-    fpdf = run_query(fp_sql)
-    if not fpdf.empty and not pd.isna(fpdf.iloc[0]["first_pass_rate"]):
-        result["first_pass_rate"] = safe_number(fpdf.iloc[0]["first_pass_rate"])
-    else:
-        # Fallback: compute from invoice_status_history_vw
-        fp_fallback = f"""
-            WITH hist AS (
-                SELECT invoice_number,
-                       MAX(CASE WHEN UPPER(status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
-                       MAX(CASE WHEN UPPER(status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
-                FROM {DATABASE}.invoice_status_history_vw
-                WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-                GROUP BY invoice_number
-            )
-            SELECT
-                COUNT(*) AS total_inv,
-                SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
-            FROM hist
-        """
-        fpfb = run_query(fp_fallback)
-        if not fpfb.empty:
-            total = safe_int(fpfb.iloc[0]["total_inv"])
-            passed = safe_int(fpfb.iloc[0]["first_pass_inv"])
-            result["first_pass_rate"] = (passed / total * 100) if total > 0 else 0.0
-        else:
-            result["first_pass_rate"] = 0.0
-
-    # ── 5. Auto-Processed Rate ──────────────────────────────
-    auto_sql = f"""
-        WITH paid_invoices AS (
-            SELECT invoice_number, status_notes
-            FROM {DATABASE}.invoice_status_history_vw
+        WITH invoices_in_range AS (
+            SELECT DISTINCT invoice_number
+            FROM {DATABASE}.fact_all_sources_vw
             WHERE posting_date BETWEEN {start_lit} AND {end_lit}
-              AND UPPER(status) = 'PAID'
+        ),
+        history AS (
+            SELECT h.invoice_number,
+                   MAX(CASE WHEN UPPER(h.status) IN ('PAID','CLEARED','CLOSED','POSTED','SETTLED') THEN 1 ELSE 0 END) AS has_paid,
+                   MAX(CASE WHEN UPPER(h.status) IN ('DISPUTE','DISPUTED','OVERDUE') THEN 1 ELSE 0 END) AS has_issue
+            FROM {DATABASE}.invoice_status_history_vw h
+            JOIN invoices_in_range i ON h.invoice_number = i.invoice_number
+            GROUP BY h.invoice_number
+        )
+        SELECT
+            COUNT(*) AS total_inv,
+            SUM(CASE WHEN has_paid = 1 AND has_issue = 0 THEN 1 ELSE 0 END) AS first_pass_inv
+        FROM history
+    """
+    fp_df = run_query(fp_sql)
+    if not fp_df.empty:
+        total = safe_int(fp_df.iloc[0]["total_inv"])
+        passed = safe_int(fp_df.iloc[0]["first_pass_inv"])
+        result["first_pass_rate"] = (passed / total * 100) if total > 0 else 0.0
+    else:
+        result["first_pass_rate"] = 0.0
+
+    # 5. Auto-Processed Rate
+    auto_sql = f"""
+        WITH invoices_in_range AS (
+            SELECT DISTINCT invoice_number
+            FROM {DATABASE}.fact_all_sources_vw
+            WHERE posting_date BETWEEN {start_lit} AND {end_lit}
         )
         SELECT
             COUNT(*) AS total_cleared,
             SUM(CASE WHEN UPPER(status_notes) = 'AUTO PROCESSED' THEN 1 ELSE 0 END) AS auto_processed
-        FROM paid_invoices
+        FROM {DATABASE}.invoice_status_history_vw h
+        JOIN invoices_in_range i ON h.invoice_number = i.invoice_number
+        WHERE UPPER(h.status) = 'PAID'
     """
     adf = run_query(auto_sql)
     if not adf.empty:
@@ -892,11 +894,9 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
 
     return result
 
-
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
-    """ENHANCED: Fetch overdue, disputed, and due-soon invoices from Athena."""
-
+    """Fetch overdue, disputed, and due-soon invoices from Athena."""
     overdue_sql = f"""
         SELECT f.invoice_number AS ref_no, f.invoice_amount_local AS amount,
                v.vendor_name, f.due_date, f.aging_days
@@ -938,12 +938,7 @@ def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
 
     return overdue_df, disputed_df, due_df
 
-
 def render_kpi_rows(kpi: dict, prev_kpi: dict):
-    """
-    ENHANCED: Render KPI cards using dynamic Athena data.
-    kpi / prev_kpi are dicts returned by fetch_kpi_data().
-    """
     cur_spend          = kpi.get("total_spend", 0)
     prev_spend         = prev_kpi.get("total_spend", 0)
     cur_active_pos     = kpi.get("active_pos", 0)
@@ -968,7 +963,7 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
 
     avg_diff = cur_avg_proc - prev_avg_proc
     avg_delta_str = f"{abs(avg_diff):.1f}d"
-    avg_up = avg_diff < 0  # lower is better
+    avg_up = avg_diff < 0
 
     fp_diff = first_pass_rate - prev_fp_rate
     fp_delta_str = f"{abs(fp_diff):.1f}%"
@@ -996,7 +991,6 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
     with col4:
         render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", f"{auto_rate:.1f}%", True, "green")
 
-
 def render_needs_attention(rng_start, rng_end, vendor_where):
     if "na_tab" not in st.session_state:
         st.session_state.na_tab = "Overdue"
@@ -1009,7 +1003,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
 
-    # ENHANCED: fetch all three categories from Athena
     overdue_df, disputed_df, due_df = fetch_needs_attention(start_lit, end_lit, vendor_where)
 
     overdue_count  = len(overdue_df)
@@ -1126,7 +1119,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                 else:
                     st.markdown("<div style='text-align:center;color:#d1d5db;font-size:14px;padding:10px;'>Next →</div>", unsafe_allow_html=True)
 
-
 def render_charts(rng_start, rng_end, vendor_where):
     start_lit = sql_date(rng_start)
     end_lit = sql_date(rng_end)
@@ -1231,7 +1223,6 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div></div>", unsafe_allow_html=True)
 
-
 def render_dashboard():
     if "date_range" not in st.session_state:
         st.session_state.date_range = compute_range_preset("Last 30 Days")
@@ -1257,7 +1248,6 @@ def render_dashboard():
     p_start_lit = sql_date(p_start)
     p_end_lit   = sql_date(p_end)
 
-    # ENHANCED: Fetch all KPIs dynamically — no hardcoded values
     with st.spinner("Loading KPIs..."):
         cur_kpi  = fetch_kpi_data(start_lit, end_lit, vendor_where)
         prev_kpi = fetch_kpi_data(p_start_lit, p_end_lit, vendor_where)
@@ -1269,7 +1259,7 @@ def render_dashboard():
     render_charts(rng_start, rng_end, vendor_where)
 
 # ------------------------------------------------------------
-# forecast.py  (unchanged from original)
+# forecast.py
 # ------------------------------------------------------------
 def render_forecast():
     cf_sql = f"""
@@ -1450,10 +1440,8 @@ def render_forecast():
                 st.session_state.page = "Genie"
                 st.rerun()
 
-
 # ------------------------------------------------------------
 # genie.py
-# ENHANCED: Improved is_relevant_question with broader intent detection
 # ------------------------------------------------------------
 def _safe_sql_string(sql_val):
     if sql_val is None:
@@ -1542,17 +1530,9 @@ def generate_sql_from_semantic(question: str) -> str:
         """
     return sql
 
-
-# ENHANCED: Broader keyword list + explicit non-procurement detection
 def is_relevant_question(question: str) -> bool:
-    """
-    Return True only if the question is related to procurement / P2P data.
-    ENHANCED: Detects greetings, small talk, and general knowledge queries
-    and returns False for them.
-    """
     q_lower = question.lower().strip()
 
-    # ── Explicit non-procurement patterns ──────────────────
     non_procurement_patterns = [
         r"^(hi|hello|hey|howdy|hiya|yo)\b",
         r"^good\s*(morning|afternoon|evening|night)\b",
@@ -1567,10 +1547,10 @@ def is_relevant_question(question: str) -> bool:
         r"^(bye|goodbye|see you|ttyl)\b",
         r"^what('s| is) (your )?favorite",
         r"^(are you|you are) (a |an )?(ai|bot|robot|human|assistant)\??$",
-        r"^what (is|are) \d+",       # math / trivia
-        r"^(calculate|compute) \d",  # generic math
+        r"^what (is|are) \d+",
+        r"^(calculate|compute) \d",
         r"^capital of\b",
-        r"^who (is|was|invented|created|discovered)\b",  # general knowledge
+        r"^who (is|was|invented|created|discovered)\b",
         r"^when (was|did|is)\b(?!.*invoice|.*po|.*vendor|.*payment|.*spend)",
         r"^(what|how) (many|much) (people|countries|languages)\b",
     ]
@@ -1578,7 +1558,6 @@ def is_relevant_question(question: str) -> bool:
         if re.search(pattern, q_lower):
             return False
 
-    # ── Procurement keywords ────────────────────────────────
     procurement_keywords = [
         "spend", "vendor", "invoice", "po", "purchase order", "payment",
         "due", "overdue", "dispute", "gr/ir", "cash flow", "forecast",
@@ -1594,16 +1573,13 @@ def is_relevant_question(question: str) -> bool:
     for kw in procurement_keywords:
         if kw in q_lower:
             return True
-
     return False
-
 
 OUT_OF_DOMAIN_RESPONSE = (
     "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
     "vendor information, invoice status, forecasting, spend analytics, dashboard metrics, "
     "and related business data. Please ask a procurement or dashboard-related question."
 )
-
 
 def process_custom_query(query: str, history: str = "") -> dict:
     if not is_relevant_question(query):
@@ -1641,7 +1617,6 @@ Respond in plain text using markdown for headings and bullet points.
     if not analyst_text:
         analyst_text = f"**Analysis complete.**\n\nHere are the results:\n\n{data_preview}"
     return {"layout": "analyst", "sql": sql, "df": df.to_dict(orient="records"), "question": query, "analyst_response": analyst_text}
-
 
 def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
@@ -1695,7 +1670,6 @@ def process_cash_flow_forecast(question: str, history: str = "") -> dict:
     return {"layout": "cash_flow", "df": cf_df.to_dict(orient="records"), "sql": used_sql,
             "analyst_response": analyst_text or "Unable to generate insights.", "question": question}
 
-
 def process_early_payment(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
         return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
@@ -1722,7 +1696,6 @@ def process_early_payment(question: str, history: str = "") -> dict:
         system_prompt="You are a helpful procurement analyst specializing in working capital optimization.")
     return {"layout": "early_payment", "df": ep_df.to_dict(orient="records") if not ep_df.empty else [],
             "sql": ep_sql, "analyst_response": analyst_text or "No insights.", "question": question, "empty": ep_df.empty}
-
 
 def process_payment_timing(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
@@ -1753,7 +1726,6 @@ def process_payment_timing(question: str, history: str = "") -> dict:
     return {"layout": "payment_timing", "df": timing_df.to_dict(orient="records"), "sql": timing_sql,
             "analyst_response": analyst_text or "No insights.", "question": question}
 
-
 def process_late_payment_trend(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
         return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
@@ -1775,7 +1747,6 @@ def process_late_payment_trend(question: str, history: str = "") -> dict:
         system_prompt="You are a helpful procurement analyst focusing on payment performance.")
     return {"layout": "late_payment_trend", "df": trend_df.to_dict(orient="records"), "sql": trend_sql,
             "analyst_response": analyst_text or "No insights.", "question": question}
-
 
 def process_grir_hotspots(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
@@ -1802,7 +1773,6 @@ def process_grir_hotspots(question: str, history: str = "") -> dict:
     return {"layout": "grir_hotspots", "df": df.to_dict(orient="records"), "sql": used_sql,
             "analyst_response": analyst_text, "question": question}
 
-
 def process_grir_root_causes(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
         return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
@@ -1823,7 +1793,6 @@ def process_grir_root_causes(question: str, history: str = "") -> dict:
             "extra_df": balance_df.to_dict(orient="records"),
             "sql": {"aging_sql": aging_sql, "balance_sql": balance_sql},
             "analyst_response": analyst_text, "question": question}
-
 
 def process_grir_working_capital(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
@@ -1856,7 +1825,6 @@ def process_grir_working_capital(question: str, history: str = "") -> dict:
             "metrics": {"older_60": float(total_old_60), "older_90": float(total_old_90)},
             "sql": used_sql, "analyst_response": analyst_text, "question": question}
 
-
 def process_grir_vendor_followup(question: str, history: str = "") -> dict:
     if not is_relevant_question(question):
         return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_RESPONSE}
@@ -1884,7 +1852,6 @@ def process_grir_vendor_followup(question: str, history: str = "") -> dict:
         analyst_text = "**Sample follow-up:** Subject: Missing GR/IR documents. Please provide missing goods receipts or invoices."
     return {"layout": "grir_vendor_followup", "df": df.to_dict(orient="records"), "sql": used_sql,
             "analyst_response": analyst_text, "question": question}
-
 
 def _quick_spending_overview():
     monthly_sql = f"""
@@ -1930,7 +1897,6 @@ def _quick_spending_overview():
             "analyst_response": analyst_text or "Analysis complete.",
             "sql": {"monthly_trend": monthly_sql, "top_vendors": top_vendors_sql}, "question": "Spending Overview"}
 
-
 def _quick_vendor_analysis():
     vendors_sql = f"""
         SELECT COALESCE(v.vendor_name, 'Unknown') AS vendor_name, SUM(COALESCE(f.invoice_amount_local, 0)) AS total_spend,
@@ -1966,7 +1932,6 @@ def _quick_vendor_analysis():
             "analyst_response": analyst_text or "Analysis complete.",
             "sql": {"top_vendors": vendors_sql, "monthly_vendors": monthly_vendors_sql}, "question": "Vendor Analysis"}
 
-
 def _quick_payment_performance():
     sql = f"""
         SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month,
@@ -1997,7 +1962,6 @@ def _quick_payment_performance():
     return {"layout": "quick", "analysis_type": "payment_performance", "metrics": metrics,
             "payment_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.",
             "sql": sql, "question": "Payment Performance"}
-
 
 def _quick_invoice_aging():
     sql = f"""
@@ -2030,8 +1994,6 @@ def _quick_invoice_aging():
             "aging_df": df.to_dict(orient="records"), "analyst_response": analyst_text or "Analysis complete.",
             "sql": sql, "question": "Invoice Aging"}
 
-
-# ── Render helpers (unchanged) ────────────────────────────────
 def render_cash_flow_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2057,7 +2019,6 @@ def render_cash_flow_response(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
-
 def render_early_payment_response(result: dict):
     df = pd.DataFrame(result["df"])
     if result.get("empty", False) or df.empty:
@@ -2076,7 +2037,6 @@ def render_early_payment_response(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
-
 def render_payment_timing_response(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2089,7 +2049,6 @@ def render_payment_timing_response(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
-
 
 def render_late_payment_trend_response(result: dict):
     df = pd.DataFrame(result["df"])
@@ -2109,7 +2068,6 @@ def render_late_payment_trend_response(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
-
 def render_grir_hotspots(result: dict):
     df = pd.DataFrame(result["df"])
     if df.empty:
@@ -2126,7 +2084,6 @@ def render_grir_hotspots(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
-
 def render_grir_root_causes(result: dict):
     df       = pd.DataFrame(result.get("df", []))
     extra_df = pd.DataFrame(result.get("extra_df", []))
@@ -2141,7 +2098,6 @@ def render_grir_root_causes(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
-
 
 def render_grir_working_capital(result: dict):
     metrics = result.get("metrics", {})
@@ -2158,7 +2114,6 @@ def render_grir_working_capital(result: dict):
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
 
-
 def render_grir_vendor_followup(result: dict):
     df = pd.DataFrame(result["df"])
     if not df.empty:
@@ -2169,7 +2124,6 @@ def render_grir_vendor_followup(result: dict):
         st.markdown(result["analyst_response"])
     with st.expander("View SQL used"):
         st.code(_safe_sql_string(result.get("sql")), language="sql")
-
 
 def render_quick_analysis_response(result: dict):
     analysis_type    = result.get("analysis_type", "spending_overview")
@@ -2268,12 +2222,10 @@ def render_quick_analysis_response(result: dict):
         elif isinstance(sql_queries, str):
             st.code(sql_queries, language="sql")
 
-
 GRIR_HOTSPOTS_Q  = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
 GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
 GRIR_WC_Q        = "Estimate the working capital that would be released by clearing all GR/IR items older than 60 and 90 days, by month."
 GRIR_FOLLOWUP_Q  = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
-
 
 def _dispatch_query(q: str, history_context: str) -> dict:
     lower_q = q.lower()
@@ -2303,7 +2255,6 @@ def _dispatch_query(q: str, history_context: str) -> dict:
         return _quick_invoice_aging()
     else:
         return process_custom_query(q, history_context)
-
 
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
@@ -2337,7 +2288,6 @@ def process_user_question(user_question: str):
                     {"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
     st.rerun()
 
-
 def start_new_session():
     st.session_state.genie_session_id = str(uuid.uuid4())
     st.session_state.current_messages = []
@@ -2345,7 +2295,6 @@ def start_new_session():
     st.session_state.conversation_summary = ""
     save_chat_session(st.session_state.genie_session_id, label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
-
 
 def summarize_conversation():
     if not st.session_state.current_messages:
@@ -2364,7 +2313,6 @@ def summarize_conversation():
     else:
         st.error("Could not generate summary at this time.")
 
-
 def export_conversation_md():
     if not st.session_state.current_messages and not st.session_state.get("conversation_summary"):
         st.warning("No conversation to export.")
@@ -2378,7 +2326,6 @@ def export_conversation_md():
     st.download_button(label="📥 Download MD", data="\n".join(md_lines),
                        file_name=f"genie_conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                        mime="text/markdown", key="export_md_btn")
-
 
 def render_genie():
     st.markdown("""
@@ -2587,7 +2534,7 @@ def render_genie():
                     process_user_question(user_question)
 
 # ------------------------------------------------------------
-# invoices.py  (unchanged from original)
+# invoices.py
 # ------------------------------------------------------------
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def get_val(key, default=""):
@@ -2632,7 +2579,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '<tr></tr>'
+    html_table += '</tr></table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2705,7 +2652,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</table></tr>'
+        html_c += '</tr></table>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2718,7 +2665,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         if st.button("✅ Proceed to Pay", key="proceed_pay_btn", use_container_width=True):
             st.session_state[paid_key] = True
             st.rerun()
-
 
 def render_invoices():
     st.subheader("Invoices")
@@ -2845,7 +2791,6 @@ def render_invoices():
         else:
             st.info("No invoices found. Try a different search term or adjust filters.")
 
-
 # ------------------------------------------------------------
 # main app
 # ------------------------------------------------------------
@@ -2853,6 +2798,7 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
+    # Inject CSS with working BG button (no separate render_floating_bg_button call)
     inject_dashboard_css("#ffffff")
 
     st.markdown("""
@@ -2895,9 +2841,6 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
 
     st.markdown("---")
 
-    # ENHANCED: Floating BG button rendered on ALL pages
-    render_floating_bg_button()
-
     if "page" not in st.session_state:
         st.session_state.page = "Dashboard"
 
@@ -2909,7 +2852,6 @@ button { font-weight: 500 !important; border-radius: 8px !important; transition:
         render_forecast()
     else:
         render_invoices()
-
 
 if __name__ == "__main__":
     main()
