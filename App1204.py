@@ -1796,12 +1796,17 @@ def render_dashboard():
 
 # ── Forecast ─────────────────────────────────────────────────
 def render_forecast():
-    cf_sql = f"""SELECT forecast_bucket,invoice_count,total_amount,earliest_due,latest_due
-        FROM {DATABASE}.cash_flow_forecast_vw
-        ORDER BY CASE forecast_bucket WHEN 'TOTAL_UNPAID' THEN 0 WHEN 'OVERDUE_NOW' THEN 1
-            WHEN 'DUE_7_DAYS' THEN 2 WHEN 'DUE_14_DAYS' THEN 3 WHEN 'DUE_30_DAYS' THEN 4
-            WHEN 'DUE_60_DAYS' THEN 5 WHEN 'DUE_90_DAYS' THEN 6 WHEN 'BEYOND_90_DAYS' THEN 7 ELSE 8 END"""
-    cf_df = run_query(cf_sql)
+    # Cache forecast data to stop flicker on every rerun
+    if "forecast_cf_df" not in st.session_state:
+        st.session_state.forecast_cf_df = None
+    if st.session_state.forecast_cf_df is None:
+        cf_sql = f"""SELECT forecast_bucket,invoice_count,total_amount,earliest_due,latest_due
+            FROM {DATABASE}.cash_flow_forecast_vw
+            ORDER BY CASE forecast_bucket WHEN 'TOTAL_UNPAID' THEN 0 WHEN 'OVERDUE_NOW' THEN 1
+                WHEN 'DUE_7_DAYS' THEN 2 WHEN 'DUE_14_DAYS' THEN 3 WHEN 'DUE_30_DAYS' THEN 4
+                WHEN 'DUE_60_DAYS' THEN 5 WHEN 'DUE_90_DAYS' THEN 6 WHEN 'BEYOND_90_DAYS' THEN 7 ELSE 8 END"""
+        st.session_state.forecast_cf_df = run_query(cf_sql)
+    cf_df = st.session_state.forecast_cf_df
     if cf_df.empty:
         st.warning("cash_flow_forecast_vw empty – computing from fact table.")
         cf_sql = f"""WITH base AS (
@@ -1847,7 +1852,7 @@ def render_forecast():
         else: st.info("No cash flow forecast data.")
         st.markdown("---"); st.markdown("### Action Playbook")
         for label,question in [
-            ("Forecast cash outflow (7–90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Forecast cash outflow (7-90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
             ("Invoices to pay early to capture discounts","Which invoices should we pay early to capture discounts?"),
             ("Optimal payment timing for this week","What is the optimal payment timing strategy for this week?"),
             ("Late payment trend and risk","Show late payment trend for forecasting")]:
@@ -2468,7 +2473,7 @@ def export_conversation_md():
         lines.append(f"**Summary**\n\n{st.session_state.conversation_summary}\n\n---\n")
     for msg in st.session_state.current_messages:
         lines.append(f"{'**User**' if msg['role']=='user' else '**Genie**'}\n\n{msg['content']}\n\n---\n")
-    st.download_button("Download MD",data="\n".join(lines),
+    st.download_button("📥 Download MD",data="\n".join(lines),
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
@@ -2499,14 +2504,14 @@ def render_genie():
         <p style="color:#64748b;font-size:0.9rem;">Let Genie run one of these quick analyses for you</p></div>""",
         unsafe_allow_html=True)
 
-    cards=[{"icon":"📊","title":"Spending Overview","desc":"Track total spend, monthly trends and major changes"},
-           {"icon":"🏭","title":"Vendor Analysis","desc":"Understand vendor-wise spend, concentration, and dependency"},
-           {"icon":"⏱️","title":"Payment Performance","desc":"Identify delays, late payments, and cycle time issues"},
-           {"icon":"📅","title":"Invoice Aging","desc":"See overdue invoices, risk buckets, and problem areas"}]
+    cards=[{"title":"Spending Overview","desc":"Track total spend, monthly trends and major changes"},
+           {"title":"Vendor Analysis","desc":"Understand vendor-wise spend, concentration, and dependency"},
+           {"title":"Payment Performance","desc":"Identify delays, late payments, and cycle time issues"},
+           {"title":"Invoice Aging","desc":"See overdue invoices, risk buckets, and problem areas"}]
     cols=st.columns(4,gap="small")
     for idx,(col,card) in enumerate(zip(cols,cards)):
         with col:
-            st.markdown(f'<div class="quick-card"><div style="font-size:2rem;">{card["icon"]}</div>'
+            st.markdown(f'<div class="quick-card">'
                         f'<h3>{card["title"]}</h3><p>{card["desc"]}</p></div>',unsafe_allow_html=True)
             if st.button("Ask Genie",key=f"card_{idx}",use_container_width=True):
                 st.session_state.auto_run_query=card['title']; st.rerun()
@@ -2602,36 +2607,36 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     with left_info:
         with st.container(border=True):
             # ── Saved insights ─────────────────────────────────────
-            with st.expander("📌 Saved insights"):
+            with st.expander("Saved Insights"):
                 ins = get_saved_insights_cached(page="genie")
                 if ins:
                     for i in ins[:5]:
-                        if st.button(f"› {i['title'][:40]}", key=f"insight_{i['id']}",
+                        if st.button(f"{i['title'][:40]}", key=f"insight_{i['id']}",
                                      use_container_width=True):
                             st.session_state.auto_run_query = i["question"]; st.rerun()
                 else:
                     st.caption("No saved insights yet")
 
             # ── Frequently asked by you ────────────────────────────
-            with st.expander("🔁 Frequently asked by you"):
+            with st.expander("Frequently Asked by You"):
                 faqs = get_frequent_questions_by_user_cached(5)
                 if faqs:
                     for faq in faqs[:5]:
-                        if st.button(f"› {faq['query'][:40]}", key=f"faq_{faq['query'][:20]}",
+                        if st.button(f"{faq['query'][:40]}", key=f"faq_{faq['query'][:20]}",
                                      use_container_width=True):
                             st.session_state.genie_prefill = faq["query"]; st.rerun()
                 else:
                     for sug in ["Total spend YTD and trends","Top vendors by spend","Overdue invoices summary"]:
-                        if st.button(f"› {sug}", key=f"sug_{sug[:15]}", use_container_width=True):
+                        if st.button(f"{sug}", key=f"sug_{sug[:15]}", use_container_width=True):
                             st.session_state.genie_prefill = sug; st.rerun()
 
             # ── Most frequent (all users) ──────────────────────────
-            with st.expander("📊 Most frequent (all)"):
+            with st.expander("Most Frequent (All)"):
                 af = get_frequent_questions_all_cached(5)
                 if af:
                     for faq in af[:5]:
                         st.markdown(
-                            f"<div style='color:#64748b;font-size:0.85rem;padding:2px 0;'>› {faq['query'][:40]}</div>",
+                            f"<div style='text-align:left;color:#374151;font-size:0.85rem;padding:3px 0;'>{faq['query'][:45]}</div>",
                             unsafe_allow_html=True)
                 else:
                     st.caption("No questions yet")
@@ -2743,16 +2748,26 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
             st.markdown("<div class='genie-header'>", unsafe_allow_html=True)
             h1, h2, h3, h4, h5 = st.columns([1.6, 0.72, 0.88, 0.88, 0.66])
             with h1:
-                st.markdown("🤖 **AI Assistant**")
+                st.markdown("**AI Assistant**")
             with h2:
                 chats_on = st.session_state.get("show_chats_panel", False)
                 if st.button("Chats", key="genie_chats_btn", use_container_width=True,
                              type="primary" if not chats_on else "secondary"):
                     st.session_state["show_chats_panel"] = not chats_on; st.rerun()
             with h3:
-                if st.button("Summarize", key="summarize_top", use_container_width=True):
-                    if st.session_state.current_messages: summarize_conversation(); st.rerun()
-                    else: st.warning("No conversation to summarize.")
+                summarize_active = st.session_state.get("show_summary", False)
+                if st.button("Summarize", key="summarize_top", use_container_width=True,
+                             type="primary" if summarize_active else "secondary"):
+                    if st.session_state.current_messages:
+                        if summarize_active:
+                            # Toggle off
+                            st.session_state.show_summary = False
+                            st.session_state.conversation_summary = ""
+                            st.rerun()
+                        else:
+                            summarize_conversation()
+                            st.rerun()
+                    # If no messages: do nothing (no wrong warning message)
             with h4:
                 if st.button("Export MD", key="export_md_top", use_container_width=True):
                     if st.session_state.current_messages or st.session_state.conversation_summary:
@@ -2782,7 +2797,7 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                                              "created_at":sess[2],"msg_count":mc})
                 conn2.close()
                 st.markdown("""<div class="resume-panel">
-                    <b>↩️ Resume a previous conversation</b><br>
+                    <b>Resume a Previous Conversation</b><br>
                     <small>Pick one to continue, or start fresh.</small>
                 </div>""", unsafe_allow_html=True)
                 if session_data:
@@ -2800,7 +2815,7 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                                         f"{sess['msg_count']} messages · {age_s}</div>",
                                         unsafe_allow_html=True)
                         with cb2:
-                            if st.button("▶ Resume", key=f"resume_{sess['session_id'][:8]}",
+                            if st.button("Resume", key=f"resume_{sess['session_id'][:8]}",
                                          use_container_width=True, type="primary"):
                                 msgs2 = load_session_messages(sess["session_id"])
                                 st.session_state.genie_session_id = sess["session_id"]
@@ -2811,7 +2826,7 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                         st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
                 else:
                     st.caption("No previous conversations found.")
-                if st.button("➕ Start a new conversation", key="start_new_conv",
+                if st.button("Start a New Conversation", key="start_new_conv",
                              use_container_width=True):
                     start_new_session()
                 st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
@@ -2856,33 +2871,46 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                             elif layout=="grir_vendor_followup": render_grir_vendor_followup(resp)
                             elif layout=="quick":              render_quick_analysis_response(resp)
                             elif layout=="analyst":
-                                if resp.get("analyst_response"): st.markdown(resp["analyst_response"])
-                                df2=pd.DataFrame(resp["df"])
+                                if resp.get("analyst_response"):
+                                    st.markdown(resp["analyst_response"])
+                                # Always show table if data available
+                                try:
+                                    df2 = pd.DataFrame(resp.get("df", []))
+                                except Exception:
+                                    df2 = pd.DataFrame()
                                 if not df2.empty:
-                                    st.subheader("Supporting Data")
-                                    st.dataframe(safe_dataframe_display(df2),use_container_width=True,hide_index=True)
-                                    ch=auto_chart(df2)
-                                    if ch: st.altair_chart(ch,use_container_width=True)
-                                with st.expander("View SQL"):
-                                    st.code(_safe_sql_string(resp.get("sql")),language="sql")
+                                    st.markdown("**Supporting Data**")
+                                    st.dataframe(safe_dataframe_display(df2),
+                                                 use_container_width=True, hide_index=True)
+                                    ch = auto_chart(df2)
+                                    if ch:
+                                        st.altair_chart(ch, use_container_width=True)
+                                sql_str = _safe_sql_string(resp.get("sql",""))
+                                if sql_str and sql_str.strip():
+                                    with st.expander("View SQL"):
+                                        st.code(sql_str, language="sql")
                             elif layout=="error": st.error(resp.get("message","Unknown error"))
                         else: st.markdown(msg["content"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # ── Ask input — ALWAYS rendered unconditionally ───────────────────
-            with st.form(key="genie_chat_form", clear_on_submit=True):
-                fi, fb = st.columns([0.90, 0.10])
-                with fi:
-                    prefill = st.session_state.pop("genie_prefill", "")
-                    uq = st.text_input(
-                        "q", value=prefill,
-                        placeholder="Ask a procurement question…",
-                        label_visibility="collapsed",
-                    )
-                with fb:
-                    submitted = st.form_submit_button("→", type="primary", use_container_width=True)
-                if submitted and uq:
-                    process_user_question(uq)
+            # form rendered below (outside container)
+            pass
+
+
+        # ── Ask input — outside container, always rendered first ────────
+        with st.form(key="genie_chat_form", clear_on_submit=True):
+            fi, fb = st.columns([0.90, 0.10])
+            with fi:
+                prefill = st.session_state.pop("genie_prefill", "")
+                uq = st.text_input(
+                    "q", value=prefill,
+                    placeholder="Ask a procurement question…",
+                    label_visibility="collapsed",
+                )
+            with fb:
+                submitted = st.form_submit_button("→", type="primary", use_container_width=True)
+            if submitted and uq:
+                process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
@@ -2903,7 +2931,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
 
     st.markdown(f"""<div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
         border-radius:12px;padding:16px 20px;margin-bottom:24px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-        <div style="color:white;font-size:1.1rem;font-weight:600;">🔍 Genie Insights</div>
+        <div style="color:white;font-size:1.1rem;font-weight:600;">Genie Insights</div>
         <div style="color:#f0f0f0;margin-top:6px;">Recommend immediate review of invoice
         <strong>{inv_num}</strong> — outstanding for <strong>{aging_days}</strong> days.</div></div>""",unsafe_allow_html=True)
 
@@ -2920,10 +2948,14 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     st.markdown(ht,unsafe_allow_html=True)
 
     st.markdown("---"); st.markdown("### Status History")
-    hsql=f"""SELECT UPPER(status) AS status,effective_date,status_notes
-        FROM {DATABASE}.invoice_status_history_vw
-        WHERE CAST(invoice_number AS VARCHAR)='{inv_num}' ORDER BY sequence_nbr"""
-    hdf=run_query(hsql)
+    # Cache status history per invoice to stop flicker
+    hist_key = f"inv_hist_{inv_num}"
+    if hist_key not in st.session_state:
+        hsql=f"""SELECT UPPER(status) AS status,effective_date,status_notes
+            FROM {DATABASE}.invoice_status_history_vw
+            WHERE CAST(invoice_number AS VARCHAR)='{inv_num}' ORDER BY sequence_nbr"""
+        st.session_state[hist_key] = run_query(hsql)
+    hdf = st.session_state[hist_key].copy()
     if hdf.empty:
         hdf=pd.DataFrame([{"status":"OPEN","effective_date":gv("invoice_date",""),"status_notes":"Invoice opened."},
                           {"status":"OVERDUE","effective_date":gv("due_date",""),"status_notes":"Invoice overdue."}])
@@ -3013,7 +3045,7 @@ def render_invoices():
     with cs1:
         us=st.text_input("Invoice Number",value=st.session_state.invoice_search_input,
                          placeholder="e.g., 9001767",label_visibility="collapsed",key="inv_search_widget")
-    with cs2: sc=st.button("Search",use_container_width=True,key="search_invoice_btn")
+    with cs2: sc=st.button("🔍 Search",use_container_width=True,key="search_invoice_btn")
     with cs3: rc=st.button("Reset",use_container_width=True,key="reset_invoice_btn")
 
     if rc:
@@ -3084,7 +3116,7 @@ def main():
 <style>
 /* ── Reset block-container padding so header is not glued to top ── */
 .block-container {{
-    padding-top: 2.8rem !important;
+    padding-top: 3.2rem !important;
     padding-bottom: 1rem !important;
     max-width: 100% !important;
 }}
@@ -3253,10 +3285,17 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
     )
 
     # ── Page routing ────────────────────────────────────────────
-    if   pg == "Dashboard": render_dashboard()
-    elif pg == "Genie":     render_genie()
-    elif pg == "Forecast":  render_forecast()
-    else:                   render_invoices()
+    if   pg == "Dashboard":
+        # Clear forecast cache when leaving forecast page
+        st.session_state.pop("forecast_cf_df", None)
+        render_dashboard()
+    elif pg == "Genie":
+        render_genie()
+    elif pg == "Forecast":
+        render_forecast()
+    else:
+        # Clear invoice history cache when entering invoices fresh
+        render_invoices()
 
     # BG button is rendered inside render_charts (bottom-right of Spend Trend)
 
