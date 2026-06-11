@@ -1242,17 +1242,6 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
     with col4: render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", "-", True, "green")
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
-    """
-    Renders the Needs Attention section matching the reference screenshot:
-    - White outer container, no heavy border
-    - Bold title + grey count
-    - Tall rounded-pill tab buttons (active=solid blue, inactive=light grey)
-    - Light pink cards (#FFF0F2) with pink border, rounded corners, soft shadow
-      Each card: invoice number grey pill (top-left) | status label plain text (top-right)
-                 amount bold (bottom-right) | due date small grey (bottom-right)
-                 vendor name small grey (bottom-left)
-    - Pagination: greyed ← Prev | "N of M" centre | grey pill Next → button
-    """
     for k, v in [("na_tab", "Overdue"), ("na_page", 0)]:
         if k not in st.session_state:
             st.session_state[k] = v
@@ -1268,113 +1257,117 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     duc = len(due_df)
     urgent = oc + dc + duc
 
-    # ── Tag colour per tab (text only — no pill background) ──────────────
     if current_tab == "Overdue":
-        df = overdue_df;  sl = "Overdue";  tc_color = "#e53935"   # red text
+        df = overdue_df;  sl = "Overdue";  tc_color = "#e53935"
     elif current_tab == "Disputed":
-        df = disputed_df; sl = "Disputed"; tc_color = "#e53935"   # red text
+        df = disputed_df; sl = "Disputed"; tc_color = "#e53935"
     else:
-        df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"   # green text
+        df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"
 
-    # ── All CSS injected once ─────────────────────────────────────────────
-    st.markdown(f"""
+    # ── CSS injected once — all styling here, no JS class tagging ────────────
+    # Cards use unique per-card IDs injected via st.markdown so CSS targets them
+    # precisely without needing window.parent or class injection.
+    st.markdown("""
 <style>
-/* ── Outer NA container: clean white card ── */
-.na-outer {{
+/* ── NA outer wrapper ── */
+.na-outer {
     background: white;
-    border: 1px solid #eee;
+    border: 1px solid #e5e7eb;
     border-radius: 16px;
-    padding: 18px 18px 14px 18px;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-    margin-bottom: 8px;
-}}
-/* ── Title ── */
-.na-title {{
-    font-size: 17px; font-weight: 800; color: #111827;
-    margin-bottom: 12px;
-}}
-.na-title span {{ font-weight: 600; color: #6b7280; font-size: 15px; }}
+    padding: 16px 16px 12px 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    margin-bottom: 6px;
+}
+.na-title {
+    font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;
+}
+.na-title span { font-weight: 600; color: #6b7280; font-size: 14px; }
 
-/* ── Tab buttons: tall rounded pills ── */
-.na-tabs div[data-testid="stHorizontalBlock"] {{
-    gap: 10px !important;
-    margin-bottom: 14px !important;
-}}
-.na-tabs button {{
-    height: 46px !important;
-    min-height: 46px !important;
+/* ── Tab buttons ── */
+.na-tabs-row { margin-bottom: 10px; }
+.na-tabs-row button {
+    height: 42px !important;
+    min-height: 42px !important;
     border-radius: 999px !important;
-    font-size: 15px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
-    border: 1.5px solid #e0e0e0 !important;
-}}
-/* Inactive tab: light grey bg */
-.na-tabs button[kind="secondary"] {{
+}
+.na-tabs-row button[kind="secondary"] {
     background: #f3f4f6 !important;
+    border: 1.5px solid #e0e0e0 !important;
     color: #374151 !important;
     box-shadow: none !important;
-}}
-/* Active tab: solid blue */
-.na-tabs button[kind="primary"] {{
+}
+.na-tabs-row button[kind="primary"] {
     background: #2563eb !important;
     color: white !important;
     border-color: #2563eb !important;
-    box-shadow: 0 2px 10px rgba(37,99,235,0.30) !important;
-}}
+    box-shadow: 0 2px 8px rgba(37,99,235,0.28) !important;
+}
 
-/* ── Cards grid: light pink, rounded, soft shadow ── */
-.na-card {{
-    background: #FFF0F2;
-    border: 1.5px solid #f5c6cb;
-    border-radius: 16px;
-    padding: 14px 14px 12px 14px;
-    box-shadow: 0 2px 8px rgba(229,57,53,0.06);
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}}
-/* Invoice number: grey pill */
-.na-inv-num {{
-    display: inline-block;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 4px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #374151;
-    cursor: pointer;
-    margin-bottom: 8px;
-    line-height: 1.4;
-}}
-.na-inv-num:hover {{ background: #e9eaf0; border-color: #2563eb; color: #2563eb; }}
-/* Status label: plain colored text (no pill bg) */
-.na-status {{
-    font-size: 11px;
-    font-weight: 700;
-    color: {tc_color};
-    text-align: right;
-    white-space: nowrap;
-    margin-bottom: 4px;
-}}
-/* Amount */
-.na-amount {{ font-size: 15px; font-weight: 800; color: #111827; text-align: right; }}
-/* Due date */
-.na-due {{ font-size: 10px; color: #9ca3af; text-align: right; margin-top: 2px; }}
-/* Vendor name */
-.na-vendor {{ font-size: 11px; color: #6b7280; margin-top: 6px; }}
+/* ── Each individual card: target by unique data-na-card attribute ── */
+[data-na-card] {
+    background: #FFF0F2 !important;
+    border: 1.5px solid #f5c6cb !important;
+    border-radius: 14px !important;
+    padding: 12px 12px 10px 12px !important;
+    box-shadow: 0 2px 6px rgba(229,57,53,0.07) !important;
+    margin-bottom: 0 !important;
+}
 
-/* ── Pagination ── */
-.na-page-info {{
-    text-align: center; color: #6b7280;
-    font-size: 13px; padding: 10px 0;
-}}
+/* ── Invoice number button inside a card ── */
+[data-na-card] button {
+    background:    #f3f4f6 !important;
+    border:        1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    color:         #374151 !important;
+    font-size:     13px !important;
+    font-weight:   700 !important;
+    height:        30px !important;
+    min-height:    30px !important;
+    padding:       0 10px !important;
+    box-shadow:    none !important;
+    outline:       none !important;
+    width: auto !important;
+    display: inline-block !important;
+}
+[data-na-card] button:hover {
+    background:  #ebebeb !important;
+    border-color:#9ca3af !important;
+    color:       #374151 !important;
+    box-shadow:  none !important;
+    outline:     none !important;
+}
+[data-na-card] button:focus,
+[data-na-card] button:focus-visible,
+[data-na-card] button:active {
+    background:         #f3f4f6 !important;
+    border-color:       #d1d5db !important;
+    box-shadow:         none !important;
+    -webkit-box-shadow: none !important;
+    outline:            none !important;
+    outline-width:      0 !important;
+}
+
+/* ── Pagination buttons ── */
+.na-page-row button {
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    background: #f3f4f6 !important;
+    border: 1px solid #e0e0e0 !important;
+    color: #374151 !important;
+    box-shadow: none !important;
+}
+.na-page-info {
+    text-align: center; color: #6b7280; font-size: 13px; padding: 8px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Outer white card ──────────────────────────────────────────────────
+    # ── Outer wrapper ─────────────────────────────────────────────────────────
     st.markdown("<div class='na-outer'>", unsafe_allow_html=True)
 
     # Title
@@ -1384,8 +1377,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         unsafe_allow_html=True,
     )
 
-    # Tab buttons
-    st.markdown("<div class='na-tabs'>", unsafe_allow_html=True)
+    # Tab buttons (inside na-tabs-row div for CSS scoping)
+    st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
     tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
     with tc1:
         t = "primary" if current_tab == "Overdue" else "secondary"
@@ -1399,9 +1392,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         t = "primary" if current_tab == "Due" else "secondary"
         if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
             st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)  # na-tabs (CSS only, no layout effect)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
     if df.empty:
         st.markdown(
@@ -1414,150 +1407,71 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         si  = page * ipp; ei2 = min(si + ipp, tot)
         page_df = df.iloc[si:ei2]; gi = 0
 
-        # ── 4-column card grid ─────────────────────────────────────────────
-        # Use st.container(border=True) so Streamlit widgets ARE inside the
-        # container element. Override the container's visual via CSS targeting
-        # stVerticalBlockBorderWrapper with a unique card-index class.
-        # This is the only approach that keeps buttons inside the pink box.
-
-        # Global card CSS (injected once)
-        st.markdown("""
-<style>
-/* ── Card container: light pink bg, pink border, rounded ── */
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item {
-    background: #FFF0F2 !important;
-    border: 1.5px solid #f5c6cb !important;
-    border-radius: 16px !important;
-    box-shadow: 0 2px 8px rgba(229,57,53,0.06) !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-/* ── Invoice number button: grey pill, ALL states ── */
-/* Base state */
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"],
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[kind="secondary"] {
-    background:   #f3f4f6 !important;
-    border:       1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    color:        #374151 !important;
-    font-size:    13px !important;
-    font-weight:  700 !important;
-    height:       32px !important;
-    min-height:   32px !important;
-    padding:      0 12px !important;
-    box-shadow:   none !important;
-    outline:      none !important;
-    outline-offset: 0 !important;
-    -webkit-box-shadow: none !important;
-    width: auto !important;
-}
-/* Hover */
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:hover,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:hover {
-    background:   #efefef !important;
-    border-color: #9ca3af !important;
-    color:        #374151 !important;
-    box-shadow:   none !important;
-    outline:      none !important;
-}
-/* Focus — kill Streamlit's default blue ring completely */
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus-visible,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:focus-within,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button:active,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:focus,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:focus-visible,
-div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid="baseButton-secondary"]:active {
-    background:         #f3f4f6 !important;
-    border:             1px solid #d1d5db !important;
-    border-color:       #d1d5db !important;
-    color:              #374151 !important;
-    box-shadow:         none !important;
-    -webkit-box-shadow: none !important;
-    outline:            none !important;
-    outline-width:      0 !important;
-    outline-offset:     0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-        # Inject JS once to tag each stVerticalBlockBorderWrapper with na-card-item
-        # We count them relative to the current render position
-        card_count = len(page_df)
-        st.markdown(f"""
-<script>
-(function() {{
-    // Wait for DOM then tag every BorderWrapper inside the NA section
-    function tagCards() {{
-        var wrappers = window.parent.document.querySelectorAll(
-            'div[data-testid="stVerticalBlockBorderWrapper"]'
-        );
-        // Tag the first {card_count} wrappers that don't have a tab-related button
-        var tagged = 0;
-        wrappers.forEach(function(w) {{
-            if (tagged >= {card_count}) return;
-            // Skip wrappers that already have the na-outer class (the section container)
-            if (!w.classList.contains('na-outer')) {{
-                w.classList.add('na-card-item');
-                tagged++;
-            }}
-        }});
-    }}
-    setTimeout(tagCards, 100);
-    setTimeout(tagCards, 500);
-}})();
-</script>
-""", unsafe_allow_html=True)
-
+        # ── Cards — each card rendered fully as HTML, with a hidden st.button ──
+        # Each card gets a unique data-na-card="ID" attribute on a wrapping div.
+        # CSS [data-na-card] targets it reliably without needing window.parent.
+        # The st.button handles click navigation — it renders BELOW the card HTML
+        # but is hidden via absolute positioning CSS.
         for chunk_start in range(0, len(page_df), 4):
             row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
             cols = st.columns(4, gap="medium")
             for col, (_, r) in zip(cols, row_chunk.iterrows()):
                 with col:
-                    ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
-                    vname = html.escape(str(r.get("vendor_name", "—")))
+                    ref   = format_invoice_number(str(r.get("ref_no","—")).strip() or "—")
+                    vname = html.escape(str(r.get("vendor_name","—")))
                     amt   = safe_number(r.get("amount"))
                     ddr   = r.get("due_date")
                     dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
-                    bk    = f"na_card_{si}_{gi}_{ref[:30]}"
+                    card_id = f"nacard_{si}_{gi}"
+                    bk      = f"na_btn_{si}_{gi}_{ref[:20]}"
 
-                    with st.container(border=True):
-                        # Row 1: invoice button (left) + status label (right)
-                        r1a, r1b = st.columns([1.5, 1], gap="small")
-                        with r1a:
-                            if st.button(ref, key=bk):
-                                st.session_state["invoice_search_from_card"] = ref
-                                st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref)
-                                st.rerun()
-                        with r1b:
-                            st.markdown(
-                                f"<div style='text-align:right;padding-top:6px;"
-                                f"font-size:11px;font-weight:700;color:{tc_color};'>"
-                                f"{sl}</div>",
-                                unsafe_allow_html=True,
-                            )
-                        # Row 2: amount + due date (right-aligned)
-                        st.markdown(
-                            f"<div style='text-align:right;margin:2px 0 2px 0;'>"
-                            f"<div style='font-size:15px;font-weight:800;color:#111827;"
-                            f"line-height:1.2;'>{abbr_currency(amt)}</div>"
-                            f"<div style='font-size:10px;color:#9ca3af;margin-top:1px;'>"
-                            f"Due: {dd}</div></div>",
-                            unsafe_allow_html=True,
-                        )
-                        # Row 3: vendor name (small grey)
-                        st.markdown(
-                            f"<div style='font-size:11px;color:#6b7280;'>{vname}</div>",
-                            unsafe_allow_html=True,
-                        )
+                    # Inject the card HTML with its unique ID attribute
+                    st.markdown(f"""
+<div data-na-card="{card_id}" style="background:#FFF0F2;border:1.5px solid #f5c6cb;
+border-radius:14px;padding:12px 12px 10px 12px;
+box-shadow:0 2px 6px rgba(229,57,53,0.07);margin-bottom:0;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <span style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;
+    padding:3px 10px;font-size:13px;font-weight:700;color:#374151;
+    display:inline-block;line-height:1.5;">{ref}</span>
+    <span style="font-size:11px;font-weight:700;color:{tc_color};
+    padding-top:2px;">{sl}</span>
+  </div>
+  <div style="text-align:right;margin-top:6px;">
+    <div style="font-size:14px;font-weight:800;color:#111827;
+    line-height:1.2;">{abbr_currency(amt)}</div>
+    <div style="font-size:10px;color:#9ca3af;margin-top:1px;">Due: {dd}</div>
+  </div>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px;">{vname}</div>
+</div>""", unsafe_allow_html=True)
+
+                    # Invisible navigation button — zero-size, for routing only
+                    # Hidden via a scoped CSS rule targeting its unique wrapper ID
+                    st.markdown(f"""
+<style>
+#{card_id}-btn {{ height:0;min-height:0;overflow:hidden;margin:0;padding:0;
+                  display:block;line-height:0; }}
+#{card_id}-btn button {{ height:0!important;min-height:0!important;
+    padding:0!important;margin:0!important;border:none!important;
+    background:transparent!important;font-size:0!important;
+    line-height:0!important;overflow:hidden!important;
+    display:block!important;width:0!important; }}
+</style>
+<div id="{card_id}-btn">
+""", unsafe_allow_html=True)
+                    if st.button(ref, key=bk):
+                        st.session_state["invoice_search_from_card"] = ref
+                        st.session_state["page"] = "Invoices"
+                        st.experimental_set_query_params(invoice=ref)
+                        st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
                     gi += 1
-            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # ── Pagination ────────────────────────────────────────────────────
-        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+        # ── Pagination ────────────────────────────────────────────────────────
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
         pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
         with pc1:
             if page > 0:
@@ -1565,8 +1479,8 @@ div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid=
                     st.session_state.na_page = max(0, page - 1); st.rerun()
             else:
                 st.markdown(
-                    "<div style='text-align:center;color:#d1d5db;padding:10px;"
-                    "font-size:14px;'>← Prev</div>",
+                    "<div style='text-align:center;color:#d1d5db;padding:8px;"
+                    "font-size:13px;'>← Prev</div>",
                     unsafe_allow_html=True,
                 )
         with pc2:
@@ -1580,10 +1494,11 @@ div[data-testid="stVerticalBlockBorderWrapper"].na-card-item button[data-testid=
                     st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
             else:
                 st.markdown(
-                    "<div style='text-align:center;color:#d1d5db;padding:10px;"
-                    "font-size:14px;'>Next →</div>",
+                    "<div style='text-align:center;color:#d1d5db;padding:8px;"
+                    "font-size:13px;'>Next →</div>",
                     unsafe_allow_html=True,
                 )
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)  # na-outer
 
