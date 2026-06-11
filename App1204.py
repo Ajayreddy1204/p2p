@@ -3199,22 +3199,97 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                             st.markdown(msg["content"])
                 pass  # end chat messages
 
-        # ── Ask input — full width, always visible ───────────────────────────
-        with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.92, 0.08])
-            with fi:
-                prefill = st.session_state.pop("genie_prefill", "")
-                uq = st.text_input(
-                    "q", value=prefill,
-                    placeholder="Ask a procurement question…",
-                    label_visibility="collapsed",
-                )
-            with fb:
-                submitted = st.form_submit_button(
-                    "->", type="primary", use_container_width=True
-                )
-            if submitted and uq:
-                process_user_question(uq)
+        pass  # form rendered outside right_col below
+
+    # ══════════════════════════════════════════════════════════════
+    # ASK INPUT — rendered at render_genie() level for FULL WIDTH
+    # Outside left_col/right_col so it spans the entire page
+    # ══════════════════════════════════════════════════════════════
+    st.markdown("""
+<style>
+/* Full-width ask form — no container box (already inside one above) */
+div[data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    margin-top: 10px !important;
+    width: 100% !important;
+}
+/* Horizontal layout: input grows, button stays small */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important; align-items: center !important;
+    gap: 12px !important; width: 100% !important; flex-wrap: nowrap !important;
+    padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 58px !important; width: 58px !important;
+    min-width: 58px !important; padding: 0 !important;
+}
+/* Text input: tall and full width */
+div[data-testid="stForm"] div[data-testid="stTextInput"],
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important; padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    font-size: 15px !important;
+    padding: 0 22px !important;
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 12px !important;
+    background: #f8f9fa !important;
+    color: #111827 !important;
+    box-shadow: none !important; outline: none !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #2563eb !important; background: white !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important; font-size: 14px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+/* Submit: blue circle */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+    width: 52px !important; height: 52px !important;
+    min-width: 52px !important; min-height: 52px !important;
+    border-radius: 50% !important; padding: 0 !important;
+    font-size: 20px !important; font-weight: 700 !important;
+    background: #2563eb !important; color: white !important;
+    border: none !important;
+    box-shadow: 0 3px 12px rgba(37,99,235,0.32) !important;
+    line-height: 52px !important; text-align: center !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 5px 16px rgba(37,99,235,0.42) !important;
+    transform: scale(1.06) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+    with st.form(key="genie_chat_form", clear_on_submit=True):
+        fi, fb = st.columns([0.92, 0.08])
+        with fi:
+            prefill = st.session_state.pop("genie_prefill", "")
+            uq = st.text_input(
+                "q", value=prefill,
+                placeholder="Ask a procurement question…",
+                label_visibility="collapsed",
+            )
+        with fb:
+            submitted = st.form_submit_button("->", type="primary", use_container_width=True)
+        if submitted and uq:
+            process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
@@ -3356,7 +3431,7 @@ def render_invoices():
     with cs1:
         us=st.text_input("Invoice Number",value=st.session_state.invoice_search_input,
                          placeholder="e.g., 9001767",label_visibility="collapsed",key="inv_search_widget")
-    with cs2: sc=st.button("🔍 Search",use_container_width=True,key="search_invoice_btn")
+    with cs2: sc=st.button("Search",use_container_width=True,key="search_invoice_btn")
     with cs3: rc=st.button("Reset",use_container_width=True,key="reset_invoice_btn")
 
     if rc:
