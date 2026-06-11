@@ -851,42 +851,42 @@ def render_bg_button_sidebar():
     # Target button by data-testid key — most reliable in Snowflake
     st.markdown("""
 <style>
-/* ── BG circle button — target by key attribute ── */
-button[data-testid="baseButton-secondary"][key="bg_pill_btn"],
-div[data-testid="stButton"]:has(> button[key="bg_pill_btn"]) button,
+/* ── BG circle button — white with grey text, matches screenshot ── */
 div[data-testid="stButton"] button[aria-label="BG"],
-div[data-testid="stButton"] button[aria-label="X"] {
-    width:       46px !important;
-    height:      46px !important;
-    min-width:   46px !important;
-    min-height:  46px !important;
-    max-width:   46px !important;
+div[data-testid="stButton"] button[aria-label="X"],
+div[data-testid="stButton"]:has(button[aria-label="BG"]) button,
+div[data-testid="stButton"]:has(button[aria-label="X"]) button {
+    width:         48px !important;
+    height:        48px !important;
+    min-width:     48px !important;
+    min-height:    48px !important;
+    max-width:     48px !important;
     border-radius: 50% !important;
-    padding:     0 !important;
-    font-size:   12px !important;
-    font-weight: 800 !important;
-    background:  linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-    color:       white !important;
-    border:      none !important;
-    box-shadow:  0 4px 14px rgba(37,99,235,0.45) !important;
-    line-height: 46px !important;
-    text-align:  center !important;
-    cursor:      pointer !important;
-    flex-shrink: 0 !important;
-    transition:  transform 0.15s ease, box-shadow 0.15s ease !important;
+    padding:       0 !important;
+    font-size:     13px !important;
+    font-weight:   700 !important;
+    background:    white !important;
+    color:         #374151 !important;
+    border:        1.5px solid #e5e7eb !important;
+    box-shadow:    0 2px 10px rgba(0,0,0,0.12) !important;
+    line-height:   48px !important;
+    text-align:    center !important;
+    cursor:        pointer !important;
+    flex-shrink:   0 !important;
+    transition:    box-shadow 0.15s ease, transform 0.15s ease !important;
 }
-/* Override use_container_width stretching */
-div[data-testid="stButton"]:has(> button[aria-label="BG"]),
-div[data-testid="stButton"]:has(> button[aria-label="X"]) {
-    width:    46px !important;
-    max-width:46px !important;
-    flex:     0 0 46px !important;
+div[data-testid="stButton"]:has(button[aria-label="BG"]),
+div[data-testid="stButton"]:has(button[aria-label="X"]) {
+    width:    48px !important;
+    max-width:48px !important;
+    flex:     0 0 48px !important;
 }
-button[data-testid="baseButton-secondary"][aria-label="BG"]:hover,
-button[data-testid="baseButton-secondary"][aria-label="X"]:hover {
-    transform:  scale(1.12) !important;
-    box-shadow: 0 6px 20px rgba(37,99,235,0.55) !important;
-    background: #1d4ed8 !important;
+div[data-testid="stButton"] button[aria-label="BG"]:hover,
+div[data-testid="stButton"] button[aria-label="X"]:hover {
+    transform:  scale(1.08) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+    background: #f9fafb !important;
+    border-color: #d1d5db !important;
 }
 /* Color picker panel */
 .bg-picker-panel div[data-testid="stColorPicker"] label { display: none !important; }
@@ -2810,13 +2810,21 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
 
     # 4 cards — icon text (ASCII/unicode safe for Snowflake)
     card_data = [
-        {"icon": "[Chart]",  "title": "Spending Overview",
+        {"icon": "&#9632;&#8203;",   "title": "Spending Overview",
+         "icon_bg": "#EEF2FF", "icon_color": "#4F46E5",
+         "icon_char": "$",
          "desc": "Track total spend, monthly trends and major changes"},
-        {"icon": "[Vendor]", "title": "Vendor Analysis",
+        {"icon": "&#9632;&#8203;",   "title": "Vendor Analysis",
+         "icon_bg": "#F0FDF4", "icon_color": "#16A34A",
+         "icon_char": "V",
          "desc": "Understand vendor-wise spend, concentration, and dependency"},
-        {"icon": "[Clock]",  "title": "Payment Performance",
+        {"icon": "&#9632;&#8203;",   "title": "Payment Performance",
+         "icon_bg": "#FFF7ED", "icon_color": "#EA580C",
+         "icon_char": "T",
          "desc": "Identify delays, late payments, and cycle time issues"},
-        {"icon": "[List]",   "title": "Invoice Aging",
+        {"icon": "&#9632;&#8203;",   "title": "Invoice Aging",
+         "icon_bg": "#FFF1F2", "icon_color": "#E11D48",
+         "icon_char": "i",
          "desc": "See overdue invoices, risk buckets, and problem areas"},
     ]
     card_cols = st.columns(4, gap="small")
@@ -2824,7 +2832,11 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
         with col:
             st.markdown(
                 f"<div class='quick-card'>"
-                f"<div class='quick-card-icon'>{card['icon']}</div>"
+                f"<div style='width:44px;height:44px;border-radius:12px;"
+                f"background:{card['icon_bg']};display:flex;align-items:center;"
+                f"justify-content:center;margin-bottom:10px;"
+                f"font-size:1.3rem;font-weight:800;color:{card['icon_color']};'>"
+                f"{card['icon_char']}</div>"
                 f"<h3>{card['title']}</h3>"
                 f"<p>{card['desc']}</p>"
                 f"</div>",
