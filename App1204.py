@@ -1242,193 +1242,260 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
     with col4: render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", "-", True, "green")
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
-    for k,v in [("na_tab","Overdue"),("na_page",0)]:
-        if k not in st.session_state: st.session_state[k] = v
+    """
+    Renders the Needs Attention section matching the reference screenshot:
+    - White outer container, no heavy border
+    - Bold title + grey count
+    - Tall rounded-pill tab buttons (active=solid blue, inactive=light grey)
+    - Light pink cards (#FFF0F2) with pink border, rounded corners, soft shadow
+      Each card: invoice number grey pill (top-left) | status label plain text (top-right)
+                 amount bold (bottom-right) | due date small grey (bottom-right)
+                 vendor name small grey (bottom-left)
+    - Pagination: greyed ← Prev | "N of M" centre | grey pill Next → button
+    """
+    for k, v in [("na_tab", "Overdue"), ("na_page", 0)]:
+        if k not in st.session_state:
+            st.session_state[k] = v
+
     current_tab = st.session_state.na_tab
     page        = st.session_state.na_page
-    start_lit   = sql_date(rng_start); end_lit = sql_date(rng_end)
+    start_lit   = sql_date(rng_start)
+    end_lit     = sql_date(rng_end)
 
     overdue_df, disputed_df, due_df = fetch_needs_attention(start_lit, end_lit, vendor_where)
-    oc = len(overdue_df); dc = len(disputed_df); duc = len(due_df)
+    oc  = len(overdue_df)
+    dc  = len(disputed_df)
+    duc = len(due_df)
     urgent = oc + dc + duc
 
-    with st.container(border=True):
-        # ── All CSS for NA section up-front (no wrapper divs) ──────────────
-        st.markdown("""
+    # ── Tag colour per tab (text only — no pill background) ──────────────
+    if current_tab == "Overdue":
+        df = overdue_df;  sl = "Overdue";  tc_color = "#e53935"   # red text
+    elif current_tab == "Disputed":
+        df = disputed_df; sl = "Disputed"; tc_color = "#e53935"   # red text
+    else:
+        df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"   # green text
+
+    # ── All CSS injected once ─────────────────────────────────────────────
+    st.markdown(f"""
 <style>
-/* Tab buttons — tall, full-width, pill-shaped */
-button[data-testid="baseButton-primary"][kind="primary"]:is(
-    [aria-label="Overdue (33)"],
-    [aria-label="Disputed (35)"],
-    [aria-label="Due (0)"]
-),
-div[data-testid="stHorizontalBlock"]:has(
-    button[data-testid="baseButton-secondary"][aria-label*="Overdue"],
-    button[data-testid="baseButton-secondary"][aria-label*="Disputed"],
-    button[data-testid="baseButton-secondary"][aria-label*="Due"]
-) button {
-    height: 42px !important;
-    min-height: 42px !important;
-    border-radius: 10px !important;
-    font-size: 14px !important;
+/* ── Outer NA container: clean white card ── */
+.na-outer {{
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 18px 18px 14px 18px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    margin-bottom: 8px;
+}}
+/* ── Title ── */
+.na-title {{
+    font-size: 17px; font-weight: 800; color: #111827;
+    margin-bottom: 12px;
+}}
+.na-title span {{ font-weight: 600; color: #6b7280; font-size: 15px; }}
+
+/* ── Tab buttons: tall rounded pills ── */
+.na-tabs div[data-testid="stHorizontalBlock"] {{
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+}}
+.na-tabs button {{
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 999px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
-}
-/* NA card containers: light pink */
-.na-cards-wrap div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #FFF5F7 !important;
-    border: 1.5px solid #e8d0d8 !important;
-    border-radius: 14px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-}
-/* Invoice number button: grey outlined box */
-.na-cards-wrap button[data-testid="baseButton-secondary"] {
-    background: white !important;
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 8px !important;
+    border: 1.5px solid #e0e0e0 !important;
+}}
+/* Inactive tab: light grey bg */
+.na-tabs button[kind="secondary"] {{
+    background: #f3f4f6 !important;
     color: #374151 !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    height: 34px !important;
-    min-height: 34px !important;
-    padding: 0 12px !important;
     box-shadow: none !important;
-}
-.na-cards-wrap button[data-testid="baseButton-secondary"]:hover {
+}}
+/* Active tab: solid blue */
+.na-tabs button[kind="primary"] {{
+    background: #2563eb !important;
+    color: white !important;
     border-color: #2563eb !important;
-    color: #2563eb !important;
-}
+    box-shadow: 0 2px 10px rgba(37,99,235,0.30) !important;
+}}
+
+/* ── Cards grid: light pink, rounded, soft shadow ── */
+.na-card {{
+    background: #FFF0F2;
+    border: 1.5px solid #f5c6cb;
+    border-radius: 16px;
+    padding: 14px 14px 12px 14px;
+    box-shadow: 0 2px 8px rgba(229,57,53,0.06);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}}
+/* Invoice number: grey pill */
+.na-inv-num {{
+    display: inline-block;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    cursor: pointer;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}}
+.na-inv-num:hover {{ background: #e9eaf0; border-color: #2563eb; color: #2563eb; }}
+/* Status label: plain colored text (no pill bg) */
+.na-status {{
+    font-size: 11px;
+    font-weight: 700;
+    color: {tc_color};
+    text-align: right;
+    white-space: nowrap;
+    margin-bottom: 4px;
+}}
+/* Amount */
+.na-amount {{ font-size: 15px; font-weight: 800; color: #111827; text-align: right; }}
+/* Due date */
+.na-due {{ font-size: 10px; color: #9ca3af; text-align: right; margin-top: 2px; }}
+/* Vendor name */
+.na-vendor {{ font-size: 11px; color: #6b7280; margin-top: 6px; }}
+
+/* ── Pagination ── */
+.na-page-info {{
+    text-align: center; color: #6b7280;
+    font-size: 13px; padding: 10px 0;
+}}
 </style>
 """, unsafe_allow_html=True)
 
+    # ── Outer white card ──────────────────────────────────────────────────
+    st.markdown("<div class='na-outer'>", unsafe_allow_html=True)
+
+    # Title
+    st.markdown(
+        f"<div class='na-title'>Needs Attention "
+        f"<span>({urgent:,})</span></div>",
+        unsafe_allow_html=True,
+    )
+
+    # Tab buttons
+    st.markdown("<div class='na-tabs'>", unsafe_allow_html=True)
+    tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
+    with tc1:
+        t = "primary" if current_tab == "Overdue" else "secondary"
+        if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
+            st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
+    with tc2:
+        t = "primary" if current_tab == "Disputed" else "secondary"
+        if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
+            st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
+    with tc3:
+        t = "primary" if current_tab == "Due" else "secondary"
+        if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
+            st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)  # na-tabs (CSS only, no layout effect)
+
+    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+    if df.empty:
         st.markdown(
-            f"<div style='font-size:16px;font-weight:800;color:#1a1a1a;"
-            f"padding:0.1rem 0 0.3rem 0;margin-bottom:6px;'>"
-            f"Needs Attention "
-            f"<span style='font-weight:600;color:#6b7280;font-size:14px;'>({urgent:,})</span>"
-            f"</div>",
+            "<div style='padding:2rem;color:#64748b;text-align:center;'>"
+            "No items in this category</div>",
             unsafe_allow_html=True,
         )
+    else:
+        ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
+        si  = page * ipp; ei2 = min(si + ipp, tot)
+        page_df = df.iloc[si:ei2]; gi = 0
 
-        # Tab buttons — no wrapper div (prevents empty gap)
-        tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
-        with tc1:
-            t = "primary" if current_tab == "Overdue" else "secondary"
-            if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
-                st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
-        with tc2:
-            t = "primary" if current_tab == "Disputed" else "secondary"
-            if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
-                st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
-        with tc3:
-            t = "primary" if current_tab == "Due" else "secondary"
-            if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
-                st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
+        # ── 4-column card grid — pure HTML cards (no st.container border) ──
+        for chunk_start in range(0, len(page_df), 4):
+            row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
+            cols = st.columns(4, gap="medium")
+            for col, (_, r) in zip(cols, row_chunk.iterrows()):
+                with col:
+                    ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
+                    vname = html.escape(str(r.get("vendor_name", "—")))
+                    amt   = safe_number(r.get("amount"))
+                    ddr   = r.get("due_date")
+                    dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
 
-        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+                    # Full card as pure HTML — no Streamlit container border
+                    bk = f"na_card_{si}_{gi}_{ref[:30]}"
 
-        # ── Tag colours per tab ───────────────────────────────────────────────
-        if current_tab == "Overdue":
-            df = overdue_df;  sl = "Overdue";
-            tbg = "#DBEAFE"; tc = "#1E40AF"      # blue tag
-        elif current_tab == "Disputed":
-            df = disputed_df; sl = "Disputed";
-            tbg = "#FEE2E2"; tc = "#B91C1C"      # red tag
-        else:
-            df = due_df;      sl = "Due soon";
-            tbg = "#DCFCE7"; tc = "#166534"      # green tag
+                    # Render card HTML
+                    st.markdown(f"""
+<div class="na-card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <span class="na-inv-num" id="inv_{bk}">{ref}</span>
+    <span class="na-status">{sl}</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:4px;">
+    <span class="na-vendor">{vname}</span>
+    <div>
+      <div class="na-amount">{abbr_currency(amt)}</div>
+      <div class="na-due">Due: {dd}</div>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
 
-        if df.empty:
-            st.markdown(
-                '<div style="padding:1.5rem;color:#64748b;text-align:center;">'
-                'No items in this category</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
-            si  = page * ipp; ei2 = min(si + ipp, tot)
-            page_df = df.iloc[si:ei2]; gi = 0
-
-            # Wrap all cards in .na-cards-wrap so CSS above scopes correctly
-            st.markdown("<div class='na-cards-wrap'>", unsafe_allow_html=True)
-            for chunk_start in range(0, len(page_df), 4):
-                row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
-                cols = st.columns(4, gap="medium")
-                for col, (_, r) in zip(cols, row_chunk.iterrows()):
-                    with col:
-                        with st.container(border=True):
-                            # ── Row 1: invoice number button (grey outlined box) ──
-                            ref = format_invoice_number(
-                                str(r.get("ref_no", "—")).strip() or "—"
-                            )
-                            bk = f"na_card_{si}_{gi}_{ref[:30]}"
-                            if st.button(ref, key=bk):
-                                st.session_state["invoice_search_from_card"] = ref
-                                st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref)
-                                st.rerun()
-
-                            # ── Row 2: vendor name (left) + status tag (right) ──
-                            vname = html.escape(str(r.get("vendor_name", "—")))
-                            st.markdown(
-                                f"<div style='display:flex;justify-content:space-between;"
-                                f"align-items:center;margin:8px 0 4px 0;'>"
-                                f"<span style='color:#6b7280;font-size:12px;"
-                                f"font-weight:400;'>{vname}</span>"
-                                f"<span style='background:{tbg};color:{tc};"
-                                f"font-size:11px;font-weight:700;padding:3px 10px;"
-                                f"border-radius:999px;white-space:nowrap;'>{sl}</span>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-
-                            # ── Row 3: amount (bold) + due date (small grey) ──
-                            amt = safe_number(r.get("amount"))
-                            ddr = r.get("due_date")
-                            dd  = (
-                                pd.to_datetime(ddr).date().isoformat()
-                                if pd.notna(ddr) else "—"
-                            )
-                            st.markdown(
-                                f"<div style='text-align:right;margin-top:2px;'>"
-                                f"<div style='font-weight:800;font-size:15px;"
-                                f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
-                                f"<div style='color:#94a3b8;font-size:10px;"
-                                f"margin-top:2px;'>Due: {dd}</div>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-                    gi += 1
-                st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # ── Pagination ────────────────────────────────────────────────────
-            st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
-            pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
-            with pc1:
-                if page > 0:
-                    if st.button("← Prev", key="na_prev", use_container_width=True):
-                        st.session_state.na_page = max(0, page - 1); st.rerun()
-                else:
+                    # Invisible navigation button (zero height via CSS)
+                    # The visible card HTML above is the display; this handles click routing
                     st.markdown(
-                        "<div style='text-align:center;color:#d1d5db;padding:10px;'>← Prev</div>",
+                        f"<style>#btn_hide_{bk} button{{height:0!important;"
+                        f"min-height:0!important;padding:0!important;"
+                        f"border:none!important;background:transparent!important;"
+                        f"margin:0!important;overflow:hidden!important;"
+                        f"font-size:0!important;line-height:0!important;}}</style>"
+                        f"<div id='btn_hide_{bk}'>",
                         unsafe_allow_html=True,
                     )
-            with pc2:
+                    if st.button(ref, key=bk):
+                        st.session_state["invoice_search_from_card"] = ref
+                        st.session_state["page"] = "Invoices"
+                        st.experimental_set_query_params(invoice=ref)
+                        st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                    gi += 1
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+        # ── Pagination ────────────────────────────────────────────────────
+        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+        pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
+        with pc1:
+            if page > 0:
+                if st.button("← Prev", key="na_prev", use_container_width=True):
+                    st.session_state.na_page = max(0, page - 1); st.rerun()
+            else:
                 st.markdown(
-                    f"<div style='text-align:center;color:#6b7280;padding:10px;'>"
-                    f"{page + 1} of {tp}</div>",
+                    "<div style='text-align:center;color:#d1d5db;padding:10px;"
+                    "font-size:14px;'>← Prev</div>",
                     unsafe_allow_html=True,
                 )
-            with pc3:
-                if page < tp - 1:
-                    if st.button("Next →", key="na_next", use_container_width=True):
-                        st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
-                else:
-                    st.markdown(
-                        "<div style='text-align:center;color:#d1d5db;padding:10px;'>Next →</div>",
-                        unsafe_allow_html=True,
-                    )
+        with pc2:
+            st.markdown(
+                f"<div class='na-page-info'>{page + 1} of {tp}</div>",
+                unsafe_allow_html=True,
+            )
+        with pc3:
+            if page < tp - 1:
+                if st.button("Next →", key="na_next", use_container_width=True):
+                    st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
+            else:
+                st.markdown(
+                    "<div style='text-align:center;color:#d1d5db;padding:10px;"
+                    "font-size:14px;'>Next →</div>",
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("</div>", unsafe_allow_html=True)  # na-outer
 
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
@@ -2680,17 +2747,109 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                     else: st.markdown(msg["content"])
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── Ask input: always visible at bottom ───────────────────────
+        # ── Ask input: full-width input + circular button on right ─────
+        # Extra CSS: make input fill 100% of form, button floats right
+        st.markdown("""
+<style>
+/* Form wrapper: flex row, input + button side by side */
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+}
+/* Input column: flex-grow so it fills all available space */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+}
+/* Input: 100% of its column, no label gap */
+div[data-testid="stForm"] div[data-testid="stTextInput"] {
+    width: 100% !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    color: #111827 !important;
+    background: white !important;
+    padding: 0 18px !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #5b8dee !important;
+    box-shadow: 0 0 0 3px rgba(91,141,238,0.15) !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #b0b8c8 !important;
+    font-size: 13.5px !important;
+}
+/* Circular blue → submit button */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
+    width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    background: #2563eb !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 3px 12px rgba(37,99,235,0.35) !important;
+    line-height: 48px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 5px 16px rgba(37,99,235,0.45) !important;
+    transform: scale(1.07) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.87, 0.13])
+            # Two columns: input takes all space, button gets just enough for the circle
+            fi, fb = st.columns([0.92, 0.08])
             with fi:
-                prefill = st.session_state.pop("genie_prefill","")
-                uq = st.text_input("q", value=prefill,
-                                   placeholder="Ask a procurement question…",
-                                   label_visibility="collapsed")
+                prefill = st.session_state.pop("genie_prefill", "")
+                uq = st.text_input(
+                    "q",
+                    value=prefill,
+                    placeholder="Ask a procurement question.",
+                    label_visibility="collapsed",
+                )
             with fb:
-                submitted = st.form_submit_button("→", type="primary", use_container_width=False)
-            if submitted and uq: process_user_question(uq)
+                submitted = st.form_submit_button(
+                    "→", type="primary", use_container_width=True
+                )
+            if submitted and uq:
+                process_user_question(uq)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
