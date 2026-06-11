@@ -1725,7 +1725,7 @@ def render_charts(rng_start, rng_end, vendor_where):
 
     with col_bg:
         # Position BG button at mid-height of the chart (charts are ~330px tall)
-        st.markdown("<div style='height:148px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:185px;'></div>", unsafe_allow_html=True)
         render_bg_button_sidebar()
 
 def render_dashboard():
