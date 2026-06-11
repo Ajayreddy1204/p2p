@@ -433,7 +433,262 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 
 # ------------------------------------------------------------
 # dashboard.py
+# ENHANCED: BG button CSS, all KPIs from Athena, no hardcoded values
 # ------------------------------------------------------------
+def inject_dashboard_css(bg_color: str = "#ffffff"):
+    st.markdown(f"""
+<style>
+    button, .stButton button, div[data-testid="stButton"] button,
+    button[kind="primary"], button[kind="secondary"],
+    button[data-testid^="baseButton"], .stDownloadButton button {{
+        transition: all 0.2s ease !important;
+    }}
+    button:hover, .stButton button:hover, div[data-testid="stButton"] button:hover,
+    button[kind="primary"]:hover, button[kind="secondary"]:hover,
+    button[data-testid^="baseButton"]:hover, .stDownloadButton button:hover {{
+        background-color: #2563eb !important;
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
+    }}
+    button:active, .stButton button:active, button[data-testid^="baseButton"]:active {{
+        background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: white !important;
+    }}
+    button[kind="primary"] {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+    }}
+    button[kind="secondary"] {{
+        background-color: #f3f4f6 !important;
+        border-color: #d1d5db !important;
+        color: #1f2937 !important;
+    }}
+    button[kind="secondary"]:hover {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+    }}
+    .stDateInput, .stSelectbox {{ width: 100%; }}
+    div[data-testid="stSelectbox"] div {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+    .kpi-card {{
+        border-radius: 16px;
+        padding: 1rem 1.2rem;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }}
+    .kpi-card-yellow {{ background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }}
+    .kpi-card-cyan   {{ background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }}
+    .kpi-card-pink   {{ background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }}
+    .kpi-card-purple {{ background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }}
+    .kpi-card-green  {{ background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }}
+    .kpi-title  {{ font-size: 0.7rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; }}
+    .kpi-value  {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
+    .kpi-delta  {{ font-size: 0.9rem; font-weight: 600; margin-top: 0.25rem; }}
+    .kpi-delta-negative {{ color: #dc2626; }}
+    .kpi-delta-positive {{ color: #16a34a; }}
+    .kpi-arrow  {{ font-size: 1rem; margin-left: 0.25rem; }}
+    .grir-card {{
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        min-height: 90px;
+        justify-content: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }}
+    .grir-card:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }}
+    .grir-card-title {{ font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
+    .grir-card-value {{ font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1.1; }}
+    .chart-container {{ height: 100%; display: flex; flex-direction: column; gap: 0.2rem; }}
+    .chart-container > .chart-body {{ flex: 1 1 auto; }}
+    .chart-title {{ font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }}
+    .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
+    .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
+    .stApp {{ background-color: {bg_color} !important; }}
+
+    /* ── ENHANCED: Floating BG button (Robust) ── */
+    .bg-floating-btn {{
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        border-radius: 50%;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+        transition: all 0.2s ease;
+        border: 2px solid rgba(255,255,255,0.3);
+        user-select: none;
+    }}
+    .bg-floating-btn:hover {{
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(37,99,235,0.5);
+    }}
+    .bg-panel {{
+        position: fixed;
+        bottom: 86px;
+        right: 24px;
+        background: white;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        z-index: 9998;
+        width: 230px;
+        border: 1px solid #e2e8f0;
+        display: none;
+    }}
+    .bg-panel-title {{
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 12px;
+    }}
+    .bg-colors-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }}
+    .bg-color-swatch {{
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }}
+    .bg-color-swatch:hover {{
+        transform: scale(1.12);
+        border-color: #2563eb;
+        box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+    }}
+</style>
+
+<div id="procureiq-bg-btn" class="bg-floating-btn">BG</div>
+<div id="procureiq-bg-panel" class="bg-panel">
+    <div class="bg-panel-title">🎨 Background Theme</div>
+    <div class="bg-colors-grid">
+        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe"></div>
+        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6"></div>
+        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7"></div>
+        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff"></div>
+        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3"></div>
+        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3"></div>
+        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe"></div>
+        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff"></div>
+    </div>
+    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
+</div>
+
+<script>
+(function() {{
+    function applyBgColor(color) {{
+        var targets = [
+            document.querySelector('.stApp'),
+            document.querySelector('.main'),
+            document.querySelector('.main > .block-container')
+        ].filter(function(el) {{ return el !== null; }});
+        targets.forEach(function(el) {{ el.style.backgroundColor = color; }});
+        try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (panel) panel.style.display = 'none';
+    }}
+
+    function loadSavedBg() {{
+        try {{
+            var saved = localStorage.getItem('procureiq_bg_color');
+            if (saved) {{
+                var targets = [
+                    document.querySelector('.stApp'),
+                    document.querySelector('.main'),
+                    document.querySelector('.main > .block-container')
+                ].filter(function(el) {{ return el !== null; }});
+                targets.forEach(function(el) {{ el.style.backgroundColor = saved; }});
+            }}
+        }} catch(e) {{}}
+    }}
+
+    function initBgControls() {{
+        var btn = document.getElementById('procureiq-bg-btn');
+        var panel = document.getElementById('procureiq-bg-panel');
+        if (!btn || !panel) return;
+
+        // Replace button to avoid duplicate listeners
+        var newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        document.getElementById('procureiq-bg-btn').addEventListener('click', function(e) {{
+            e.stopPropagation();
+            var p = document.getElementById('procureiq-bg-panel');
+            if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        }});
+
+        // Attach to swatches
+        var swatches = document.querySelectorAll('.bg-color-swatch');
+        swatches.forEach(function(sw) {{
+            var newSw = sw.cloneNode(true);
+            sw.parentNode.replaceChild(newSw, sw);
+            newSw.addEventListener('click', function(e) {{
+                e.stopPropagation();
+                var color = this.getAttribute('data-color') || this.style.backgroundColor;
+                if (color) applyBgColor(color);
+            }});
+        }});
+
+        // Close panel when clicking outside
+        document.addEventListener('click', function(e) {{
+            var btnElem = document.getElementById('procureiq-bg-btn');
+            var panelElem = document.getElementById('procureiq-bg-panel');
+            if (btnElem && panelElem && !btnElem.contains(e.target) && !panelElem.contains(e.target)) {{
+                panelElem.style.display = 'none';
+            }}
+        }});
+    }}
+
+    loadSavedBg();
+    initBgControls();
+
+    var observer = new MutationObserver(function(mutations) {{
+        if (document.getElementById('procureiq-bg-btn') && document.getElementById('procureiq-bg-panel')) {{
+            initBgControls();
+            loadSavedBg();
+        }}
+    }});
+    observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>
+""", unsafe_allow_html=True)
+
+def format_invoice_number(invoice_num):
+    if invoice_num is None:
+        return ""
+    inv_str = str(invoice_num)
+    if inv_str.endswith('.0'):
+        inv_str = inv_str[:-2]
+    try:
+        inv_str = str(int(float(inv_str)))
+    except (ValueError, TypeError):
+        pass
+    return inv_str
+
 def render_kpi_card(title, value, delta=None, is_positive=True, color_class="yellow"):
     delta_html = ""
     if delta is not None:
@@ -522,9 +777,16 @@ def render_filters():
 
     return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
 
+# ── ENHANCED KPI fetching with correct columns ─────────────────
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
+    """
+    Fetch all KPIs from Athena without relying on views that lack posting_date.
+    Returns a dict with correct values.
+    """
     result = {}
+
+    # 1. Main KPIs from fact_all_sources_vw
     main_sql = f"""
         SELECT
             COUNT(DISTINCT CASE WHEN UPPER(f.invoice_status) = 'OPEN'
@@ -549,6 +811,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
         result["active_pos"] = result["total_pos"] = result["pending_inv"] = 0
         result["total_spend"] = 0.0
 
+    # 2. Active Vendors
     vendor_sql = f"""
         SELECT COUNT(DISTINCT v.vendor_name) AS active_vendors
         FROM {DATABASE}.fact_all_sources_vw f
@@ -565,6 +828,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
         fdf = run_query(fallback_sql)
         result["active_vendors"] = safe_int(fdf.iloc[0]["active_vendors"]) if not fdf.empty else 0
 
+    # 3. Avg Processing Time – compute from fact table (safe)
     proc_sql = f"""
         SELECT AVG(DATE_DIFF('day', posting_date, payment_date)) AS avg_processing_days
         FROM {DATABASE}.fact_all_sources_vw
@@ -578,6 +842,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
     else:
         result["avg_processing_days"] = 0.0
 
+    # 4. First Pass Rate – from invoice_status_history_vw
     fp_sql = f"""
         WITH invoices_in_range AS (
             SELECT DISTINCT invoice_number
@@ -605,6 +870,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
     else:
         result["first_pass_rate"] = 0.0
 
+    # 5. Auto-Processed Rate
     auto_sql = f"""
         WITH invoices_in_range AS (
             SELECT DISTINCT invoice_number
@@ -630,6 +896,7 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
+    """Fetch overdue, disputed, and due-soon invoices from Athena."""
     overdue_sql = f"""
         SELECT f.invoice_number AS ref_no, f.invoice_amount_local AS amount,
                v.vendor_name, f.due_date, f.aging_days
@@ -1033,6 +1300,10 @@ def render_forecast():
                 FROM buckets
             )
             SELECT * FROM total UNION ALL SELECT * FROM buckets
+            ORDER BY CASE forecast_bucket
+                WHEN 'TOTAL_UNPAID' THEN 0 WHEN 'OVERDUE_NOW' THEN 1 WHEN 'DUE_7_DAYS' THEN 2
+                WHEN 'DUE_14_DAYS' THEN 3 WHEN 'DUE_30_DAYS' THEN 4 WHEN 'DUE_60_DAYS' THEN 5
+                WHEN 'DUE_90_DAYS' THEN 6 ELSE 7 END
         """
         cf_df = run_query(cf_sql_fallback)
 
@@ -1083,10 +1354,10 @@ def render_forecast():
         st.markdown("---")
         st.markdown("### Action Playbook")
         actions = [
-            ("📊 Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("💰 Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
-            ("⏰ Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
-            ("⚠️ Late payment trend and risk", "Show late payment trend for forecasting")
+            ("Forecast cash outflow (7–90 days)", "Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Invoices to pay early to capture discounts", "Which invoices should we pay early to capture discounts?"),
+            ("Optimal payment timing for this week", "What is the optimal payment timing strategy for this week?"),
+            ("Late payment trend and risk", "Show late payment trend for forecasting")
         ]
         for label, question in actions:
             if st.button(label, use_container_width=True):
@@ -1260,15 +1531,14 @@ def generate_sql_from_semantic(question: str) -> str:
     return sql
 
 def is_relevant_question(question: str) -> bool:
-    """Return False for greetings, jokes, personal questions – anything not related to procurement."""
     q_lower = question.lower().strip()
 
-    # Clear non-procurement patterns
-    non_procurement = [
-        r"^(hi|hello|hey|howdy|hiya|yo|sup|greetings)\b",
+    non_procurement_patterns = [
+        r"^(hi|hello|hey|howdy|hiya|yo)\b",
         r"^good\s*(morning|afternoon|evening|night)\b",
         r"^how are you",
         r"^who are you",
+        r"^what (are|is) you",
         r"^tell me a joke",
         r"^what('s| is) (the )?weather",
         r"^what('s| is) (your )?name",
@@ -1284,7 +1554,7 @@ def is_relevant_question(question: str) -> bool:
         r"^when (was|did|is)\b(?!.*invoice|.*po|.*vendor|.*payment|.*spend)",
         r"^(what|how) (many|much) (people|countries|languages)\b",
     ]
-    for pattern in non_procurement:
+    for pattern in non_procurement_patterns:
         if re.search(pattern, q_lower):
             return False
 
@@ -1303,8 +1573,7 @@ def is_relevant_question(question: str) -> bool:
     for kw in procurement_keywords:
         if kw in q_lower:
             return True
-    # If no keyword but also not caught by non-procurement, allow (fallback)
-    return True
+    return False
 
 OUT_OF_DOMAIN_RESPONSE = (
     "Hello! I am ProcureIQ Assistant. I can help you with procurement insights, "
@@ -2257,7 +2526,7 @@ def render_genie():
                 with col_in:
                     prefill = st.session_state.pop("genie_prefill", "")
                     user_question = st.text_input("Ask a question", value=prefill,
-                                                  placeholder="Ask a procurement question here..",
+                                                  placeholder="Ask a procurement question here...",
                                                   label_visibility="collapsed")
                 with col_btn:
                     submitted = st.form_submit_button("→", type="primary", use_container_width=True)
@@ -2310,7 +2579,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</tr>'
+    html_table += '</tr></table>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2362,7 +2631,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_v += '<tr>'
         for v in vendor_values:
             html_v += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_v += '</table>'
+        html_v += '</tr></table>'
         st.markdown(html_v, unsafe_allow_html=True)
     with tab2:
         company_sql = f"""
@@ -2383,7 +2652,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '</table>'
+        html_c += '</tr></table>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2446,7 +2715,7 @@ def render_invoices():
         user_search = st.text_input("Invoice or PO Number", value=st.session_state.invoice_search_input,
                                     placeholder="e.g., 9001767", label_visibility="collapsed", key="inv_search_widget")
     with col_btn:
-        search_clicked = st.button("🔍 Search", use_container_width=True, key="search_invoice_btn")
+        search_clicked = st.button("Search", use_container_width=True, key="search_invoice_btn")
     with col_reset:
         reset_clicked = st.button("Reset", use_container_width=True, key="reset_invoice_btn")
 
@@ -2529,49 +2798,17 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="expanded")
 
-    # Background colour state and CSS injection
-    if "bg_color" not in st.session_state:
-        st.session_state.bg_color = "#ffffff"
+    # Inject CSS with working BG button (no separate render_floating_bg_button call)
+    inject_dashboard_css("#ffffff")
 
-    # Apply background via custom CSS
-    st.markdown(f"""
-    <style>
-        .stApp, .main, .main > .block-container {{
-            background-color: {st.session_state.bg_color} !important;
-        }}
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown("""
+<style>
+.block-container { padding-top: 0.5rem !important; padding-bottom: 0rem !important; }
+button { font-weight: 500 !important; border-radius: 8px !important; transition: all 0.2s ease !important; }
+</style>
+""", unsafe_allow_html=True)
 
-    # Sidebar BG button and colour row
-    with st.sidebar:
-        st.markdown("---")
-        if st.button("🎨 BG", use_container_width=True):
-            st.session_state.show_bg_colors = not st.session_state.get("show_bg_colors", False)
-        if st.session_state.get("show_bg_colors", False):
-            st.markdown("**Choose background colour:**")
-            colours = [
-                ("Light Blue", "#e0f2fe"),
-                ("Light Gray", "#f3f4f6"),
-                ("Light Green", "#dcfce7"),
-                ("Light Purple", "#f3e8ff"),
-                ("Light Pink", "#fce7f3"),
-                ("Light Beige", "#fef9c3"),
-                ("Light Cyan", "#cffafe"),
-                ("White", "#ffffff")
-            ]
-            cols = st.columns(8)
-            for idx, (name, code) in enumerate(colours):
-                with cols[idx]:
-                    if st.button("", key=f"bg_{idx}", help=name, use_container_width=True):
-                        st.session_state.bg_color = code
-                        st.session_state.show_bg_colors = False
-                        st.rerun()
-            # Optional: add a small "Close" button
-            if st.button("Close", use_container_width=True):
-                st.session_state.show_bg_colors = False
-                st.rerun()
-
-    # Header navigation (unchanged)
+    # Header navigation
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1], gap="small")
     with col1:
         st.markdown("<div style='margin-top: 4px;'><h1 style='font-weight:bold; margin-bottom:0; font-size:1.6rem;'>ProcureIQ</h1><p style='font-size:0.7rem;color:gray;margin-top:-0.2rem;'>P2P Analytics</p></div>", unsafe_allow_html=True)
