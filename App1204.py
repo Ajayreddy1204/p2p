@@ -816,8 +816,7 @@ div[data-testid="stButton"].bg-circle-btn > button:hover {
 
     # ── Picker panel (opens above the button) ───────────────────
     if st.session_state.show_bg_panel:
-        _, pcol = st.columns([0.58, 0.42])
-        with pcol:
+        with st.container():
             st.markdown("<div class='bg-picker-panel'>", unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown(
@@ -842,15 +841,13 @@ div[data-testid="stButton"].bg-circle-btn > button:hover {
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Circular BG button — right-aligned ──────────────────────
-    _, bcol = st.columns([0.95, 0.05])
-    with bcol:
-        st.markdown("<div class='bg-circle-btn'>", unsafe_allow_html=True)
-        lbl = "✕" if st.session_state.show_bg_panel else "BG"
-        if st.button(lbl, key="bg_pill_btn", use_container_width=False):
-            st.session_state.show_bg_panel = not st.session_state.show_bg_panel
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    # ── Circular BG button — rendered in-place (caller positions it) ──
+    st.markdown("<div class='bg-circle-btn'>", unsafe_allow_html=True)
+    lbl = "✕" if st.session_state.show_bg_panel else "BG"
+    if st.button(lbl, key="bg_pill_btn", use_container_width=True):
+        st.session_state.show_bg_panel = not st.session_state.show_bg_panel
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=600, show_spinner=False)
@@ -1729,9 +1726,10 @@ def render_charts(rng_start, rng_end, vendor_where):
                 ).properties(height=280),
                 use_container_width=True,
             )
-
-    # ── BG circular button — bottom-right of Spend Trend chart ──
-    render_bg_button_sidebar()
+            # ── BG button: bottom-right corner inside Spend Trend container ──
+            _sp, _bg = st.columns([0.82, 0.18])
+            with _bg:
+                render_bg_button_sidebar()
 
 def render_dashboard():
     """
