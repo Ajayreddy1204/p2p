@@ -420,133 +420,148 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    Renders a BG colour picker anchored at the bottom-right corner.
-    Uses a fixed-position HTML label as the visual button, and Streamlit
-    radio buttons hidden behind it via CSS for reliable interaction.
-    The actual colour selection is done via normal Streamlit selectbox
-    in a bottom-right anchored container.
+    BG colour picker — displayed as a single horizontal strip of colour circles.
+    Always visible at the bottom of every page.
+    Clicking any circle immediately applies that background colour.
+    No toggle, no panel, no extra buttons needed.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
 
-    # Toggle panel visibility
-    if "show_bg_panel" not in st.session_state:
-        st.session_state.show_bg_panel = False
+    # Build one circle per colour — clicking triggers a Streamlit form submit
+    # via a hidden radio + form pattern so the page reruns with the new colour.
+    # Each circle is an <a> tag that appends ?bg=HEX to the URL — but since
+    # Streamlit doesn't expose query params reliably across reruns we use
+    # native st.button in a compact horizontal layout instead.
 
-    # Inject the floating BG button (pure CSS, no JS needed for the button itself)
     st.markdown("""
 <style>
-#bg-fixed-wrapper {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
+/* ── BG colour strip container ── */
+.bg-strip-wrap {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-}
-.bg-pill-btn {
-    background: linear-gradient(135deg,#2563eb,#1d4ed8);
-    color: white;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0px;
+    padding: 6px 10px 6px 14px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
     border-radius: 50px;
-    padding: 10px 18px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
-    border: 2px solid rgba(255,255,255,0.25);
-    user-select: none;
-    letter-spacing: 0.5px;
-}
-.bg-panel-box {
-    background: white;
-    border-radius: 14px;
-    padding: 14px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
     border: 1px solid #e2e8f0;
-    width: 220px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    width: fit-content;
+    margin-left: auto;
 }
-.bg-panel-title {
-    font-size: 13px;
+.bg-strip-label {
+    font-size: 11px;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 10px;
+    color: #64748b;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-right: 10px;
+    white-space: nowrap;
 }
-.bg-swatch-grid {
-    display: grid;
-    grid-template-columns: repeat(4,1fr);
-    gap: 7px;
-}
-.bg-swatch {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 8px;
+.bg-circle {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     cursor: pointer;
     border: 2.5px solid transparent;
-    transition: transform 0.15s, border-color 0.15s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    margin: 0 3px;
+    flex-shrink: 0;
+    display: inline-block;
 }
-.bg-swatch:hover { transform: scale(1.15); border-color: #2563eb; }
-.bg-swatch.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.25); }
+.bg-circle:hover {
+    transform: scale(1.25);
+    border-color: #2563eb;
+    box-shadow: 0 3px 8px rgba(37,99,235,0.35);
+}
+.bg-circle.bg-active {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    transform: scale(1.15);
+}
+/* Hide all Streamlit chrome around the BG colour buttons */
+div[data-testid="stHorizontalBlock"].bg-row > div[data-testid="column"] {
+    padding: 0 !important;
+    min-width: 0 !important;
+    flex: none !important;
+}
+div[data-testid="stHorizontalBlock"].bg-row button {
+    width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    margin: 0 3px !important;
+    border: 2.5px solid transparent !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+    transition: transform 0.15s ease, border-color 0.15s ease !important;
+    font-size: 0 !important;        /* hide any text */
+    line-height: 0 !important;
+}
+div[data-testid="stHorizontalBlock"].bg-row button:hover {
+    transform: scale(1.25) !important;
+    border-color: #2563eb !important;
+    background-color: inherit !important;   /* keep swatch colour on hover */
+    box-shadow: 0 3px 8px rgba(37,99,235,0.35) !important;
+    color: transparent !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-    # The actual BG toggle button — Streamlit native, positioned via CSS container
-    # We render it inside a fixed-CSS wrapper using st.markdown for the visual shell
-    # and st.button for the actual click logic
+    # ── Render label + one circle-button per colour in a single row ──
+    # We use st.columns with tiny equal widths to get a horizontal strip.
+    # Each button is styled as a filled circle via inline CSS injected per-button.
 
-    # Build colour swatches HTML (clicking sets query param then we read it)
-    color_names = list(BG_COLOR_OPTIONS.keys())
-    color_hexes = list(BG_COLOR_OPTIONS.values())
+    label_col, *colour_cols = st.columns([1.5] + [0.18] * len(BG_COLOR_OPTIONS), gap="small")
+    with label_col:
+        st.markdown(
+            "<div style='display:flex;align-items:center;height:100%;'>"
+            "<span style='font-size:11px;font-weight:700;color:#64748b;"
+            "letter-spacing:0.6px;text-transform:uppercase;white-space:nowrap;'>"
+            "🎨 BG Theme</span></div>",
+            unsafe_allow_html=True,
+        )
 
-    swatches = ""
-    for name, hx in BG_COLOR_OPTIONS.items():
-        active_cls = "active" if hx == current_bg else ""
-        swatches += f'''<div class="bg-swatch {active_cls}" style="background:{hx};"
-            title="{name}" onclick="window.parent.document.querySelector('[data-testid=stApp]').style.backgroundColor='{hx}';
-            var allBC=window.parent.document.querySelectorAll('.main>.block-container');
-            allBC.forEach(function(el){{el.style.backgroundColor='{hx}'}});"></div>'''
-
-    # Show or hide the panel based on session_state toggle
-    panel_display = "block" if st.session_state.show_bg_panel else "none"
-
-    st.markdown(f"""
-<div id="bg-fixed-wrapper">
-  <div id="bg-panel-container" style="display:{panel_display};">
-    <div class="bg-panel-box">
-      <div class="bg-panel-title">🎨 Background Theme</div>
-      <div class="bg-swatch-grid">{swatches}</div>
-      <div style="margin-top:8px;font-size:11px;color:#94a3b8;text-align:center;">
-        Click a colour to apply
-      </div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    # Streamlit BG toggle button — rendered normally, positioned by CSS
-    # We use st.columns trick to push it to right edge
-    spacer, btn_col = st.columns([0.92, 0.08])
-    with btn_col:
-        btn_label = "✕ BG" if st.session_state.show_bg_panel else "🎨 BG"
-        if st.button(btn_label, key="bg_toggle_btn", use_container_width=True):
-            st.session_state.show_bg_panel = not st.session_state.show_bg_panel
-            st.rerun()
-
-    # If panel is open, show colour buttons using native Streamlit selectbox
-    if st.session_state.show_bg_panel:
-        spacer2, panel_col = st.columns([0.7, 0.3])
-        with panel_col:
-            with st.container(border=True):
-                st.markdown("**🎨 Choose Background:**")
-                for name, hx in BG_COLOR_OPTIONS.items():
-                    is_active = (hx == current_bg)
-                    icon = "✅ " if is_active else "⬜ "
-                    if st.button(f"{icon}{name}", key=f"bg_clr_{name}", use_container_width=True,
-                                 type="primary" if is_active else "secondary"):
-                        st.session_state["bg_color"] = hx
-                        st.session_state.show_bg_panel = False
-                        st.rerun()
+    for col, (name, hx) in zip(colour_cols, BG_COLOR_OPTIONS.items()):
+        with col:
+            is_active = (hx == current_bg)
+            border    = "2.5px solid #2563eb" if is_active else "2.5px solid #e2e8f0"
+            shadow    = "0 0 0 3px rgba(37,99,235,0.25)" if is_active else "0 1px 3px rgba(0,0,0,0.15)"
+            # Inject per-button CSS to paint its background as the swatch colour
+            st.markdown(f"""
+<style>
+div[data-testid="stButton"]:has(button[data-testid="baseButton-secondary"][aria-label="{name}"]) button,
+button[key="bg_{name}"] {{
+    background-color: {hx} !important;
+    background: {hx} !important;
+    border: {border} !important;
+    box-shadow: {shadow} !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 0 !important;
+    color: transparent !important;
+}}
+button[key="bg_{name}"]:hover {{
+    background-color: {hx} !important;
+    background: {hx} !important;
+    transform: scale(1.25) !important;
+    border-color: #2563eb !important;
+    color: transparent !important;
+}}
+</style>""", unsafe_allow_html=True)
+            if st.button(
+                label=" ",                     # single space — text hidden via CSS
+                key=f"bg_{name}",
+                help=name,                     # tooltip on hover
+                use_container_width=False,
+            ):
+                st.session_state["bg_color"] = hx
+                st.rerun()
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=300, show_spinner=False)
@@ -716,55 +731,132 @@ def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
     """
     return run_query(overdue_sql), run_query(disputed_sql), run_query(due_sql)
 
+def _load_vendor_list():
+    """
+    Load vendor list into a SINGLE stable session_state key: "vendor_list_stable".
+    Only re-fetches when the date range actually changes.
+    This prevents the selectbox from duplicating when preset buttons are clicked.
+    """
+    rng_start, rng_end = st.session_state.date_range
+    last_start = st.session_state.get("_vendor_list_last_start")
+    last_end   = st.session_state.get("_vendor_list_last_end")
+
+    # Only re-query when date range truly changed
+    needs_reload = (
+        "vendor_list_stable" not in st.session_state
+        or last_start != rng_start
+        or last_end   != rng_end
+    )
+
+    if needs_reload:
+        vdf = run_query(f"""
+            SELECT DISTINCT v.vendor_name
+            FROM {DATABASE}.fact_all_sources_vw f
+            LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
+            WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
+              AND v.vendor_name IS NOT NULL
+            ORDER BY 1
+        """)
+        new_list = (["All Vendors"] + vdf["vendor_name"].tolist()
+                    if not vdf.empty else ["All Vendors"])
+        st.session_state["vendor_list_stable"]   = new_list
+        st.session_state["_vendor_list_last_start"] = rng_start
+        st.session_state["_vendor_list_last_end"]   = rng_end
+
+        # If previously selected vendor is not in new list, reset to All Vendors
+        if st.session_state.selected_vendor not in st.session_state["vendor_list_stable"]:
+            st.session_state.selected_vendor = "All Vendors"
+
+
 def render_filters():
+    """
+    Renders date range, vendor selector, and preset buttons.
+
+    KEY FIX — vendor list duplication:
+    ─────────────────────────────────
+    Root cause: old code used a date-keyed cache (vendor_list_2026-01-01_2026-06-11)
+    so each preset click created a brand-new list in session_state, and the
+    selectbox (with a fixed key) received a different options list every render,
+    causing Streamlit to reset and visually duplicate the dropdown.
+
+    Fix: single stable key "vendor_list_stable" managed by _load_vendor_list().
+    The list is only reloaded when the date range actually changes — NOT on every
+    preset button click. The selectbox always reads from the same stable key and
+    the same widget key, so it never duplicates.
+    """
+    # ── Step 1: ensure vendor list is loaded (stable single key) ──
+    _load_vendor_list()
+
     rng_start, rng_end = st.session_state.date_range
     selected_vendor    = st.session_state.selected_vendor
     current_preset     = st.session_state.preset
+    vendor_list        = st.session_state["vendor_list_stable"]
 
     col_date, col_vendor, col_preset = st.columns([1.2, 1.2, 2.8], gap="small")
+
+    # ── Date range picker ──────────────────────────────────────
     with col_date:
-        date_range = st.date_input("Date Range", value=(rng_start, rng_end),
-                                   format="YYYY-MM-DD", label_visibility="collapsed",
-                                   key="date_range_widget")
+        date_range = st.date_input(
+            "Date Range",
+            value=(rng_start, rng_end),
+            format="YYYY-MM-DD",
+            label_visibility="collapsed",
+            key="date_range_widget",
+        )
         if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
             ns, ne = date_range
             if (ns, ne) != (rng_start, rng_end):
+                # Only update if this came from manual user edit, not a preset click
                 if not st.session_state.get("_preset_clicked", False):
                     st.session_state.date_range = (ns, ne)
-                    st.session_state.preset = "Custom"
+                    st.session_state.preset     = "Custom"
+                    # Force vendor list reload on next render
+                    st.session_state.pop("vendor_list_stable", None)
                 else:
                     st.session_state._preset_clicked = False
 
+    # ── Vendor selector — ONE selectbox, ONE stable key, never duplicates ──
     with col_vendor:
-        vck = f"vendor_list_{rng_start}_{rng_end}"
-        if vck not in st.session_state:
-            vdf = run_query(f"""SELECT DISTINCT v.vendor_name
-                FROM {DATABASE}.fact_all_sources_vw f
-                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
-                WHERE f.posting_date BETWEEN {sql_date(rng_start)} AND {sql_date(rng_end)}
-                  AND v.vendor_name IS NOT NULL ORDER BY 1""")
-            st.session_state[vck] = (["All Vendors"] + vdf["vendor_name"].tolist()
-                                     if not vdf.empty else ["All Vendors"])
-        idx = st.session_state[vck].index(selected_vendor) if selected_vendor in st.session_state[vck] else 0
-        selected = st.selectbox("Vendor filter", st.session_state[vck], index=idx,
-                                label_visibility="collapsed", key="vendor_selectbox_unique")
-        if selected != selected_vendor: st.session_state.selected_vendor = selected
+        # Compute index safely
+        try:
+            v_idx = vendor_list.index(selected_vendor)
+        except ValueError:
+            v_idx = 0
 
+        # Single widget — key never changes, options list never changes mid-render
+        chosen = st.selectbox(
+            "Vendor",
+            options=vendor_list,
+            index=v_idx,
+            label_visibility="collapsed",
+            key="vendor_selectbox_stable",   # stable key — never regenerated
+        )
+        # Write back only when the value actually changed
+        if chosen != st.session_state.selected_vendor:
+            st.session_state.selected_vendor = chosen
+
+    # ── Preset buttons ─────────────────────────────────────────
     with col_preset:
         presets = ["Last 30 Days", "QTD", "YTD", "Custom"]
-        p_cols = st.columns(4, gap="small")
+        p_cols  = st.columns(4, gap="small")
         for i2, p in enumerate(presets):
             with p_cols[i2]:
-                t = "primary" if p == current_preset else "secondary"
-                if st.button(p, key=f"preset_{p}", use_container_width=True, type=t):
+                btn_type = "primary" if p == current_preset else "secondary"
+                if st.button(p, key=f"preset_{p}", use_container_width=True, type=btn_type):
                     st.session_state._preset_clicked = True
                     if p != "Custom":
                         ns2, ne2 = compute_range_preset(p)
                         st.session_state.date_range = (ns2, ne2)
+                        # Force vendor list reload for new date range
+                        st.session_state.pop("vendor_list_stable", None)
                     st.session_state.preset = p
                     st.rerun()
 
-    return st.session_state.date_range[0], st.session_state.date_range[1], st.session_state.selected_vendor
+    return (
+        st.session_state.date_range[0],
+        st.session_state.date_range[1],
+        st.session_state.selected_vendor,
+    )
 
 def render_kpi_rows(kpi: dict, prev_kpi: dict):
     cur_spend = kpi.get("total_spend", 0); prev_spend = prev_kpi.get("total_spend", 0)
@@ -953,9 +1045,26 @@ def render_charts(rng_start, rng_end, vendor_where):
                 xOffset="type:N", tooltip=["month:N","type:N",alt.Tooltip("spend:Q",format="$,.0f")]).properties(height=280), use_container_width=True)
 
 def render_dashboard():
-    for k,v in [("date_range",compute_range_preset("Last 30 Days")),("selected_vendor","All Vendors"),
-                ("preset","Last 30 Days"),("na_tab","Overdue"),("na_page",0),("_preset_clicked",False)]:
-        if k not in st.session_state: st.session_state[k] = v
+    # ── Initialise session state keys (only on first load) ────
+    for k, v in [
+        ("date_range",       compute_range_preset("Last 30 Days")),
+        ("selected_vendor",  "All Vendors"),
+        ("preset",           "Last 30 Days"),
+        ("na_tab",           "Overdue"),
+        ("na_page",          0),
+        ("_preset_clicked",  False),
+    ]:
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+    # ── Remove any stale date-keyed vendor cache entries ─────
+    # Old code stored keys like "vendor_list_2026-01-01_2026-06-11".
+    # These cause ghost list instances that feed a second selectbox.
+    # Safe to delete — _load_vendor_list() rebuilds under the stable key.
+    stale_keys = [k for k in list(st.session_state.keys())
+                  if isinstance(k, str) and k.startswith("vendor_list_") and k != "vendor_list_stable"]
+    for k in stale_keys:
+        del st.session_state[k]
 
     rng_start, rng_end, selected_vendor = render_filters()
     vendor_where = build_vendor_where(selected_vendor)
@@ -1026,10 +1135,10 @@ def render_forecast():
         else: st.info("No cash flow forecast data.")
         st.markdown("---"); st.markdown("### Action Playbook")
         for label,question in [
-            ("📊 Forecast cash outflow (7–90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
-            ("💰 Invoices to pay early to capture discounts","Which invoices should we pay early to capture discounts?"),
-            ("⏰ Optimal payment timing for this week","What is the optimal payment timing strategy for this week?"),
-            ("⚠️ Late payment trend and risk","Show late payment trend for forecasting")]:
+            ("Forecast cash outflow (7–90 days)","Forecast cash outflow for the next 7, 14, 30, 60, and 90 days"),
+            ("Invoices to pay early to capture discounts","Which invoices should we pay early to capture discounts?"),
+            ("Optimal payment timing for this week","What is the optimal payment timing strategy for this week?"),
+            ("Late payment trend and risk","Show late payment trend for forecasting")]:
             if st.button(label,use_container_width=True):
                 st.session_state.auto_run_query=question; st.session_state.page="Genie"; st.rerun()
 
@@ -1869,7 +1978,7 @@ def render_invoices():
     with cs1:
         us=st.text_input("Invoice Number",value=st.session_state.invoice_search_input,
                          placeholder="e.g., 9001767",label_visibility="collapsed",key="inv_search_widget")
-    with cs2: sc=st.button("🔍 Search",use_container_width=True,key="search_invoice_btn")
+    with cs2: sc=st.button("Search",use_container_width=True,key="search_invoice_btn")
     with cs3: rc=st.button("Reset",use_container_width=True,key="reset_invoice_btn")
 
     if rc:
