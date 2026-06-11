@@ -517,7 +517,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
     .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
     .stApp {{ background-color: {bg_color} !important; }}
 
-    /* ── ENHANCED: Floating BG button (Robust) ── */
+    /* ── FLOATING BG BUTTON (Fixed) ── */
     .bg-floating-btn {{
         position: fixed;
         bottom: 24px;
@@ -601,38 +601,40 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
 
 <script>
 (function() {{
+    // Helper to apply background colour to all relevant containers
     function applyBgColor(color) {{
-        var targets = [
-            document.querySelector('.stApp'),
-            document.querySelector('.main'),
-            document.querySelector('.main > .block-container')
-        ].filter(function(el) {{ return el !== null; }});
-        targets.forEach(function(el) {{ el.style.backgroundColor = color; }});
+        var selectors = ['.stApp', '.main', '.main > .block-container'];
+        selectors.forEach(function(sel) {{
+            var el = document.querySelector(sel);
+            if (el) el.style.backgroundColor = color;
+        }});
         try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
+        // Hide panel after selection
         var panel = document.getElementById('procureiq-bg-panel');
         if (panel) panel.style.display = 'none';
     }}
 
+    // Load saved background from localStorage
     function loadSavedBg() {{
         try {{
             var saved = localStorage.getItem('procureiq_bg_color');
             if (saved) {{
-                var targets = [
-                    document.querySelector('.stApp'),
-                    document.querySelector('.main'),
-                    document.querySelector('.main > .block-container')
-                ].filter(function(el) {{ return el !== null; }});
-                targets.forEach(function(el) {{ el.style.backgroundColor = saved; }});
+                var selectors = ['.stApp', '.main', '.main > .block-container'];
+                selectors.forEach(function(sel) {{
+                    var el = document.querySelector(sel);
+                    if (el) el.style.backgroundColor = saved;
+                }});
             }}
         }} catch(e) {{}}
     }}
 
+    // Initialise button and colour swatch events
     function initBgControls() {{
         var btn = document.getElementById('procureiq-bg-btn');
         var panel = document.getElementById('procureiq-bg-panel');
         if (!btn || !panel) return;
 
-        // Replace button to avoid duplicate listeners
+        // Remove any existing listeners to avoid duplicates
         var newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
         document.getElementById('procureiq-bg-btn').addEventListener('click', function(e) {{
@@ -641,7 +643,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
             if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
         }});
 
-        // Attach to swatches
+        // Attach click handlers to each colour swatch (replace to avoid duplicates)
         var swatches = document.querySelectorAll('.bg-color-swatch');
         swatches.forEach(function(sw) {{
             var newSw = sw.cloneNode(true);
@@ -653,7 +655,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
             }});
         }});
 
-        // Close panel when clicking outside
+        // Click outside closes panel
         document.addEventListener('click', function(e) {{
             var btnElem = document.getElementById('procureiq-bg-btn');
             var panelElem = document.getElementById('procureiq-bg-panel');
@@ -663,16 +665,16 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         }});
     }}
 
-    loadSavedBg();
-    initBgControls();
+    // Run once after DOM is ready and also on every Streamlit rerun (via simple re-execution)
+    function ready(fn) {{
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+    }}
 
-    var observer = new MutationObserver(function(mutations) {{
-        if (document.getElementById('procureiq-bg-btn') && document.getElementById('procureiq-bg-panel')) {{
-            initBgControls();
-            loadSavedBg();
-        }}
+    ready(function() {{
+        loadSavedBg();
+        initBgControls();
     }});
-    observer.observe(document.body, {{ childList: true, subtree: true }});
 }})();
 </script>
 """, unsafe_allow_html=True)
@@ -2574,7 +2576,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     html_table += '<tr>'
     for val in summary_values:
         html_table += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{val}</td>'
-    html_table += '</table>'
+    html_table += '</tr>'
     st.markdown(html_table, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -2647,7 +2649,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         html_c += '<tr>'
         for v in company_values:
             html_c += f'<td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">{v}</td>'
-        html_c += '<tr>'
+        html_c += '</table>'
         st.markdown(html_c, unsafe_allow_html=True)
 
     st.markdown("---")
