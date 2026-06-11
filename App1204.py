@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1
 import boto3
 import awswrangler as wr
 import pandas as pd
@@ -439,147 +438,212 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 def inject_dashboard_css(bg_color: str = "#ffffff"):
     st.markdown(f"""
 <style>
-    /* (Keep all your existing CSS for buttons, KPIs, etc. unchanged) */
+    button, .stButton button, div[data-testid="stButton"] button,
+    button[kind="primary"], button[kind="secondary"],
+    button[data-testid^="baseButton"], .stDownloadButton button {{
+        transition: all 0.2s ease !important;
+    }}
+    button:hover, .stButton button:hover, div[data-testid="stButton"] button:hover,
+    button[kind="primary"]:hover, button[kind="secondary"]:hover,
+    button[data-testid^="baseButton"]:hover, .stDownloadButton button:hover {{
+        background-color: #2563eb !important;
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
+    }}
+    button:active, .stButton button:active, button[data-testid^="baseButton"]:active {{
+        background-color: #1d4ed8 !important;
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: white !important;
+    }}
+    button[kind="primary"] {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+    }}
+    button[kind="secondary"] {{
+        background-color: #f3f4f6 !important;
+        border-color: #d1d5db !important;
+        color: #1f2937 !important;
+    }}
+    button[kind="secondary"]:hover {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+    }}
+    .stDateInput, .stSelectbox {{ width: 100%; }}
+    div[data-testid="stSelectbox"] div {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+    .kpi-card {{
+        border-radius: 16px;
+        padding: 1rem 1.2rem;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }}
+    .kpi-card-yellow {{ background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); }}
+    .kpi-card-cyan   {{ background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }}
+    .kpi-card-pink   {{ background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }}
+    .kpi-card-purple {{ background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }}
+    .kpi-card-green  {{ background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }}
+    .kpi-title  {{ font-size: 0.7rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; }}
+    .kpi-value  {{ font-size: 2rem; font-weight: 800; color: #111827; line-height: 1.1; }}
+    .kpi-delta  {{ font-size: 0.9rem; font-weight: 600; margin-top: 0.25rem; }}
+    .kpi-delta-negative {{ color: #dc2626; }}
+    .kpi-delta-positive {{ color: #16a34a; }}
+    .kpi-arrow  {{ font-size: 1rem; margin-left: 0.25rem; }}
+    .grir-card {{
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        min-height: 90px;
+        justify-content: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }}
+    .grir-card:hover {{ transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }}
+    .grir-card-title {{ font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }}
+    .grir-card-value {{ font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1.1; }}
+    .chart-container {{ height: 100%; display: flex; flex-direction: column; gap: 0.2rem; }}
+    .chart-container > .chart-body {{ flex: 1 1 auto; }}
+    .chart-title {{ font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }}
+    .pagination-info {{ text-align: center; color: #6b7280; font-size: 0.9rem; }}
+    .main > .block-container {{ background-color: {bg_color} !important; padding-top: 0.5rem !important; }}
+    .stApp {{ background-color: {bg_color} !important; }}
 
-    /* Normal BG button (non-floating style) fixed at bottom right */
-    .bg-normal-btn {{
+    /* ── FLOATING BG BUTTON (Fixed) ── */
+    .bg-floating-btn {{
         position: fixed;
         bottom: 24px;
         right: 24px;
         z-index: 9999;
-        background: white;
-        color: #1e293b;
-        border-radius: 30px;
-        padding: 8px 20px;
-        font-size: 14px;
-        font-weight: 600;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        border-radius: 50%;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 16px rgba(37,99,235,0.4);
         transition: all 0.2s ease;
-        border: 1px solid #cbd5e1;
-        font-family: inherit;
-        backdrop-filter: blur(0px);
+        border: 2px solid rgba(255,255,255,0.3);
         user-select: none;
     }}
-    .bg-normal-btn:hover {{
-        background-color: #f8fafc;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(0,0,0,0.1);
-        border-color: #94a3b8;
+    .bg-floating-btn:hover {{
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(37,99,235,0.5);
     }}
     .bg-panel {{
         position: fixed;
         bottom: 86px;
         right: 24px;
         background: white;
-        border-radius: 16px;
+        border-radius: 14px;
         padding: 16px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.15);
         z-index: 9998;
-        width: 260px;
+        width: 230px;
         border: 1px solid #e2e8f0;
         display: none;
     }}
     .bg-panel-title {{
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 700;
         color: #1e293b;
         margin-bottom: 12px;
-        text-align: center;
     }}
     .bg-colors-grid {{
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
+        gap: 8px;
     }}
     .bg-color-swatch {{
         width: 100%;
         aspect-ratio: 1;
-        border-radius: 10px;
+        border-radius: 8px;
         cursor: pointer;
         border: 2px solid transparent;
         transition: all 0.15s ease;
         box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }}
     .bg-color-swatch:hover {{
-        transform: scale(1.08);
+        transform: scale(1.12);
         border-color: #2563eb;
         box-shadow: 0 3px 10px rgba(37,99,235,0.3);
     }}
-    /* Small pointer arrow to make the panel look connected to the button */
-    .bg-panel::before {{
-        content: '';
-        position: absolute;
-        bottom: 100%;
-        right: 20px;
-        width: 0;
-        height: 0;
-        border-left: 8px solid transparent;
-        border-right: 8px solid transparent;
-        border-bottom: 8px solid white;
-        filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.05));
-    }}
 </style>
 
-<div id="procureiq-bg-btn" class="bg-normal-btn">🎨 Theme</div>
+<div id="procureiq-bg-btn" class="bg-floating-btn">BG</div>
 <div id="procureiq-bg-panel" class="bg-panel">
-    <div class="bg-panel-title">Background Color</div>
+    <div class="bg-panel-title">🎨 Background Theme</div>
     <div class="bg-colors-grid">
-        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe" title="Light Blue"></div>
-        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6" title="Light Gray"></div>
-        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7" title="Light Green"></div>
-        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff" title="Light Purple"></div>
-        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3" title="Light Pink"></div>
-        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3" title="Light Beige"></div>
-        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe" title="Light Cyan"></div>
-        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff" title="White"></div>
+        <div class="bg-color-swatch" style="background:#e0f2fe;" data-color="#e0f2fe"></div>
+        <div class="bg-color-swatch" style="background:#f3f4f6;" data-color="#f3f4f6"></div>
+        <div class="bg-color-swatch" style="background:#dcfce7;" data-color="#dcfce7"></div>
+        <div class="bg-color-swatch" style="background:#f3e8ff;" data-color="#f3e8ff"></div>
+        <div class="bg-color-swatch" style="background:#fce7f3;" data-color="#fce7f3"></div>
+        <div class="bg-color-swatch" style="background:#fef9c3;" data-color="#fef9c3"></div>
+        <div class="bg-color-swatch" style="background:#cffafe;" data-color="#cffafe"></div>
+        <div class="bg-color-swatch" style="background:#ffffff;" data-color="#ffffff"></div>
     </div>
-    <div style="margin-top:12px; font-size:11px; color:#94a3b8; text-align:center;">Click any color to change background</div>
+    <div style="margin-top:10px; font-size:11px; color:#94a3b8; text-align:center;">Click a color to apply</div>
 </div>
 
 <script>
 (function() {{
+    // Helper to apply background colour to all relevant containers
     function applyBgColor(color) {{
-        var targets = [
-            document.querySelector('.stApp'),
-            document.querySelector('.main'),
-            document.querySelector('.main > .block-container')
-        ].filter(function(el) {{ return el !== null; }});
-        targets.forEach(function(el) {{ el.style.backgroundColor = color; }});
+        var selectors = ['.stApp', '.main', '.main > .block-container'];
+        selectors.forEach(function(sel) {{
+            var el = document.querySelector(sel);
+            if (el) el.style.backgroundColor = color;
+        }});
         try {{ localStorage.setItem('procureiq_bg_color', color); }} catch(e) {{}}
+        // Hide panel after selection
         var panel = document.getElementById('procureiq-bg-panel');
         if (panel) panel.style.display = 'none';
     }}
 
+    // Load saved background from localStorage
     function loadSavedBg() {{
         try {{
             var saved = localStorage.getItem('procureiq_bg_color');
             if (saved) {{
-                var targets = [
-                    document.querySelector('.stApp'),
-                    document.querySelector('.main'),
-                    document.querySelector('.main > .block-container')
-                ].filter(function(el) {{ return el !== null; }});
-                targets.forEach(function(el) {{ el.style.backgroundColor = saved; }});
+                var selectors = ['.stApp', '.main', '.main > .block-container'];
+                selectors.forEach(function(sel) {{
+                    var el = document.querySelector(sel);
+                    if (el) el.style.backgroundColor = saved;
+                }});
             }}
         }} catch(e) {{}}
     }}
 
+    // Initialise button and colour swatch events
     function initBgControls() {{
         var btn = document.getElementById('procureiq-bg-btn');
         var panel = document.getElementById('procureiq-bg-panel');
         if (!btn || !panel) return;
 
-        // Remove old listener by cloning and replacing
+        // Remove any existing listeners to avoid duplicates
         var newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', function(e) {{
+        document.getElementById('procureiq-bg-btn').addEventListener('click', function(e) {{
             e.stopPropagation();
             var p = document.getElementById('procureiq-bg-panel');
             if (p) p.style.display = (p.style.display === 'block') ? 'none' : 'block';
         }});
 
-        // Attach to swatches
+        // Attach click handlers to each colour swatch (replace to avoid duplicates)
         var swatches = document.querySelectorAll('.bg-color-swatch');
         swatches.forEach(function(sw) {{
             var newSw = sw.cloneNode(true);
@@ -591,7 +655,7 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
             }});
         }});
 
-        // Close panel when clicking outside
+        // Click outside closes panel
         document.addEventListener('click', function(e) {{
             var btnElem = document.getElementById('procureiq-bg-btn');
             var panelElem = document.getElementById('procureiq-bg-panel');
@@ -601,16 +665,16 @@ def inject_dashboard_css(bg_color: str = "#ffffff"):
         }});
     }}
 
-    loadSavedBg();
-    initBgControls();
+    // Run once after DOM is ready and also on every Streamlit rerun (via simple re-execution)
+    function ready(fn) {{
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+    }}
 
-    var observer = new MutationObserver(function(mutations) {{
-        if (document.getElementById('procureiq-bg-btn') && document.getElementById('procureiq-bg-panel')) {{
-            initBgControls();
-            loadSavedBg();
-        }}
+    ready(function() {{
+        loadSavedBg();
+        initBgControls();
     }});
-    observer.observe(document.body, {{ childList: true, subtree: true }});
 }})();
 </script>
 """, unsafe_allow_html=True)
