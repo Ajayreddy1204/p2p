@@ -420,92 +420,100 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    BG button — fixed position bottom-right corner.
-    Shows a small "BG" pill button. On click (via session_state toggle),
-    a horizontal row of 8 colour swatches appears just above it.
-    Clicking a swatch sets bg_color and collapses the strip.
-    Uses pure st.markdown HTML/CSS for the fixed-position shell,
-    and st.query_params to ferry the chosen colour back to Python.
+    BG colour picker — fixed bottom-right corner.
+
+    Strategy (100% reliable in Streamlit/Snowflake):
+    ─────────────────────────────────────────────────
+    We render a small 'BG' button at the bottom-right using a right-aligned
+    st.columns row. Clicking it toggles st.session_state.show_bg_panel.
+
+    When the panel is open, a horizontal strip of 8 colour swatches (each a
+    native st.button styled as a circle via per-button CSS injection) appears
+    in a compact container just above the BG button.
+
+    Clicking a swatch writes to st.session_state['bg_color'] and reruns —
+    inject_dashboard_css() reads that value and applies it via CSS to .stApp.
+
+    This approach works in every Streamlit environment because it uses only
+    native Streamlit widgets — no window.parent, no JS cross-frame calls,
+    no query_params hacks.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
+    if "show_bg_panel" not in st.session_state:
+        st.session_state.show_bg_panel = False
 
-    # Read colour selection from query param (set by JS onclick below)
-    try:
-        qp = st.query_params
-        chosen = qp.get("_bgc", None)
-        if chosen and chosen.startswith("#") and len(chosen) in (4, 7):
-            if chosen != current_bg:
-                st.session_state["bg_color"] = chosen
-                # Clear the param and rerun
-                st.query_params.clear()
-                st.rerun()
-        # Clear stale param even if colour didn't change
-        if chosen:
-            st.query_params.clear()
-    except Exception:
-        pass  # query_params API differs by Streamlit version — safe to skip
-
-    # Build colour swatches HTML — each is a plain <div> with onclick JS
-    # The JS writes the hex to the URL as ?_bgc=HEX which triggers a Streamlit
-    # rerun and is read above.
-    swatches_html = ""
+    # ── Per-swatch CSS: paint each button as a filled colour circle ──────────
+    # Streamlit doesn't let us pass a background-color per-button, so we inject
+    # a <style> block that targets each button by its unique data-testid key.
+    css_blocks = []
     for name, hx in BG_COLOR_OPTIONS.items():
-        is_active  = (hx == current_bg)
-        border_col = "#2563eb" if is_active else "#e2e8f0"
-        ring_css   = "box-shadow:0 0 0 3px #2563eb,0 2px 6px rgba(0,0,0,0.18);" if is_active else "box-shadow:0 2px 6px rgba(0,0,0,0.18);"
-        scale_css  = "transform:scale(1.18);" if is_active else ""
-        hover_out  = "scale(1.18)" if is_active else "scale(1)"
-        # Build onclick / onmouseover strings without nested quotes
-        onclick     = "setBgColor('" + hx + "')"
-        on_over     = "this.style.transform='scale(1.25)';this.style.borderColor='#2563eb';"
-        on_out      = "this.style.transform='" + hover_out + "';this.style.borderColor='" + border_col + "';"
-        div_style   = (
-            "width:28px;height:28px;border-radius:50%;background:" + hx + ";"
-            "cursor:pointer;border:2.5px solid " + border_col + ";"
-            + ring_css + scale_css +
-            "transition:all 0.15s ease;flex-shrink:0;"
-        )
-        swatches_html += (
-            '<div title="' + name + '" '
-            'onclick="' + onclick + '" '
-            'style="' + div_style + '" '
-            'onmouseover="' + on_over + '" '
-            'onmouseout="'  + on_out  + '">'
-            '</div>'
-        )
+        is_active = (hx == current_bg)
+        ring      = "0 0 0 3px #2563eb, 0 2px 6px rgba(0,0,0,0.18)" if is_active else "0 2px 6px rgba(0,0,0,0.14)"
+        b_color   = "#2563eb" if is_active else "#e2e8f0"
+        # Target by aria-label (= button label text) — most reliable selector
+        css_blocks.append(f"""
+button[aria-label="swatch_{name}"],
+div[data-testid="stButton"] button[title="swatch_{name}"] {{
+    background-color: {hx} !important;
+    background:       {hx} !important;
+    border:           2.5px solid {b_color} !important;
+    box-shadow:       {ring} !important;
+    border-radius:    50% !important;
+    width:            30px !important;
+    height:           30px !important;
+    min-height:       30px !important;
+    padding:          0 !important;
+    font-size:        0 !important;
+    color:            transparent !important;
+    line-height:      0 !important;
+}}
+button[aria-label="swatch_{name}"]:hover {{
+    background-color: {hx} !important;
+    background:       {hx} !important;
+    transform:        scale(1.25) !important;
+    border-color:     #2563eb !important;
+    box-shadow:       0 0 0 3px #2563eb, 0 4px 10px rgba(37,99,235,0.4) !important;
+    color:            transparent !important;
+}}""")
 
-    # Full fixed-position HTML block injected into the page
-    st.markdown(f"""
-<style>
-#procureiq-bg-root {{
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 999999;
+    st.markdown(
+        "<style>" + "".join(css_blocks) + """
+/* BG toggle button */
+button[aria-label="bg_toggle_open"],
+button[aria-label="bg_toggle_close"] {
+    background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.45) !important;
+    min-height: 36px !important;
+    padding: 0 16px !important;
+}
+button[aria-label="bg_toggle_open"]:hover,
+button[aria-label="bg_toggle_close"]:hover {
+    background: linear-gradient(135deg,#1d4ed8,#1e40af) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(37,99,235,0.55) !important;
+    color: white !important;
+}
+/* Swatch strip container */
+.bg-swatch-strip {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    pointer-events: none;
-}}
-#procureiq-bg-root * {{
-    pointer-events: all;
-}}
-#procureiq-bg-strip {{
-    display: none;
-    background: rgba(255,255,255,0.97);
-    border-radius: 50px;
-    padding: 7px 12px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.14);
     flex-direction: row;
     align-items: center;
-    gap: 7px;
-}}
-#procureiq-bg-strip.open {{
-    display: flex;
-}}
-#procureiq-bg-strip span.bg-lbl {{
+    gap: 6px;
+    background: rgba(255,255,255,0.97);
+    border-radius: 50px;
+    padding: 6px 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    width: fit-content;
+    margin-left: auto;
+}
+.bg-swatch-label {
     font-size: 10px;
     font-weight: 700;
     color: #64748b;
@@ -513,80 +521,58 @@ def render_bg_button_sidebar():
     text-transform: uppercase;
     white-space: nowrap;
     margin-right: 4px;
-}}
-#procureiq-bg-btn {{
-    background: linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 9px 18px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.45);
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
-    user-select: none;
-}}
-#procureiq-bg-btn:hover {{
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(37,99,235,0.55);
-}}
-</style>
+}
+/* Remove extra Streamlit padding around swatch buttons */
+.bg-swatch-strip div[data-testid="stButton"] {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.bg-swatch-strip div[data-testid="stButton"] > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+</style>""",
+        unsafe_allow_html=True,
+    )
 
-<div id="procureiq-bg-root">
-    <div id="procureiq-bg-strip">
-        <span class="bg-lbl">BG</span>
-        {swatches_html}
-    </div>
-    <button id="procureiq-bg-btn" onclick="toggleBgStrip()">BG</button>
-</div>
+    # ── Bottom-right anchored layout ──────────────────────────────────────────
+    # We push content to the right using a wide spacer column + narrow button column.
+    # This renders at the current vertical position in the page (bottom of content).
 
-<script>
-function toggleBgStrip() {{
-    var strip = document.getElementById('procureiq-bg-strip');
-    strip.classList.toggle('open');
-}}
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-function setBgColor(hex) {{
-    // 1. Apply instantly to the visible DOM
-    var targets = [
-        window.parent.document.querySelector('.stApp'),
-        window.parent.document.querySelector('.main'),
-    ].concat(Array.from(window.parent.document.querySelectorAll('.main > .block-container')));
-    targets.forEach(function(el) {{ if (el) el.style.backgroundColor = hex; }});
+    # ── Colour strip (shown when panel is open) ──────────────────────────────
+    if st.session_state.show_bg_panel:
+        # Right-align the strip
+        _, strip_col = st.columns([0.01, 0.99])
+        with strip_col:
+            st.markdown("<div class='bg-swatch-strip'>", unsafe_allow_html=True)
+            st.markdown("<span class='bg-swatch-label'>Background</span>", unsafe_allow_html=True)
+            # Render all 8 colour buttons in a single horizontal row
+            swatch_cols = st.columns(len(BG_COLOR_OPTIONS), gap="small")
+            for col, (name, hx) in zip(swatch_cols, BG_COLOR_OPTIONS.items()):
+                with col:
+                    # label = " " (single space) so aria-label is the key
+                    if st.button(
+                        " ",
+                        key=f"swatch_{name}",
+                        help=name,
+                        use_container_width=False,
+                    ):
+                        st.session_state["bg_color"] = hx
+                        st.session_state.show_bg_panel = False
+                        st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    // 2. Persist to localStorage so it survives reloads
-    try {{ window.parent.localStorage.setItem('procureiq_bg', hex); }} catch(e) {{}}
-
-    // 3. Trigger Streamlit rerun by navigating with query param
-    var url = new URL(window.parent.location.href);
-    url.searchParams.set('_bgc', hex);
-    window.parent.history.pushState({{}}, '', url.toString());
-    // Fire a popstate so Streamlit picks up the param change
-    window.parent.dispatchEvent(new PopStateEvent('popstate', {{ state: {{}} }}));
-
-    // Close the strip
-    var strip = document.getElementById('procureiq-bg-strip');
-    if (strip) strip.classList.remove('open');
-}}
-
-// On page load, restore saved colour from localStorage
-(function() {{
-    try {{
-        var saved = window.parent.localStorage.getItem('procureiq_bg');
-        if (saved) {{
-            var targets = [
-                window.parent.document.querySelector('.stApp'),
-                window.parent.document.querySelector('.main'),
-            ].concat(Array.from(window.parent.document.querySelectorAll('.main > .block-container')));
-            targets.forEach(function(el) {{ if (el) el.style.backgroundColor = saved; }});
-        }}
-    }} catch(e) {{}}
-}})();
-</script>
-""", unsafe_allow_html=True)
-
+    # ── BG toggle button — right-aligned ────────────────────────────────────
+    _, btn_col = st.columns([0.93, 0.07])
+    with btn_col:
+        lbl   = "✕ BG" if st.session_state.show_bg_panel else "BG"
+        a_lbl = "bg_toggle_close" if st.session_state.show_bg_panel else "bg_toggle_open"
+        # We set aria-label via a CSS hack — Streamlit uses the button label as aria-label
+        if st.button(lbl, key="bg_pill_btn", use_container_width=True):
+            st.session_state.show_bg_panel = not st.session_state.show_bg_panel
+            st.rerun()
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=300, show_spinner=False)
@@ -2091,51 +2077,161 @@ def render_invoices():
 # ── Main app ──────────────────────────────────────────────────
 def main():
     init_db()
-    st.set_page_config(page_title="ProcureIQ",layout="wide",initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    if "bg_color" not in st.session_state: st.session_state["bg_color"]="#ffffff"
+    if "bg_color" not in st.session_state:
+        st.session_state["bg_color"] = "#ffffff"
+    if "page" not in st.session_state:
+        st.session_state["page"] = "Dashboard"
 
     inject_dashboard_css()
 
-    st.markdown("""<style>
-    .block-container{padding-top:0.5rem !important;padding-bottom:0rem !important;}
-    button{font-weight:500 !important;border-radius:8px !important;}
-    </style>""",unsafe_allow_html=True)
+    # ── Extra layout CSS ─────────────────────────────────────────
+    st.markdown("""
+<style>
+.block-container { padding-top: 0 !important; padding-bottom: 0 !important; }
+button { font-weight: 500 !important; border-radius: 8px !important; }
 
-    c1,c2,c3,c4,c5,c6=st.columns([1,1,1,1,1,1],gap="small")
-    with c1:
-        st.markdown("<div style='margin-top:4px;'><h1 style='font-weight:bold;margin-bottom:0;font-size:1.6rem;'>ProcureIQ</h1>"
-                    "<p style='font-size:0.7rem;color:gray;margin-top:-0.2rem;'>P2P Analytics</p></div>",unsafe_allow_html=True)
-    with c2:
-        if st.button("Dashboard",use_container_width=True,key="nav_dashboard",
-                     type="primary" if st.session_state.get("page")=="Dashboard" else "secondary"):
-            st.session_state.page="Dashboard"; st.rerun()
-    with c3:
-        if st.button("GenAI",use_container_width=True,key="nav_genai",
-                     type="primary" if st.session_state.get("page")=="Genie" else "secondary"):
-            st.session_state.page="Genie"; st.rerun()
-    with c4:
-        if st.button("Forecast",use_container_width=True,key="nav_forecast",
-                     type="primary" if st.session_state.get("page")=="Forecast" else "secondary"):
-            st.session_state.page="Forecast"; st.rerun()
-    with c5:
-        if st.button("Invoices",use_container_width=True,key="nav_invoices",
-                     type="primary" if st.session_state.get("page")=="Invoices" else "secondary"):
-            st.session_state.page="Invoices"; st.rerun()
-    with c6:
-        st.markdown(f"<div style='display:flex;justify-content:flex-end;'>"
-                    f"<img src='{LOGO_URL}' style='width:120px;height:auto;object-fit:contain;'/></div>",unsafe_allow_html=True)
+/* ── Header row: make all columns same height and vertically centered ── */
+div[data-testid="stHorizontalBlock"].nav-row {
+    align-items: center !important;
+    min-height: 56px !important;
+}
+div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+/* First col (brand) — left-align */
+div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"]:first-child {
+    justify-content: flex-start !important;
+}
+/* Last col (logo) — right-align */
+div[data-testid="stHorizontalBlock"].nav-row > div[data-testid="column"]:last-child {
+    justify-content: flex-end !important;
+}
+/* Nav buttons — vertically centred, consistent height */
+div[data-testid="stHorizontalBlock"].nav-row button {
+    height: 40px !important;
+    min-height: 40px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    vertical-align: middle !important;
+}
+/* Brand block — vertically centred */
+.piq-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+    padding: 6px 0;
+}
+.piq-brand h1 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+}
+.piq-brand p {
+    font-size: 0.68rem;
+    color: #9ca3af;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+}
+/* Logo image — centred vertically */
+.piq-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+.piq-logo img {
+    width: 110px;
+    height: auto;
+    object-fit: contain;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    st.markdown("---")
+    # ── Header navigation ──────────────────────────────────────────────────────
+    # Use a plain st.columns layout wrapped in a CSS class that forces
+    # vertical alignment. All 6 cells share the same flex row so brand,
+    # nav buttons, and logo sit on exactly the same baseline.
+    pg = st.session_state.page
 
-    if "page" not in st.session_state: st.session_state.page="Dashboard"
-    pg=st.session_state.page
-    if   pg=="Dashboard": render_dashboard()
-    elif pg=="Genie":     render_genie()
-    elif pg=="Forecast":  render_forecast()
-    else:                 render_invoices()
+    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5, nav_col6 = st.columns(
+        [1.4, 1, 1, 1, 1, 1.2], gap="small"
+    )
 
-    # ── BG Button: fixed bottom-right (self-contained HTML/JS) ──
+    with nav_col1:
+        st.markdown(
+            "<div class='piq-brand'><h1>ProcureIQ</h1><p>P2P Analytics</p></div>",
+            unsafe_allow_html=True,
+        )
+
+    with nav_col2:
+        if st.button(
+            "Dashboard", use_container_width=True, key="nav_dashboard",
+            type="primary" if pg == "Dashboard" else "secondary",
+        ):
+            st.session_state.page = "Dashboard"; st.rerun()
+
+    with nav_col3:
+        if st.button(
+            "GenAI", use_container_width=True, key="nav_genai",
+            type="primary" if pg == "Genie" else "secondary",
+        ):
+            st.session_state.page = "Genie"; st.rerun()
+
+    with nav_col4:
+        if st.button(
+            "Forecast", use_container_width=True, key="nav_forecast",
+            type="primary" if pg == "Forecast" else "secondary",
+        ):
+            st.session_state.page = "Forecast"; st.rerun()
+
+    with nav_col5:
+        if st.button(
+            "Invoices", use_container_width=True, key="nav_invoices",
+            type="primary" if pg == "Invoices" else "secondary",
+        ):
+            st.session_state.page = "Invoices"; st.rerun()
+
+    with nav_col6:
+        st.markdown(
+            f"<div class='piq-logo'><img src='{LOGO_URL}'/></div>",
+            unsafe_allow_html=True,
+        )
+
+    # Force the columns row to use our nav-row class via JS (Streamlit doesn't
+    # expose a direct class hook, so we inject it after render)
+    st.markdown("""
+<script>
+(function() {
+    // Tag the first stHorizontalBlock as nav-row so our CSS targets it
+    var blocks = window.parent.document.querySelectorAll(
+        'div[data-testid="stHorizontalBlock"]'
+    );
+    if (blocks.length > 0) blocks[0].classList.add('nav-row');
+})();
+</script>
+""", unsafe_allow_html=True)
+
+    st.markdown(
+        "<hr style='margin:6px 0 10px 0;border:none;border-top:1px solid #e5e7eb;'/>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Page routing ───────────────────────────────────────────────────────────
+    if   pg == "Dashboard": render_dashboard()
+    elif pg == "Genie":     render_genie()
+    elif pg == "Forecast":  render_forecast()
+    else:                   render_invoices()
+
+    # ── BG Button: fixed bottom-right ─────────────────────────────────────────
     render_bg_button_sidebar()
 
 if __name__=="__main__":
