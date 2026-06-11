@@ -420,148 +420,173 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    BG colour picker — displayed as a single horizontal strip of colour circles.
-    Always visible at the bottom of every page.
-    Clicking any circle immediately applies that background colour.
-    No toggle, no panel, no extra buttons needed.
+    BG button — fixed position bottom-right corner.
+    Shows a small "BG" pill button. On click (via session_state toggle),
+    a horizontal row of 8 colour swatches appears just above it.
+    Clicking a swatch sets bg_color and collapses the strip.
+    Uses pure st.markdown HTML/CSS for the fixed-position shell,
+    and st.query_params to ferry the chosen colour back to Python.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
 
-    # Build one circle per colour — clicking triggers a Streamlit form submit
-    # via a hidden radio + form pattern so the page reruns with the new colour.
-    # Each circle is an <a> tag that appends ?bg=HEX to the URL — but since
-    # Streamlit doesn't expose query params reliably across reruns we use
-    # native st.button in a compact horizontal layout instead.
+    # Read colour selection from query param (set by JS onclick below)
+    try:
+        qp = st.query_params
+        chosen = qp.get("_bgc", None)
+        if chosen and chosen.startswith("#") and len(chosen) in (4, 7):
+            if chosen != current_bg:
+                st.session_state["bg_color"] = chosen
+                # Clear the param and rerun
+                st.query_params.clear()
+                st.rerun()
+        # Clear stale param even if colour didn't change
+        if chosen:
+            st.query_params.clear()
+    except Exception:
+        pass  # query_params API differs by Streamlit version — safe to skip
 
-    st.markdown("""
-<style>
-/* ── BG colour strip container ── */
-.bg-strip-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0px;
-    padding: 6px 10px 6px 14px;
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(6px);
-    border-radius: 50px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    width: fit-content;
-    margin-left: auto;
-}
-.bg-strip-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    margin-right: 10px;
-    white-space: nowrap;
-}
-.bg-circle {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2.5px solid transparent;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-    margin: 0 3px;
-    flex-shrink: 0;
-    display: inline-block;
-}
-.bg-circle:hover {
-    transform: scale(1.25);
-    border-color: #2563eb;
-    box-shadow: 0 3px 8px rgba(37,99,235,0.35);
-}
-.bg-circle.bg-active {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
-    transform: scale(1.15);
-}
-/* Hide all Streamlit chrome around the BG colour buttons */
-div[data-testid="stHorizontalBlock"].bg-row > div[data-testid="column"] {
-    padding: 0 !important;
-    min-width: 0 !important;
-    flex: none !important;
-}
-div[data-testid="stHorizontalBlock"].bg-row button {
-    width: 26px !important;
-    height: 26px !important;
-    min-height: 26px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    margin: 0 3px !important;
-    border: 2.5px solid transparent !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
-    transition: transform 0.15s ease, border-color 0.15s ease !important;
-    font-size: 0 !important;        /* hide any text */
-    line-height: 0 !important;
-}
-div[data-testid="stHorizontalBlock"].bg-row button:hover {
-    transform: scale(1.25) !important;
-    border-color: #2563eb !important;
-    background-color: inherit !important;   /* keep swatch colour on hover */
-    box-shadow: 0 3px 8px rgba(37,99,235,0.35) !important;
-    color: transparent !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # ── Render label + one circle-button per colour in a single row ──
-    # We use st.columns with tiny equal widths to get a horizontal strip.
-    # Each button is styled as a filled circle via inline CSS injected per-button.
-
-    label_col, *colour_cols = st.columns([1.5] + [0.18] * len(BG_COLOR_OPTIONS), gap="small")
-    with label_col:
-        st.markdown(
-            "<div style='display:flex;align-items:center;height:100%;'>"
-            "<span style='font-size:11px;font-weight:700;color:#64748b;"
-            "letter-spacing:0.6px;text-transform:uppercase;white-space:nowrap;'>"
-            "🎨 BG Theme</span></div>",
-            unsafe_allow_html=True,
+    # Build colour swatches HTML — each is a plain <div> with onclick JS
+    # The JS writes the hex to the URL as ?_bgc=HEX which triggers a Streamlit
+    # rerun and is read above.
+    swatches_html = ""
+    for name, hx in BG_COLOR_OPTIONS.items():
+        is_active  = (hx == current_bg)
+        border_col = "#2563eb" if is_active else "#e2e8f0"
+        ring_css   = "box-shadow:0 0 0 3px #2563eb,0 2px 6px rgba(0,0,0,0.18);" if is_active else "box-shadow:0 2px 6px rgba(0,0,0,0.18);"
+        scale_css  = "transform:scale(1.18);" if is_active else ""
+        hover_out  = "scale(1.18)" if is_active else "scale(1)"
+        # Build onclick / onmouseover strings without nested quotes
+        onclick     = "setBgColor('" + hx + "')"
+        on_over     = "this.style.transform='scale(1.25)';this.style.borderColor='#2563eb';"
+        on_out      = "this.style.transform='" + hover_out + "';this.style.borderColor='" + border_col + "';"
+        div_style   = (
+            "width:28px;height:28px;border-radius:50%;background:" + hx + ";"
+            "cursor:pointer;border:2.5px solid " + border_col + ";"
+            + ring_css + scale_css +
+            "transition:all 0.15s ease;flex-shrink:0;"
+        )
+        swatches_html += (
+            '<div title="' + name + '" '
+            'onclick="' + onclick + '" '
+            'style="' + div_style + '" '
+            'onmouseover="' + on_over + '" '
+            'onmouseout="'  + on_out  + '">'
+            '</div>'
         )
 
-    for col, (name, hx) in zip(colour_cols, BG_COLOR_OPTIONS.items()):
-        with col:
-            is_active = (hx == current_bg)
-            border    = "2.5px solid #2563eb" if is_active else "2.5px solid #e2e8f0"
-            shadow    = "0 0 0 3px rgba(37,99,235,0.25)" if is_active else "0 1px 3px rgba(0,0,0,0.15)"
-            # Inject per-button CSS to paint its background as the swatch colour
-            st.markdown(f"""
+    # Full fixed-position HTML block injected into the page
+    st.markdown(f"""
 <style>
-div[data-testid="stButton"]:has(button[data-testid="baseButton-secondary"][aria-label="{name}"]) button,
-button[key="bg_{name}"] {{
-    background-color: {hx} !important;
-    background: {hx} !important;
-    border: {border} !important;
-    box-shadow: {shadow} !important;
-    width: 26px !important;
-    height: 26px !important;
-    min-height: 26px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    font-size: 0 !important;
-    color: transparent !important;
+#procureiq-bg-root {{
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
 }}
-button[key="bg_{name}"]:hover {{
-    background-color: {hx} !important;
-    background: {hx} !important;
-    transform: scale(1.25) !important;
-    border-color: #2563eb !important;
-    color: transparent !important;
+#procureiq-bg-root * {{
+    pointer-events: all;
 }}
-</style>""", unsafe_allow_html=True)
-            if st.button(
-                label=" ",                     # single space — text hidden via CSS
-                key=f"bg_{name}",
-                help=name,                     # tooltip on hover
-                use_container_width=False,
-            ):
-                st.session_state["bg_color"] = hx
-                st.rerun()
+#procureiq-bg-strip {{
+    display: none;
+    background: rgba(255,255,255,0.97);
+    border-radius: 50px;
+    padding: 7px 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+}}
+#procureiq-bg-strip.open {{
+    display: flex;
+}}
+#procureiq-bg-strip span.bg-lbl {{
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-right: 4px;
+}}
+#procureiq-bg-btn {{
+    background: linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 9px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.45);
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    user-select: none;
+}}
+#procureiq-bg-btn:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(37,99,235,0.55);
+}}
+</style>
+
+<div id="procureiq-bg-root">
+    <div id="procureiq-bg-strip">
+        <span class="bg-lbl">BG</span>
+        {swatches_html}
+    </div>
+    <button id="procureiq-bg-btn" onclick="toggleBgStrip()">BG</button>
+</div>
+
+<script>
+function toggleBgStrip() {{
+    var strip = document.getElementById('procureiq-bg-strip');
+    strip.classList.toggle('open');
+}}
+
+function setBgColor(hex) {{
+    // 1. Apply instantly to the visible DOM
+    var targets = [
+        window.parent.document.querySelector('.stApp'),
+        window.parent.document.querySelector('.main'),
+    ].concat(Array.from(window.parent.document.querySelectorAll('.main > .block-container')));
+    targets.forEach(function(el) {{ if (el) el.style.backgroundColor = hex; }});
+
+    // 2. Persist to localStorage so it survives reloads
+    try {{ window.parent.localStorage.setItem('procureiq_bg', hex); }} catch(e) {{}}
+
+    // 3. Trigger Streamlit rerun by navigating with query param
+    var url = new URL(window.parent.location.href);
+    url.searchParams.set('_bgc', hex);
+    window.parent.history.pushState({{}}, '', url.toString());
+    // Fire a popstate so Streamlit picks up the param change
+    window.parent.dispatchEvent(new PopStateEvent('popstate', {{ state: {{}} }}));
+
+    // Close the strip
+    var strip = document.getElementById('procureiq-bg-strip');
+    if (strip) strip.classList.remove('open');
+}}
+
+// On page load, restore saved colour from localStorage
+(function() {{
+    try {{
+        var saved = window.parent.localStorage.getItem('procureiq_bg');
+        if (saved) {{
+            var targets = [
+                window.parent.document.querySelector('.stApp'),
+                window.parent.document.querySelector('.main'),
+            ].concat(Array.from(window.parent.document.querySelectorAll('.main > .block-container')));
+            targets.forEach(function(el) {{ if (el) el.style.backgroundColor = saved; }});
+        }}
+    }} catch(e) {{}}
+}})();
+</script>
+""", unsafe_allow_html=True)
+
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=300, show_spinner=False)
@@ -1649,23 +1674,57 @@ GRIR_WC_Q        = "Estimate the working capital that would be released by clear
 GRIR_FOLLOWUP_Q  = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
 
 def _dispatch_query(q: str, history: str) -> dict:
-    lq=q.lower()
-    if q==GRIR_HOTSPOTS_Q: return process_grir_hotspots(q,history)
-    if q==GRIR_ROOTCAUSE_Q: return process_grir_root_causes(q,history)
-    if q==GRIR_WC_Q: return process_grir_working_capital(q,history)
-    if q==GRIR_FOLLOWUP_Q: return process_grir_vendor_followup(q,history)
-    if any(kw in lq for kw in ["forecast cash outflow","cash flow forecast"]): return process_cash_flow_forecast(q,history)
-    if any(kw in lq for kw in ["pay early","capture discounts"]): return process_early_payment(q,history)
-    if "optimal payment timing" in lq: return process_payment_timing(q,history)
-    if "late payment trend" in lq: return process_late_payment_trend(q,history)
-    if q=="Spending Overview": return _quick_spending_overview()
-    if q=="Vendor Analysis": return _quick_vendor_analysis()
-    if q=="Payment Performance": return _quick_payment_performance()
-    if q=="Invoice Aging": return _quick_invoice_aging()
-    return process_custom_query(q,history)
+    """
+    Central dispatcher for all Genie queries.
+    FIRST gate: is_relevant_question() — if the question is not procurement-related,
+    return the standard out-of-domain message immediately, before any SQL or LLM call.
+    Hard-coded quick-analysis labels ("Spending Overview" etc.) bypass the relevance
+    check because they are internal system triggers, not user free-text.
+    """
+    # ── Internal quick-analysis triggers (system labels — bypass relevance check) ──
+    if q == GRIR_HOTSPOTS_Q:  return process_grir_hotspots(q, history)
+    if q == GRIR_ROOTCAUSE_Q: return process_grir_root_causes(q, history)
+    if q == GRIR_WC_Q:        return process_grir_working_capital(q, history)
+    if q == GRIR_FOLLOWUP_Q:  return process_grir_vendor_followup(q, history)
+    if q == "Spending Overview":    return _quick_spending_overview()
+    if q == "Vendor Analysis":      return _quick_vendor_analysis()
+    if q == "Payment Performance":  return _quick_payment_performance()
+    if q == "Invoice Aging":        return _quick_invoice_aging()
+
+    # ── RELEVANCE GATE — must pass before any LLM or Athena call ──────────────
+    # This is the definitive check. If it returns False, no SQL is generated,
+    # no Bedrock call is made, no data is returned — only the default message.
+    if not is_relevant_question(q):
+        return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": q}
+
+    # ── Procurement-confirmed: route to appropriate handler ───────────────────
+    lq = q.lower()
+    if any(kw in lq for kw in ["forecast cash outflow", "cash flow forecast"]):
+        return process_cash_flow_forecast(q, history)
+    if any(kw in lq for kw in ["pay early", "capture discounts"]):
+        return process_early_payment(q, history)
+    if "optimal payment timing" in lq:
+        return process_payment_timing(q, history)
+    if "late payment trend" in lq:
+        return process_late_payment_trend(q, history)
+
+    # Default: generate SQL from free-text question
+    return process_custom_query(q, history)
 
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
+        # Skip cache entirely for out-of-domain questions
+        # (avoids serving stale procurement responses for greetings)
+        if not is_relevant_question(user_question):
+            result = {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": user_question}
+            st.session_state.current_messages = [
+                {"role": "user",      "content": user_question,         "timestamp": datetime.now()},
+                {"role": "assistant", "content": OUT_OF_DOMAIN_MSG,
+                 "response": result,  "timestamp": datetime.now()},
+            ]
+            st.rerun()
+            return
+
         cached=get_cache(user_question)
         if cached:
             st.session_state.current_messages=[
@@ -1711,7 +1770,7 @@ def export_conversation_md():
         lines.append(f"**Summary**\n\n{st.session_state.conversation_summary}\n\n---\n")
     for msg in st.session_state.current_messages:
         lines.append(f"{'**User**' if msg['role']=='user' else '**Genie**'}\n\n{msg['content']}\n\n---\n")
-    st.download_button("📥 Download MD",data="\n".join(lines),
+    st.download_button("Download MD",data="\n".join(lines),
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
@@ -2076,8 +2135,7 @@ def main():
     elif pg=="Forecast":  render_forecast()
     else:                 render_invoices()
 
-    # ── BG Button: always rendered at bottom-right after page content ──
-    st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+    # ── BG Button: fixed bottom-right (self-contained HTML/JS) ──
     render_bg_button_sidebar()
 
 if __name__=="__main__":
