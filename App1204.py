@@ -815,39 +815,34 @@ div[data-testid="stButton"].bg-circle-btn > button:hover {
 """, unsafe_allow_html=True)
 
     # ── Picker panel (opens above the button) ───────────────────
-    if st.session_state.show_bg_panel:
-        with st.container():
-            st.markdown("<div class='bg-picker-panel'>", unsafe_allow_html=True)
-            with st.container(border=True):
-                st.markdown(
-                    "<div style='font-size:11px;font-weight:700;color:#64748b;"
-                    "text-transform:uppercase;letter-spacing:0.6px;"
-                    "margin-bottom:4px;'>🎨 Background Colour</div>",
-                    unsafe_allow_html=True,
-                )
-                # ── Native colour picker ─────────────────────────────────
-                # Renders gradient saturation/brightness canvas,
-                # rainbow hue slider, and hex input — exactly like screenshot
-                safe_val = current_bg if (
-                    current_bg.startswith("#") and len(current_bg) in (4, 7)
-                ) else "#ffffff"
-                picked = st.color_picker(
-                    "bg", value=safe_val,
-                    key="bg_cp", label_visibility="collapsed",
-                )
-                if picked != current_bg:
-                    st.session_state["bg_color"] = picked
-                    st.session_state.show_bg_panel = False
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # ── Circular BG button — rendered in-place (caller positions it) ──
+    # ── BG button — circular pill ─────────────────────────────────
     st.markdown("<div class='bg-circle-btn'>", unsafe_allow_html=True)
     lbl = "✕" if st.session_state.show_bg_panel else "BG"
     if st.button(lbl, key="bg_pill_btn", use_container_width=True):
         st.session_state.show_bg_panel = not st.session_state.show_bg_panel
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Picker panel: opens above the button ─────────────────────
+    if st.session_state.show_bg_panel:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-size:10px;font-weight:700;color:#64748b;"
+                "text-transform:uppercase;letter-spacing:0.6px;"
+                "margin-bottom:4px;'>🎨 BG</div>",
+                unsafe_allow_html=True,
+            )
+            safe_val = current_bg if (
+                current_bg.startswith("#") and len(current_bg) in (4, 7)
+            ) else "#ffffff"
+            picked = st.color_picker(
+                "bg", value=safe_val,
+                key="bg_cp", label_visibility="collapsed",
+            )
+            if picked != current_bg:
+                st.session_state["bg_color"] = picked
+                st.session_state.show_bg_panel = False
+                st.rerun()
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=600, show_spinner=False)
@@ -1644,7 +1639,7 @@ def render_charts(rng_start, rng_end, vendor_where):
     )
 
     # Three-column layout: Status Distribution | Top 10 Vendors | Spend Trend
-    col1, col2, col3 = st.columns(3, gap="medium")
+    col1, col2, col3, col_bg = st.columns([1, 1, 1, 0.12], gap="small")
 
     with col1:
         with st.container(border=True):
@@ -1726,10 +1721,12 @@ def render_charts(rng_start, rng_end, vendor_where):
                 ).properties(height=280),
                 use_container_width=True,
             )
-            # ── BG button: bottom-right corner inside Spend Trend container ──
-            _sp, _bg = st.columns([0.82, 0.18])
-            with _bg:
-                render_bg_button_sidebar()
+
+
+    with col_bg:
+        # Position BG button at mid-height of the chart (charts are ~330px tall)
+        st.markdown("<div style='height:148px;'></div>", unsafe_allow_html=True)
+        render_bg_button_sidebar()
 
 def render_dashboard():
     """
