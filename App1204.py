@@ -35,13 +35,18 @@ BG_COLOR_OPTIONS = {
 }
 
 def compute_range_preset(preset: str):
+    """
+    Date range definitions:
+      YTD        = last 365 days  (today-365 → today)
+      QTD        = last 120 days  (today-120 → today)
+      Last 30 Days = last 30 days (today-30  → today)
+      Custom     = user-defined
+    """
     today = date.today()
     if preset == "Last 30 Days": return today - timedelta(days=30), today
-    if preset == "QTD":
-        start = date(today.year, ((today.month-1)//3)*3+1, 1)
-        return start, today
-    if preset == "YTD": return date(today.year, 1, 1), today
-    return today.replace(day=1), today
+    if preset == "QTD":          return today - timedelta(days=120), today
+    if preset == "YTD":          return today - timedelta(days=365), today
+    return today - timedelta(days=30), today   # fallback = last 30 days
 
 # ── utils ────────────────────────────────────────────────────
 def safe_number(val, default=0.0):
