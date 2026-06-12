@@ -1762,52 +1762,64 @@ def render_charts(rng_start, rng_end, vendor_where):
 
     with col_bg:
         st.markdown("<div style='height:230px;'></div>", unsafe_allow_html=True)
+        current_bg = st.session_state.get("bg_color", "#ffffff")
+        safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+
+        # Wrap both widgets in a relative container so absolute positioning works
         st.markdown("""
 <style>
-/* Swatch button: invisible but clickable underneath */
+/* Wrapper that holds both buttons stacked */
+div[data-testid="stColorPicker"] {
+    position: relative !important;
+    width: 52px !important;
+    height: 52px !important;
+}
+/* Swatch: full size, transparent, on top to receive clicks */
 div[data-testid="stColorPicker"] button {
-    width:52px!important; height:52px!important;
-    min-width:52px!important; min-height:52px!important;
-    border-radius:50%!important;
-    opacity:0!important;
-    cursor:pointer!important;
-    position:relative!important; z-index:2!important;
-    display:block!important; visibility:visible!important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important;
+    width: 52px !important; height: 52px !important;
+    min-width: 52px !important; min-height: 52px !important;
+    border-radius: 50% !important;
+    opacity: 0 !important;
+    z-index: 10 !important;
+    cursor: pointer !important;
+    display: block !important;
+    visibility: visible !important;
 }
-div[data-testid="stColorPicker"] label { display:none!important; }
-/* BG named button: visible circle sitting behind/over swatch */
-button[aria-label="BG"],
-div[data-testid="stButton"]:has(button[aria-label="BG"]) button {
-    width:52px!important; height:52px!important;
-    min-width:52px!important; min-height:52px!important;
-    border-radius:50%!important; padding:0!important;
-    background:white!important; color:#374151!important;
-    border:2px solid #e5e7eb!important;
-    box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
-    font-size:13px!important; font-weight:700!important;
-    cursor:pointer!important;
-    position:relative!important; z-index:1!important;
-    margin-top:-52px!important;
-    display:block!important;
-}
-button[aria-label="BG"]:hover {
-    transform:scale(1.08)!important;
-    box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
-}
+div[data-testid="stColorPicker"] label { display: none !important; }
+/* BG button container: absolute, same position as swatch */
 div[data-testid="stButton"]:has(button[aria-label="BG"]) {
-    margin-top:-52px!important;
-    height:52px!important;
-    position:relative!important; z-index:1!important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important;
+    width: 52px !important; height: 52px !important;
+    z-index: 5 !important;
+    margin: 0 !important; padding: 0 !important;
+}
+/* BG button itself: visible white circle */
+button[aria-label="BG"] {
+    width: 52px !important; height: 52px !important;
+    min-width: 52px !important; min-height: 52px !important;
+    border-radius: 50% !important; padding: 0 !important;
+    background: white !important; color: #374151 !important;
+    border: 2px solid #e5e7eb !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.14) !important;
+    font-size: 13px !important; font-weight: 700 !important;
+    cursor: pointer !important;
+    display: block !important;
 }
 </style>
 """, unsafe_allow_html=True)
-        current_bg = st.session_state.get("bg_color", "#ffffff")
-        safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+
+        # Inject a relative wrapper so absolute positioning of children works
+        st.markdown("<div style='position:relative;width:52px;height:52px;'>",
+                    unsafe_allow_html=True)
         picked = st.color_picker("bg", value=safe_val, key="bg_cp", label_visibility="collapsed")
         if picked != current_bg:
             st.session_state["bg_color"] = picked
             st.rerun()
         st.button("BG", key="bg_pill_btn", use_container_width=False)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_dashboard():
