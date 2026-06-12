@@ -1798,48 +1798,44 @@ div[data-testid="stColorPicker"] button {
             st.session_state["show_bg_panel"] = not _bg_open
             st.rerun()
 
-    # Picker: JS auto-clicks the swatch so gradient canvas opens immediately
+    # Picker: native HTML color input — opens immediately on BG click
     if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
             _cur  = st.session_state.get("bg_color", "#ffffff")
             _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
-            st.markdown("""
-<style>
-div[data-testid="stColorPicker"] label { display:none!important; }
-div[data-testid="stColorPicker"] button {
-    width:0!important; height:0!important;
-    padding:0!important; margin:0!important;
-    border:none!important; background:transparent!important;
-    position:absolute!important; opacity:0!important;
-    pointer-events:auto!important;
-}
-</style>""", unsafe_allow_html=True)
-            from streamlit.components.v1 import html as st_html
-            st_html("""
-<script>
-function clickPicker() {
-    var docs = [document];
-    try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch(e){}
-    for (var d=0; d<docs.length; d++) {
-        var btns = docs[d].querySelectorAll('div[data-testid="stColorPicker"] button');
-        if (btns.length > 0) { btns[btns.length-1].click(); return true; }
-    }
-    return false;
-}
-var tries = 0;
-var interval = setInterval(function() {
-    if (clickPicker() || tries++ > 20) clearInterval(interval);
-}, 100);
-</script>
-""", height=0)
-            _picked = st.color_picker(
-                "bg", value=_safe,
-                key="bg_cp", label_visibility="collapsed",
-            )
-            if _picked != _cur:
-                st.session_state["bg_color"] = _picked
-                st.rerun()
+            import streamlit.components.v1 as components
+            _result = components.html(f"""
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:8px;font-family:sans-serif;background:transparent;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <input type="color" id="bgpicker" value="{_safe}"
+      style="width:52px;height:52px;border:2px solid #e5e7eb;border-radius:50%;
+             cursor:pointer;padding:2px;outline:none;background:none;">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#374151;">Background Colour</div>
+      <div id="hexval" style="font-size:12px;color:#6b7280;margin-top:2px;">{_safe}</div>
+    </div>
+  </div>
+  <script>
+    var picker = document.getElementById('bgpicker');
+    // Open immediately
+    picker.click();
+    picker.addEventListener('input', function() {{
+      document.getElementById('hexval').innerText = picker.value;
+    }});
+    picker.addEventListener('change', function() {{
+      window.parent.Streamlit.setComponentValue(picker.value);
+    }});
+  </script>
+</body>
+</html>
+""", height=80)
+            if _result and isinstance(_result, str) and _result.startswith("#"):
+                if _result != _cur:
+                    st.session_state["bg_color"] = _result
+                    st.rerun()
 
 
 def render_dashboard():
