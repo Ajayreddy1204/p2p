@@ -3597,7 +3597,7 @@ def render_invoices():
 # ── Main app ──────────────────────────────────────────────────
 def main():
     init_db()
-    st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="ProcureSpendIQ", layout="wide", initial_sidebar_state="collapsed")
 
     if "bg_color" not in st.session_state:
         st.session_state["bg_color"] = "#ffffff"
