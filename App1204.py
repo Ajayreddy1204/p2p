@@ -875,17 +875,15 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    BG button: white circle. Click toggles colour picker panel.
-    Compatible with Streamlit < 1.31 (no st.popover).
+    BG button: white circle + colour picker always visible above it.
+    No toggle — picker is always shown when this function is called.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
-    if "show_bg_panel" not in st.session_state:
-        st.session_state.show_bg_panel = False
 
     st.markdown("""
 <style>
 /* White circle BG button */
-button[aria-label="BG"], button[aria-label="X"] {
+button[aria-label="BG"] {
     width:52px!important; height:52px!important;
     min-width:52px!important; min-height:52px!important;
     max-width:52px!important; max-height:52px!important;
@@ -897,51 +895,42 @@ button[aria-label="BG"], button[aria-label="X"] {
     outline:none!important; cursor:pointer!important;
     line-height:52px!important; text-align:center!important;
 }
-button[aria-label="BG"]:hover, button[aria-label="X"]:hover {
+button[aria-label="BG"]:hover {
     transform:scale(1.08)!important;
     box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
     background:#f9fafb!important;
 }
-button[aria-label="BG"]:focus, button[aria-label="BG"]:active,
-button[aria-label="X"]:focus,  button[aria-label="X"]:active {
+button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
     background:white!important; outline:none!important;
     box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
 }
-div[data-testid="stButton"]:has(button[aria-label="BG"]),
-div[data-testid="stButton"]:has(button[aria-label="X"]) {
+div[data-testid="stButton"]:has(button[aria-label="BG"]) {
     width:56px!important; max-width:56px!important; padding:0!important;
 }
-/* Colour picker: hide label AND swatch button */
+/* Hide colour picker swatch button — show canvas only */
 div[data-testid="stColorPicker"] label { display:none!important; }
-div[data-testid="stColorPicker"] button { 
-    display:none!important; 
-    visibility:hidden!important;
+div[data-testid="stColorPicker"] button {
+    display:none!important; visibility:hidden!important;
     width:0!important; height:0!important;
     position:absolute!important; pointer-events:none!important;
-}
-div[data-testid="stColorPicker"] > div > div {
-    border:none!important; padding:0!important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-    # Colour picker shown ABOVE the button when open
-    if st.session_state.show_bg_panel:
-        safe_val = current_bg if (
-            current_bg.startswith("#") and len(current_bg) in (4, 7)
-        ) else "#ffffff"
-        picked = st.color_picker(
-            "bg", value=safe_val,
-            key="bg_cp", label_visibility="collapsed",
-        )
-        if picked != current_bg:
-            st.session_state["bg_color"] = picked
-            st.rerun()
-
-    # Circle BG button
-    if st.button("BG", key="bg_pill_btn", use_container_width=False):
-        st.session_state.show_bg_panel = not st.session_state.show_bg_panel
+    # ── Always show colour picker above BG button ─────────────────────────────
+    safe_val = current_bg if (
+        current_bg.startswith("#") and len(current_bg) in (4, 7)
+    ) else "#ffffff"
+    picked = st.color_picker(
+        "bg", value=safe_val,
+        key="bg_cp", label_visibility="collapsed",
+    )
+    if picked != current_bg:
+        st.session_state["bg_color"] = picked
         st.rerun()
+
+    # ── White circle BG button (decorative — picker is always visible) ─────────
+    st.button("BG", key="bg_pill_btn", use_container_width=False)
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=600, show_spinner=False)
@@ -1699,7 +1688,7 @@ def render_charts(rng_start, rng_end, vendor_where):
     )
 
     # Three-column layout: Status Distribution | Top 10 Vendors | Spend Trend
-    col1, col2, col3, col_bg = st.columns([1, 1, 1, 0.14], gap="small")
+    col1, col2, col3 = st.columns(3, gap="medium")
 
     with col1:
         with st.container(border=True):
@@ -1793,11 +1782,58 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
+    # ── BG button: right-aligned circle, picker opens below charts ───────────
+    _bg_open = st.session_state.get("show_bg_panel", False)
+    _, bg_col = st.columns([0.95, 0.05])
+    with bg_col:
+        st.markdown("""
+<style>
+button[aria-label="BG"] {
+    width:48px!important; height:48px!important;
+    min-width:48px!important; min-height:48px!important;
+    border-radius:50%!important; padding:0!important;
+    font-size:13px!important; font-weight:700!important;
+    background:white!important; color:#374151!important;
+    border:2px solid #e5e7eb!important;
+    box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
+    outline:none!important; cursor:pointer!important;
+}
+button[aria-label="BG"]:hover {
+    transform:scale(1.08)!important;
+    box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
+}
+button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
+    background:white!important; outline:none!important;
+}
+div[data-testid="stButton"]:has(button[aria-label="BG"]) {
+    width:52px!important; max-width:52px!important; padding:0!important;
+}
+</style>""", unsafe_allow_html=True)
+        if st.button("BG", key="bg_pill_btn", use_container_width=False):
+            st.session_state["show_bg_panel"] = not _bg_open
+            st.rerun()
 
-    with col_bg:
-        # Position BG button at mid-height of the chart (charts are ~330px tall)
-        st.markdown("<div style='height:270px;'></div>", unsafe_allow_html=True)
-        render_bg_button_sidebar()
+    if _bg_open:
+        _, picker_col = st.columns([0.55, 0.45])
+        with picker_col:
+            _cur = st.session_state.get("bg_color", "#ffffff")
+            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4,7)) else "#ffffff"
+            st.markdown("""
+<style>
+div[data-testid="stColorPicker"] label { display:none!important; }
+div[data-testid="stColorPicker"] button {
+    display:none!important; visibility:hidden!important;
+    width:0!important; height:0!important;
+    position:absolute!important; pointer-events:none!important;
+}
+</style>""", unsafe_allow_html=True)
+            _picked = st.color_picker("bg", value=_safe,
+                                      key="bg_cp", label_visibility="collapsed")
+            if _picked != _cur:
+                st.session_state["bg_color"] = _picked
+                st.session_state["show_bg_panel"] = False
+                st.rerun()
+
 
 def render_dashboard():
     """
