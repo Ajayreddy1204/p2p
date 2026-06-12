@@ -1782,7 +1782,6 @@ def render_charts(rng_start, rng_end, vendor_where):
                     {"status":"Disputed","cnt":33},{"status":"Other","cnt":30}])
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
-            # Only label slices ≥ 3% to avoid tiny overlapping labels
             status_df["pct_label"] = status_df["percentage"].apply(
                 lambda x: f"{x}%" if x >= 3.0 else ""
             )
@@ -1792,20 +1791,16 @@ def render_charts(rng_start, rng_end, vendor_where):
                 theta=alt.Theta("cnt:Q", stack=True),
                 color=alt.Color("status:N", scale=cs,
                                 legend=alt.Legend(
-                                    orient="bottom", title=None,
+                                    orient="right", title=None,
                                     labelFontSize=11, symbolSize=80,
-                                    columns=2,
                                 )),
             )
-            # Donut: innerRadius/outerRadius sized to leave room for labels
             donut = base_chart.mark_arc(
                 innerRadius=55, outerRadius=85, stroke="white", strokeWidth=2
             ).encode(tooltip=["status:N","cnt:Q","percentage:Q"])
-            # Percentage labels just outside the arc
             pct_text = base_chart.mark_text(
-                radius=102, size=10, fontWeight="bold", color="#374151"
+                radius=100, size=10, fontWeight="bold", color="#374151"
             ).encode(text=alt.Text("pct_label:N"))
-            # Centre: total count
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
                 fontSize=24, fontWeight="bold", color="#111827"
@@ -1815,7 +1810,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 fontSize=10, color="#6b7280", dy=16
             ).encode(text="t:N")
             st.altair_chart(
-                (donut + pct_text + ct + cl).properties(height=300),
+                (donut + pct_text + ct + cl).properties(height=280),
                 use_container_width=True,
             )
 
