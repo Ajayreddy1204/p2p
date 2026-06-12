@@ -1785,7 +1785,7 @@ def render_charts(rng_start, rng_end, vendor_where):
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
             status_df["pct_label"] = status_df["percentage"].apply(
-                lambda x: f"{x}%" if x >= 4.0 else ""
+                lambda x: f"{x}%" if x >= 5.0 else ""
             )
             cs = alt.Scale(domain=["Paid","Pending","Disputed","Other"],
                            range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
@@ -1799,19 +1799,19 @@ def render_charts(rng_start, rng_end, vendor_where):
                                 )),
             )
             donut = base_chart.mark_arc(
-                innerRadius=50, outerRadius=80,
+                innerRadius=48, outerRadius=72,
                 stroke="white", strokeWidth=2
             ).encode(tooltip=["status:N","cnt:Q","percentage:Q"])
             pct_text = base_chart.mark_text(
-                radius=94, size=10, fontWeight="bold", color="#374151"
+                radius=86, size=10, fontWeight="bold", color="#374151"
             ).encode(text=alt.Text("pct_label:N"))
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=22, fontWeight="bold", color="#111827"
+                fontSize=20, fontWeight="bold", color="#111827"
             ).encode(text="t:N")
             cl = alt.Chart(pd.DataFrame({"t":["TOTAL"]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=10, color="#6b7280", dy=14
+                fontSize=9, color="#6b7280", dy=13
             ).encode(text="t:N")
             st.altair_chart(
                 (donut + pct_text + ct + cl).properties(height=280),
@@ -2663,33 +2663,39 @@ div[data-testid="stForm"] {
     background: white !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 14px !important;
-    padding: 10px 14px !important;
+    padding: 8px 8px 8px 14px !important;
     box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
     margin-top: 10px !important;
     width: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
 }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important; align-items: center !important;
-    gap: 10px !important; width: 100% !important;
-    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
+/* Vertical block inside form: flex row */
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex: 1 !important;
 }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:first-child {
-    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+/* Text input: fills all available width */
+div[data-testid="stForm"] div[data-testid="stTextInput"] {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:last-child {
-    flex: 0 0 52px !important; width: 52px !important;
-    min-width: 52px !important; padding: 0 !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important; padding: 0 !important; margin: 0 !important;
+    width: 100% !important; padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     width: 100% !important;
-    height: 52px !important; min-height: 52px !important;
-    font-size: 14px !important; padding: 0 20px !important;
+    height: 50px !important; min-height: 50px !important;
+    font-size: 14px !important; padding: 0 18px !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 10px !important;
     background: #f8f9fa !important; color: #111827 !important;
@@ -2704,16 +2710,20 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important; font-size: 13.5px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+/* Submit button: inline circle at right */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-    width: 52px !important; height: 52px !important;
-    min-width: 52px !important; min-height: 52px !important;
+    flex-shrink: 0 !important;
+    width: 50px !important; height: 50px !important;
+    min-width: 50px !important; min-height: 50px !important;
     border-radius: 50% !important; padding: 0 !important;
     font-size: 18px !important; font-weight: 700 !important;
     background: #2563eb !important; color: white !important;
     border: none !important;
     box-shadow: 0 3px 12px rgba(37,99,235,0.30) !important;
-    line-height: 52px !important; text-align: center !important;
-    flex-shrink: 0 !important;
+    line-height: 50px !important; text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important; justify-content: center !important;
+    cursor: pointer !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     background: #1d4ed8 !important;
@@ -3296,16 +3306,13 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 pass  # end chat messages
 
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.88, 0.12])
-            with fi:
-                prefill = st.session_state.pop("genie_prefill", "")
-                uq = st.text_input(
-                    "q", value=prefill,
-                    placeholder="Ask a procurement question…",
-                    label_visibility="collapsed",
-                )
-            with fb:
-                submitted = st.form_submit_button("->", type="primary", use_container_width=True)
+            prefill = st.session_state.pop("genie_prefill", "")
+            uq = st.text_input(
+                "q", value=prefill,
+                placeholder="Ask a procurement question…",
+                label_visibility="collapsed",
+            )
+            submitted = st.form_submit_button("->", type="primary")
             if submitted and uq:
                 process_user_question(uq)
 
