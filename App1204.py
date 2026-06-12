@@ -1814,7 +1814,10 @@ def render_charts(rng_start, rng_end, vendor_where):
                 fontSize=9, color="#6b7280", dy=13
             ).encode(text="t:N")
             st.altair_chart(
-                (donut + pct_text + ct + cl).properties(height=280),
+                (donut + pct_text + ct + cl)
+                .properties(height=280)
+                .configure_view(strokeWidth=0)
+                .configure(padding={"top": 14, "bottom": 14, "left": 10, "right": 10}),
                 use_container_width=True,
             )
 
@@ -2672,19 +2675,31 @@ div[data-testid="stForm"] {
     align-items: center !important;
     gap: 8px !important;
 }
-/* Vertical block inside form: flex row */
-div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+/* Horizontal block inside form: no gaps */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
-    flex-direction: row !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100% !important;
-    flex: 1 !important;
+    flex-wrap: nowrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
-/* Text input: fills all available width */
-div[data-testid="stForm"] div[data-testid="stTextInput"] {
-    flex: 1 1 auto !important;
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 0% !important;
     min-width: 0 !important;
+    padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    padding: 0 !important;
+}
+/* Text input fills its column */
+div[data-testid="stForm"] div[data-testid="stTextInput"] {
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -3306,13 +3321,17 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 pass  # end chat messages
 
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            prefill = st.session_state.pop("genie_prefill", "")
-            uq = st.text_input(
-                "q", value=prefill,
-                placeholder="Ask a procurement question…",
-                label_visibility="collapsed",
-            )
-            submitted = st.form_submit_button("->", type="primary")
+            c_inp, c_btn = st.columns([0.91, 0.09], gap="small")
+            with c_inp:
+                prefill = st.session_state.pop("genie_prefill", "")
+                uq = st.text_input(
+                    "q", value=prefill,
+                    placeholder="Ask a procurement question…",
+                    label_visibility="collapsed",
+                )
+            with c_btn:
+                submitted = st.form_submit_button("->", type="primary",
+                                                  use_container_width=True)
             if submitted and uq:
                 process_user_question(uq)
 
