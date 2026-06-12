@@ -2587,9 +2587,13 @@ def process_user_question(user_question: str):
     st.rerun()
 
 def start_new_session():
-    st.session_state.genie_session_id=str(uuid.uuid4())
-    st.session_state.current_messages=[]; st.session_state.show_summary=False; st.session_state.conversation_summary=""
-    save_chat_session(st.session_state.genie_session_id,label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    st.session_state.genie_session_id = str(uuid.uuid4())
+    st.session_state.current_messages = []
+    st.session_state.show_summary = False
+    st.session_state.conversation_summary = ""
+    st.session_state["show_chats_panel"] = False  # close chats panel
+    save_chat_session(st.session_state.genie_session_id,
+                      label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
 def summarize_conversation():
@@ -3259,8 +3263,11 @@ button[kind="primary"][aria-label="Summarize"] {
                 st.markdown("**Conversation Summary**")
                 st.markdown(st.session_state.conversation_summary)
                 if st.button("Dismiss", key="dismiss_summary", use_container_width=True):
+                    # Clear everything so "Start a Conversation" empty state shows
                     st.session_state.show_summary = False
                     st.session_state.conversation_summary = ""
+                    st.session_state.current_messages = []
+                    st.session_state["show_chats_panel"] = False
                     st.rerun()
                 st.markdown("---")
 
