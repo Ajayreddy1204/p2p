@@ -868,111 +868,81 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 # ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
     """
-    BG colour picker — circular button bottom-right of Spend Trend chart.
-    Click opens a compact popup: gradient canvas + hue slider + hex input
-    (matches the screenshot exactly). Selecting a colour immediately sets
-    the app background. Called from render_charts() after the Spend Trend
-    container, so it sits visually at the bottom-right of that chart.
+    BG button: white circle, bottom-right of Spend Trend chart.
+    Click opens native st.color_picker (gradient + hue + hex) matching screenshot.
+    Colour applies immediately to dashboard background.
     """
     current_bg = st.session_state.get("bg_color", "#ffffff")
     if "show_bg_panel" not in st.session_state:
         st.session_state.show_bg_panel = False
 
-    # ── CSS: circular BG button ─────────────────────────────────
-    # ── BG circle button — inject CSS globally + render button ──────
+    # ── Colour picker opens first (above button) when active ─────────────────
+    if st.session_state.show_bg_panel:
+        safe_val = current_bg if (
+            current_bg.startswith("#") and len(current_bg) in (4, 7)
+        ) else "#ffffff"
+        # Native st.color_picker: gradient canvas + hue slider + hex input
+        picked = st.color_picker(
+            "Background colour", value=safe_val,
+            key="bg_cp", label_visibility="collapsed",
+        )
+        if picked != current_bg:
+            st.session_state["bg_color"] = picked
+            st.rerun()
+
+    # ── White circle BG button ────────────────────────────────────────────────
     st.markdown("""
 <style>
-/* === BG CIRCLE BUTTON — every possible selector === */
-
-/* Target the wrapper column that contains bg_pill_btn */
-div[data-testid="stColumn"]:has(button[data-testid="baseButton-secondary"]) {
-    min-width: 0 !important;
-    width: auto !important;
-    flex: none !important;
-}
-
-/* The button itself — all states */
-button[data-testid="baseButton-secondary"][aria-label="BG"],
-button[data-testid="baseButton-secondary"][aria-label="X"],
-button[data-testid="baseButton-secondary"][aria-label="BG"]:focus,
-button[data-testid="baseButton-secondary"][aria-label="BG"]:active,
-button[data-testid="baseButton-secondary"][aria-label="X"]:focus,
-button[data-testid="baseButton-secondary"][aria-label="X"]:active {
+/* White circle BG button */
+button[aria-label="BG"],
+button[aria-label="X"] {
     width:         52px !important;
-    min-width:     52px !important;
-    max-width:     52px !important;
     height:        52px !important;
+    min-width:     52px !important;
     min-height:    52px !important;
+    max-width:     52px !important;
     max-height:    52px !important;
     border-radius: 50% !important;
     padding:       0 !important;
-    margin:        0 !important;
     font-size:     13px !important;
     font-weight:   700 !important;
-    line-height:   52px !important;
-    text-align:    center !important;
     background:    white !important;
     color:         #374151 !important;
     border:        2px solid #e5e7eb !important;
-    box-shadow:    0 2px 12px rgba(0,0,0,0.15), 0 0 0 0 transparent !important;
+    box-shadow:    0 2px 10px rgba(0,0,0,0.14) !important;
     outline:       none !important;
     cursor:        pointer !important;
-    display:       flex !important;
-    align-items:   center !important;
-    justify-content: center !important;
-    flex-shrink:   0 !important;
-    overflow:      hidden !important;
-    transition:    box-shadow 0.18s ease, transform 0.18s ease !important;
+    line-height:   52px !important;
+    text-align:    center !important;
 }
-button[data-testid="baseButton-secondary"][aria-label="BG"]:hover,
-button[data-testid="baseButton-secondary"][aria-label="X"]:hover {
-    transform:    scale(1.1) !important;
-    box-shadow:   0 4px 18px rgba(0,0,0,0.20) !important;
+button[aria-label="BG"]:hover,
+button[aria-label="X"]:hover {
+    transform:    scale(1.08) !important;
+    box-shadow:   0 4px 16px rgba(0,0,0,0.20) !important;
     background:   #f9fafb !important;
-    border-color: #9ca3af !important;
 }
-/* Parent stButton div: constrain to circle size */
+button[aria-label="BG"]:focus,
+button[aria-label="BG"]:active,
+button[aria-label="X"]:focus,
+button[aria-label="X"]:active {
+    background:    white !important;
+    border-color:  #9ca3af !important;
+    box-shadow:    0 2px 10px rgba(0,0,0,0.14) !important;
+    outline:       none !important;
+}
 div[data-testid="stButton"]:has(button[aria-label="BG"]),
 div[data-testid="stButton"]:has(button[aria-label="X"]) {
-    width:     52px !important;
-    max-width: 52px !important;
-    min-width: 52px !important;
-    flex:      0 0 52px !important;
+    width:     56px !important;
+    max-width: 56px !important;
     padding:   0 !important;
-    margin:    0 !important;
 }
-/* Colour picker */
-.bg-picker-panel div[data-testid="stColorPicker"] label { display: none !important; }
-.bg-picker-panel div[data-testid="stColorPicker"] > div  { margin: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-    # ── BG circle button — use_container_width=False is critical ─────
     lbl = "X" if st.session_state.show_bg_panel else "BG"
     if st.button(lbl, key="bg_pill_btn", use_container_width=False):
         st.session_state.show_bg_panel = not st.session_state.show_bg_panel
         st.rerun()
-
-    # ── Picker panel: opens above the button ─────────────────────
-    if st.session_state.show_bg_panel:
-        with st.container(border=True):
-            st.markdown(
-                "<div style='font-size:10px;font-weight:700;color:#64748b;"
-                "text-transform:uppercase;letter-spacing:0.6px;"
-                "margin-bottom:4px;'>🎨 BG</div>",
-                unsafe_allow_html=True,
-            )
-            safe_val = current_bg if (
-                current_bg.startswith("#") and len(current_bg) in (4, 7)
-            ) else "#ffffff"
-            picked = st.color_picker(
-                "bg", value=safe_val,
-                key="bg_cp", label_visibility="collapsed",
-            )
-            if picked != current_bg:
-                st.session_state["bg_color"] = picked
-                st.session_state.show_bg_panel = False
-                st.rerun()
 
 # ── FIXED KPI fetching using correct view column names ───────
 @st.cache_data(ttl=600, show_spinner=False)
@@ -1388,94 +1358,102 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     else:
         df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"
 
-    # ── CSS injected once — all styling here, no JS class tagging ────────────
-    # Cards use unique per-card IDs injected via st.markdown so CSS targets them
-    # precisely without needing window.parent or class injection.
-    st.markdown("""
+    # ── All CSS injected once ─────────────────────────────────────────────────
+    st.markdown(f"""
 <style>
-/* ── NA outer wrapper ── */
-.na-outer {
+/* Outer NA container */
+.na-outer {{
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 16px 16px 12px 16px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 16px 16px 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     margin-bottom: 6px;
-}
-.na-title {
-    font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;
-}
-.na-title span { font-weight: 600; color: #6b7280; font-size: 14px; }
+}}
+/* Title */
+.na-title {{
+    font-size: 16px; font-weight: 800; color: #111827;
+    margin-bottom: 10px;
+}}
+.na-title span {{ font-weight: 600; color: #6b7280; font-size: 14px; }}
 
-/* ── Tab buttons ── */
-.na-tabs-row { margin-bottom: 10px; }
-.na-tabs-row button {
-    height: 42px !important;
-    min-height: 42px !important;
+/* Tab buttons */
+.na-tabs-row button {{
+    height: 44px !important;
+    min-height: 44px !important;
     border-radius: 999px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
-}
-.na-tabs-row button[kind="secondary"] {
-    background: #f3f4f6 !important;
     border: 1.5px solid #e0e0e0 !important;
+}}
+.na-tabs-row button[kind="secondary"] {{
+    background: #f3f4f6 !important;
     color: #374151 !important;
     box-shadow: none !important;
-}
-.na-tabs-row button[kind="primary"] {
+}}
+.na-tabs-row button[kind="primary"] {{
     background: #2563eb !important;
     color: white !important;
     border-color: #2563eb !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.28) !important;
-}
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
+}}
 
-/* ── Each individual card: target by unique data-na-card attribute ── */
-[data-na-card] {
+/* Card grid */
+.na-cards-grid {{
+    margin-top: 12px;
+}}
+/* Card containers */
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] {{
     background: #FFF0F2 !important;
     border: 1.5px solid #f5c6cb !important;
-    border-radius: 14px !important;
-    padding: 12px 12px 10px 12px !important;
-    box-shadow: 0 2px 6px rgba(229,57,53,0.07) !important;
-    margin-bottom: 0 !important;
-}
-
-/* ── Invoice number button inside a card ── */
-[data-na-card] button {
+    border-radius: 12px !important;
+    box-shadow: 0 1px 4px rgba(229,57,53,0.06) !important;
+    overflow: visible !important;
+}}
+/* Tighten internal card padding */
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"]
+  > div[data-testid="stVerticalBlock"] {{
+    padding: 8px 10px 8px 10px !important;
+    gap: 0 !important;
+}}
+/* Invoice number button in card */
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button {{
     background:    #f3f4f6 !important;
     border:        1px solid #d1d5db !important;
     border-radius: 8px !important;
     color:         #374151 !important;
     font-size:     13px !important;
     font-weight:   700 !important;
-    height:        30px !important;
-    min-height:    30px !important;
+    height:        28px !important;
+    min-height:    28px !important;
     padding:       0 10px !important;
     box-shadow:    none !important;
     outline:       none !important;
-    width: auto !important;
-    display: inline-block !important;
-}
-[data-na-card] button:hover {
-    background:  #ebebeb !important;
-    border-color:#9ca3af !important;
-    color:       #374151 !important;
-    box-shadow:  none !important;
-    outline:     none !important;
-}
-[data-na-card] button:focus,
-[data-na-card] button:focus-visible,
-[data-na-card] button:active {
+    white-space:   nowrap !important;
+    max-width:     none !important;
+    width:         auto !important;
+}}
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:hover {{
+    background:    #eff6ff !important;
+    border-color:  #2563eb !important;
+    color:         #2563eb !important;
+    box-shadow:    none !important;
+    outline:       none !important;
+}}
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:focus,
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:focus-visible,
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:active {{
     background:         #f3f4f6 !important;
     border-color:       #d1d5db !important;
     box-shadow:         none !important;
     -webkit-box-shadow: none !important;
     outline:            none !important;
     outline-width:      0 !important;
-}
+}}
 
-/* ── Pagination buttons ── */
-.na-page-row button {
+/* Pagination */
+.na-page-row button {{
     height: 38px !important;
     min-height: 38px !important;
     border-radius: 8px !important;
@@ -1484,14 +1462,17 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     border: 1px solid #e0e0e0 !important;
     color: #374151 !important;
     box-shadow: none !important;
-}
-.na-page-info {
-    text-align: center; color: #6b7280; font-size: 13px; padding: 8px 0;
-}
+}}
+.na-page-info {{
+    text-align: center; color: #6b7280;
+    font-size: 13px; padding: 8px 0;
+}}
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Outer wrapper ─────────────────────────────────────────────────────────
+    # ── Outer white container ─────────────────────────────────────────────────
+    st.markdown("<div class='na-outer'>", unsafe_allow_html=True)
+
     # Title
     st.markdown(
         f"<div class='na-title'>Needs Attention "
@@ -1499,7 +1480,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
         unsafe_allow_html=True,
     )
 
-    # Tab buttons (inside na-tabs-row div for CSS scoping)
+    # Tab buttons
     st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
     tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
     with tc1:
@@ -1516,130 +1497,68 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-
     if df.empty:
         st.markdown(
-            "<div style='padding:2rem;color:#64748b;text-align:center;'>"
+            "<div style='padding:1.5rem;color:#64748b;text-align:center;'>"
             "No items in this category</div>",
             unsafe_allow_html=True,
         )
     else:
         ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
-        si  = page * ipp; ei2 = min(si + ipp, tot)
-        page_df = df.iloc[si:ei2]; gi = 0
+        si2 = page * ipp; ei2 = min(si2 + ipp, tot)
+        page_df = df.iloc[si2:ei2]; gi = 0
 
-        # ── Card CSS: paint stVerticalBlockBorderWrapper as pink card ─────────
-        # Each card uses st.container(border=True). We inject per-card CSS
-        # using nth-child selectors relative to a unique parent wrapper.
-        # Inside each container: invoice st.button (grey pill) + HTML for the rest.
-        # st.button is INSIDE st.container so it renders inside the pink box.
-        # Nth-child approach: inject a unique class on each column div via
-        # a sequential CSS counter — reliable, no JS, no window.parent.
-
-        # Inject one global CSS block to style ALL card containers at once
-        st.markdown("""
-<style>
-/* Paint every stVerticalBlockBorderWrapper that is a direct child of a
-   stHorizontalBlock inside the na-grid-wrap as the pink card style */
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #FFF0F2 !important;
-    border: 1.5px solid #f5c6cb !important;
-    border-radius: 14px !important;
-    box-shadow: 0 2px 6px rgba(229,57,53,0.07) !important;
-    overflow: visible !important;
-}
-/* Invoice button inside card: grey pill */
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button {
-    background:    #f3f4f6 !important;
-    border:        1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    color:         #374151 !important;
-    font-size:     13px !important;
-    font-weight:   700 !important;
-    height:        30px !important;
-    min-height:    30px !important;
-    padding:       0 10px !important;
-    box-shadow:    none !important;
-    outline:       none !important;
-    width:         auto !important;
-    max-width:     none !important;
-    display:       inline-block !important;
-    white-space:   nowrap !important;
-    overflow:      visible !important;
-}
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button:hover {
-    background:    #eff6ff !important;
-    border-color:  #2563eb !important;
-    color:         #2563eb !important;
-    box-shadow:    none !important;
-    outline:       none !important;
-}
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button:focus,
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button:focus-visible,
-.na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button:active {
-    background:         #f3f4f6 !important;
-    border-color:       #d1d5db !important;
-    box-shadow:         none !important;
-    -webkit-box-shadow: none !important;
-    outline:            none !important;
-    outline-width:      0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-        # na-grid-wrap div wraps the columns — CSS above scopes to this div
-        st.markdown("<div class='na-grid-wrap'>", unsafe_allow_html=True)
+        # Card grid — scoped with .na-cards-grid
+        st.markdown("<div class='na-cards-grid'>", unsafe_allow_html=True)
 
         for chunk_start in range(0, len(page_df), 4):
             row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
-            cols = st.columns(4, gap="medium")
+            cols = st.columns(4, gap="small")
             for col, (_, r) in zip(cols, row_chunk.iterrows()):
                 with col:
-                    ref   = format_invoice_number(str(r.get("ref_no","—")).strip() or "—")
-                    vname = html.escape(str(r.get("vendor_name","—")))
+                    ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
+                    vname = html.escape(str(r.get("vendor_name", "—")))
                     amt   = safe_number(r.get("amount"))
                     ddr   = r.get("due_date")
                     dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
-                    bk    = f"na_btn_{si}_{gi}_{ref[:20]}"
+                    bk    = f"na_btn_{si2}_{gi}_{ref[:20]}"
 
                     with st.container(border=True):
-                        # ── Row 1: invoice number button + status label ──────────
-                        # No inner st.columns — they squeeze the number.
-                        # Use full-width button + right-aligned status via CSS.
+                        # Invoice number button (full width, grey pill)
                         if st.button(ref, key=bk):
                             st.session_state["invoice_search_from_card"] = ref
                             st.session_state["page"] = "Invoices"
                             st.experimental_set_query_params(invoice=ref)
                             st.rerun()
+                        # Status label overlaid top-right
                         st.markdown(
-                            f"<div style='text-align:right;margin-top:-28px;"
+                            f"<div style='text-align:right;margin-top:-24px;"
                             f"font-size:11px;font-weight:700;color:{tc_color};'>"
                             f"{sl}</div>",
                             unsafe_allow_html=True,
                         )
-                        # ── Row 2: amount + due date (right) ──
+                        # Amount + due date right-aligned
                         st.markdown(
-                            f"<div style='text-align:right;margin-top:2px;'>"
+                            f"<div style='text-align:right;'>"
                             f"<div style='font-size:14px;font-weight:800;"
                             f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
-                            f"<div style='font-size:10px;color:#9ca3af;"
-                            f"margin-top:1px;'>Due: {dd}</div></div>",
+                            f"<div style='font-size:10px;color:#9ca3af;'>"
+                            f"Due: {dd}</div></div>",
                             unsafe_allow_html=True,
                         )
-                        # ── Row 3: vendor name (bottom-left) ──
+                        # Vendor name bottom-left
                         st.markdown(
                             f"<div style='font-size:11px;color:#6b7280;"
-                            f"margin-top:2px;'>{vname}</div>",
+                            f"margin-top:1px;'>{vname}</div>",
                             unsafe_allow_html=True,
                         )
                     gi += 1
-            st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)  # na-grid-wrap
+        st.markdown("</div>", unsafe_allow_html=True)  # na-cards-grid
 
-        # ── Pagination ────────────────────────────────────────────────────────
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+        # Pagination
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
         st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
         pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
         with pc1:
@@ -1667,9 +1586,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     "font-size:13px;'>Next →</div>",
                     unsafe_allow_html=True,
                 )
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)  # na-page-row
 
-    # end render_needs_attention
+    st.markdown("</div>", unsafe_allow_html=True)  # na-outer
 
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
@@ -1772,7 +1691,7 @@ def render_charts(rng_start, rng_end, vendor_where):
     )
 
     # Three-column layout: Status Distribution | Top 10 Vendors | Spend Trend
-    col1, col2, col3, col_bg = st.columns([1, 1, 1, 0.12], gap="small")
+    col1, col2, col3, col_bg = st.columns([1, 1, 1, 0.14], gap="small")
 
     with col1:
         with st.container(border=True):
@@ -1805,7 +1724,7 @@ def render_charts(rng_start, rng_end, vendor_where):
             )
             donut = base_chart.mark_arc(
                 innerRadius=36, outerRadius=56,
-                stroke="white", strokeWidth=2
+                stroke="white", strokeWidth=1
             ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
@@ -3597,7 +3516,7 @@ def render_invoices():
 # ── Main app ──────────────────────────────────────────────────
 def main():
     init_db()
-    st.set_page_config(page_title="ProcureSpendIQ", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
     if "bg_color" not in st.session_state:
         st.session_state["bg_color"] = "#ffffff"
