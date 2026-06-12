@@ -816,6 +816,13 @@ def inject_dashboard_css():
         text-align:center; height:100%; display:flex; flex-direction:column; }}
     .quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 0.4rem 0; }}
     .quick-card p  {{ font-size:0.8rem; color:#64748b; flex-grow:1; margin:0 0 0.8rem 0; }}
+    /* ── Hide st.color_picker swatch button (coloured square) ── */
+    div[data-testid="stColorPicker"] button {{
+        display: none !important;
+        width: 0 !important; height: 0 !important;
+        overflow: hidden !important; opacity: 0 !important;
+        pointer-events: none !important;
+    }}
     /* ── BG CIRCLE BUTTON — global, fires on every page ── */
     button[data-testid="baseButton-secondary"][aria-label="BG"],
     button[data-testid="baseButton-secondary"][aria-label="X"] {{
@@ -923,8 +930,7 @@ div[data-testid="stColorPicker"] label { display:none!important; }
             st.rerun()
 
     # Circle BG button
-    lbl = "X" if st.session_state.show_bg_panel else "BG"
-    if st.button(lbl, key="bg_pill_btn", use_container_width=False):
+    if st.button("BG", key="bg_pill_btn", use_container_width=False):
         st.session_state.show_bg_panel = not st.session_state.show_bg_panel
         st.rerun()
 
@@ -3511,8 +3517,9 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    if "bg_color" not in st.session_state:
-        st.session_state["bg_color"] = "#ffffff"
+    # Force reset to white — clear any accidentally applied colour
+    st.session_state["bg_color"] = "#ffffff"
+    st.session_state["show_bg_panel"] = False
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
