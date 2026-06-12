@@ -1798,19 +1798,35 @@ div[data-testid="stColorPicker"] button {
             st.session_state["show_bg_panel"] = not _bg_open
             st.rerun()
 
-    # Picker: shows immediately on BG click, color applies to ALL tabs via inject_dashboard_css
+    # Picker: auto-clicks the hidden swatch button via JS so picker opens immediately
     if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
             _cur  = st.session_state.get("bg_color", "#ffffff")
             _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
+            # Inject JS to auto-click the color picker's hidden swatch button
+            st.markdown("""
+<script>
+(function autoClickPicker() {
+    function tryClick() {
+        var pickers = window.parent.document.querySelectorAll(
+            'div[data-testid="stColorPicker"] button'
+        );
+        if (pickers.length > 0) {
+            pickers[pickers.length - 1].click();
+        } else {
+            setTimeout(tryClick, 100);
+        }
+    }
+    setTimeout(tryClick, 150);
+})();
+</script>
+""", unsafe_allow_html=True)
             _picked = st.color_picker(
                 "Background colour", value=_safe,
                 key="bg_cp", label_visibility="collapsed",
             )
             if _picked != _cur:
-                # Store colour — inject_dashboard_css() reads this on every render
-                # so colour applies to .stApp across Dashboard, Genie, Forecast, Invoices
                 st.session_state["bg_color"] = _picked
                 st.rerun()
 
