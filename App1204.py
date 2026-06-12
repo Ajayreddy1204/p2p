@@ -1349,27 +1349,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     # ── All CSS injected once ─────────────────────────────────────────────────
     st.markdown(f"""
 <style>
-/* Outer NA container — styled via stVerticalBlockBorderWrapper */
-.na-outer {{
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 16px 16px 14px 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    margin-bottom: 6px;
-}}
-/* Override st.container border to match design */
-section.main div[data-testid="stVerticalBlockBorderWrapper"]:has(
-    div[class*="na-title"],
-    button[aria-label*="Overdue"],
-    button[aria-label*="Disputed"]
-) {{
-    border: 1px solid #e5e7eb !important;
-    border-radius: 14px !important;
-    padding: 16px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
-    background: white !important;
-}}
 /* Title */
 .na-title {{
     font-size: 16px; font-weight: 800; color: #111827;
@@ -3573,7 +3552,10 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Reset bg to white on every fresh load — prevents stuck colours
+    # Clear any stored background colour — always start white
+    for _k in ["bg_color", "bg_step", "show_bg_panel", "bg_cp"]:
+        if _k in st.session_state:
+            del st.session_state[_k]
     st.session_state["bg_color"] = "#ffffff"
     st.session_state["bg_step"] = 0
     st.session_state["show_bg_panel"] = False
