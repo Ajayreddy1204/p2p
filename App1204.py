@@ -1818,7 +1818,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 fontSize=10, color="#6b7280", dy=14
             ).encode(text="t:N")
             st.altair_chart(
-                (donut + pct_text + ct + cl).properties(height=260),
+                (donut + pct_text + ct + cl).properties(height=310),
                 use_container_width=True,
             )
 
