@@ -1798,32 +1798,33 @@ div[data-testid="stColorPicker"] button {
             st.session_state["show_bg_panel"] = not _bg_open
             st.rerun()
 
-    # Picker: auto-clicks the hidden swatch button via JS so picker opens immediately
+    # Picker: JS auto-clicks the swatch so gradient canvas opens immediately
     if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
             _cur  = st.session_state.get("bg_color", "#ffffff")
             _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
-            # Inject JS to auto-click the color picker's hidden swatch button
             st.markdown("""
+<style>
+div[data-testid="stColorPicker"] label { display:none!important; }
+div[data-testid="stColorPicker"] button {
+    width:0!important; height:0!important;
+    min-width:0!important; min-height:0!important;
+    padding:0!important; margin:0!important;
+    border:none!important; background:transparent!important;
+    position:absolute!important; opacity:0!important;
+    pointer-events:auto!important;
+}
+</style>
 <script>
-(function autoClickPicker() {
-    function tryClick() {
-        var pickers = window.parent.document.querySelectorAll(
-            'div[data-testid="stColorPicker"] button'
-        );
-        if (pickers.length > 0) {
-            pickers[pickers.length - 1].click();
-        } else {
-            setTimeout(tryClick, 100);
-        }
-    }
-    setTimeout(tryClick, 150);
-})();
+setTimeout(function() {
+    var btns = document.querySelectorAll('div[data-testid="stColorPicker"] button');
+    if (btns.length > 0) { btns[btns.length-1].click(); }
+}, 200);
 </script>
 """, unsafe_allow_html=True)
             _picked = st.color_picker(
-                "Background colour", value=_safe,
+                "bg", value=_safe,
                 key="bg_cp", label_visibility="collapsed",
             )
             if _picked != _cur:
