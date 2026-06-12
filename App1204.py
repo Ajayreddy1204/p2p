@@ -691,6 +691,21 @@ def save_chat_session(session_id: str, label: str = None):
         (session_id, label, session_id, datetime.now(), session_id, datetime.now(), get_current_user()))
     conn.commit(); conn.close()
 
+def load_session_messages(session_id: str) -> list:
+    """Load all messages for a session from the DB (used to resume a conversation)."""
+    conn = sqlite3.connect(DB_PATH); c = conn.cursor()
+    c.execute('''SELECT role, content, sql_used, source, timestamp
+                 FROM chat_messages
+                 WHERE session_id = ?
+                 ORDER BY turn_index ASC, timestamp ASC''', (session_id,))
+    rows = c.fetchall(); conn.close()
+    return [
+        {"role": r[0], "content": r[1], "sql_used": r[2],
+         "source": r[3], "timestamp": r[4]}
+        for r in rows
+    ]
+
+
 def save_question(query, analysis_type):
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('INSERT INTO question_history (normalized_query,query_text,user_name,analysis_type,asked_at) VALUES (?,?,?,?,?)',
