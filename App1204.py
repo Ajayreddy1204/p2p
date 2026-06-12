@@ -1809,20 +1809,30 @@ div[data-testid="stColorPicker"] button {
 div[data-testid="stColorPicker"] label { display:none!important; }
 div[data-testid="stColorPicker"] button {
     width:0!important; height:0!important;
-    min-width:0!important; min-height:0!important;
     padding:0!important; margin:0!important;
     border:none!important; background:transparent!important;
     position:absolute!important; opacity:0!important;
     pointer-events:auto!important;
 }
-</style>
+</style>""", unsafe_allow_html=True)
+            from streamlit.components.v1 import html as st_html
+            st_html("""
 <script>
-setTimeout(function() {
-    var btns = document.querySelectorAll('div[data-testid="stColorPicker"] button');
-    if (btns.length > 0) { btns[btns.length-1].click(); }
-}, 200);
+function clickPicker() {
+    var docs = [document];
+    try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch(e){}
+    for (var d=0; d<docs.length; d++) {
+        var btns = docs[d].querySelectorAll('div[data-testid="stColorPicker"] button');
+        if (btns.length > 0) { btns[btns.length-1].click(); return true; }
+    }
+    return false;
+}
+var tries = 0;
+var interval = setInterval(function() {
+    if (clickPicker() || tries++ > 20) clearInterval(interval);
+}, 100);
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
             _picked = st.color_picker(
                 "bg", value=_safe,
                 key="bg_cp", label_visibility="collapsed",
