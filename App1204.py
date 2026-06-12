@@ -1784,40 +1784,39 @@ def render_charts(rng_start, rng_end, vendor_where):
                     {"status":"Disputed","cnt":33},{"status":"Other","cnt":30}])
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
-            status_df["pct_label"] = status_df["percentage"].apply(
-                lambda x: f"{x}%" if x >= 5.0 else ""
+            # Build legend label = "Paid 63.4%" — shows % clearly without arc clipping
+            status_df["legend_label"] = status_df.apply(
+                lambda r: f"{r['status']}  {r['percentage']}%", axis=1
             )
             cs = alt.Scale(domain=["Paid","Pending","Disputed","Other"],
                            range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
+            lcs = alt.Scale(
+                domain=status_df["legend_label"].tolist(),
+                range=["#22c55e","#f59e0b","#ef4444","#3b82f6"]
+            )
             base_chart = alt.Chart(status_df).encode(
                 theta=alt.Theta("cnt:Q", stack=True),
-                color=alt.Color("status:N", scale=cs,
+                color=alt.Color("legend_label:N", scale=lcs,
                                 legend=alt.Legend(
                                     orient="right", title=None,
-                                    labelFontSize=10, symbolSize=60,
-                                    labelLimit=60,
+                                    labelFontSize=11, symbolSize=80,
+                                    labelLimit=120,
                                 )),
             )
             donut = base_chart.mark_arc(
-                innerRadius=48, outerRadius=72,
+                innerRadius=52, outerRadius=80,
                 stroke="white", strokeWidth=2
-            ).encode(tooltip=["status:N","cnt:Q","percentage:Q"])
-            pct_text = base_chart.mark_text(
-                radius=86, size=10, fontWeight="bold", color="#374151"
-            ).encode(text=alt.Text("pct_label:N"))
+            ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=20, fontWeight="bold", color="#111827"
+                fontSize=22, fontWeight="bold", color="#111827"
             ).encode(text="t:N")
             cl = alt.Chart(pd.DataFrame({"t":["TOTAL"]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=9, color="#6b7280", dy=13
+                fontSize=10, color="#6b7280", dy=15
             ).encode(text="t:N")
             st.altair_chart(
-                (donut + pct_text + ct + cl)
-                .properties(height=280)
-                .configure_view(strokeWidth=0)
-                .configure(padding={"top": 14, "bottom": 14, "left": 10, "right": 10}),
+                (donut + ct + cl).properties(height=280),
                 use_container_width=True,
             )
 
@@ -2666,14 +2665,10 @@ div[data-testid="stForm"] {
     background: white !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 14px !important;
-    padding: 8px 8px 8px 14px !important;
+    padding: 8px 12px !important;
     box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
     margin-top: 10px !important;
     width: 100% !important;
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
 }
 /* Horizontal block inside form: no gaps */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
