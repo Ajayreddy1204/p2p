@@ -2855,15 +2855,30 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     padding: 14px 16px 12px 16px;
     box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
-/* Header buttons row */
+/* Header buttons — spaced, distinct, pill shaped */
 .genie-right-container .stHorizontalBlock button {
-    height: 34px !important;
-    min-height: 34px !important;
-    border-radius: 8px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 999px !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     white-space: nowrap !important;
-    padding: 0 12px !important;
+    padding: 0 16px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    background: white !important;
+    color: #374151 !important;
+    box-shadow: none !important;
+    margin: 0 3px !important;
+}
+.genie-right-container .stHorizontalBlock button:hover {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+    background: #f0f7ff !important;
+}
+.genie-right-container .stHorizontalBlock button[kind="primary"] {
+    background: #2563eb !important;
+    color: white !important;
+    border-color: #2563eb !important;
 }
 
 /* ── Empty state ── */
@@ -3122,7 +3137,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     with right_col:
         with st.container(border=True):
             # Header: title + action buttons
-            hc1, hc2, hc3, hc4, hc5 = st.columns([1.5, 0.7, 0.85, 0.85, 0.65])
+            hc1, hc2, hc3, hc4, hc5 = st.columns([1.5, 0.7, 0.85, 0.85, 0.65], gap="small")
             with hc1:
                 st.markdown("<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b>",
                             unsafe_allow_html=True)
