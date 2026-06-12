@@ -2628,12 +2628,12 @@ def render_genie():
     st.markdown("""
 <style>
 div[data-testid="stForm"] {
-    background: white !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    padding: 8px 12px !important;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
-    margin-top: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 8px 0 0 0 !important;
+    box-shadow: none !important;
+    margin-top: 8px !important;
     width: 100% !important;
 }
 /* Horizontal block inside form: no gaps */
@@ -2670,11 +2670,11 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     width: 100% !important;
-    height: 50px !important; min-height: 50px !important;
-    font-size: 14px !important; padding: 0 18px !important;
+    height: 46px !important; min-height: 46px !important;
+    font-size: 14px !important; padding: 0 16px !important;
     border: 1.5px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-    background: #f8f9fa !important; color: #111827 !important;
+    border-radius: 24px !important;
+    background: #f3f4f6 !important; color: #111827 !important;
     box-shadow: none !important; outline: none !important;
     box-sizing: border-box !important;
 }
@@ -3350,7 +3350,7 @@ button[kind="primary"][aria-label="Summarize"] {
                 prefill = st.session_state.pop("genie_prefill", "")
                 uq = st.text_input(
                     "q", value=prefill,
-                    placeholder="Ask a procurement question…",
+                    placeholder="Ask a question here…",
                     label_visibility="collapsed",
                 )
             with c_btn:
