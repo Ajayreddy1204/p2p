@@ -1770,40 +1770,37 @@ div[data-testid="stColorPicker"] {
     align-items:center!important;
 }
 div[data-testid="stColorPicker"] button {
-    width:56px!important; height:56px!important;
-    min-width:56px!important; min-height:56px!important;
+    width:52px!important; height:52px!important;
+    min-width:52px!important; min-height:52px!important;
     border-radius:50%!important; padding:0!important;
     background:white!important;
     border:2px solid #e5e7eb!important;
     box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
     cursor:pointer!important;
-    display:flex!important; align-items:center!important; justify-content:center!important;
     visibility:visible!important; opacity:1!important;
     position:relative!important;
+    overflow:hidden!important;
 }
 div[data-testid="stColorPicker"] button:hover {
     transform:scale(1.08)!important;
     box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
 }
-/* Hide the coloured swatch span inside button */
 div[data-testid="stColorPicker"] button > span {
     display:none!important;
 }
-/* Show BG label centered on button */
 div[data-testid="stColorPicker"] label {
     display:block!important;
     position:relative!important;
-    margin-top:-56px!important;
-    width:56px!important;
-    height:56px!important;
+    margin-top:-52px!important;
+    width:52px!important;
+    height:52px!important;
+    line-height:52px!important;
     text-align:center!important;
-    line-height:56px!important;
     font-size:13px!important;
     font-weight:700!important;
     color:#374151!important;
     pointer-events:none!important;
     z-index:10!important;
-    cursor:pointer!important;
 }
 </style>
 """, unsafe_allow_html=True)
