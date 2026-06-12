@@ -2860,6 +2860,9 @@ button[data-testid="baseButton-secondary"][aria-label="Chats"],
 button[data-testid="baseButton-primary"][aria-label="Chats"],
 button[data-testid="baseButton-secondary"][aria-label="Summarize"],
 button[data-testid="baseButton-primary"][aria-label="Summarize"],
+button[data-testid="baseButton-secondary"][aria-label="Export MD"] {
+    margin-right: 6px !important;
+}
 button[data-testid="baseButton-secondary"][aria-label="Export MD"],
 button[data-testid="baseButton-secondary"][aria-label="Clear"] {
     height: 38px !important;
@@ -3145,45 +3148,57 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
     with right_col:
         with st.container(border=True):
-            # Header: title + action buttons
-            hc1, hc2, hc3, hc4, hc5 = st.columns([1.2, 0.78, 0.92, 0.95, 0.78], gap="large")
-            with hc1:
+            # ── Inject CSS for this header's buttons — nth-child targets each column ──
+            st.markdown("""
+<style>
+/* Force spacing on every column in the buttons group */
+div[data-testid="stHorizontalBlock"]:has(
+    button[data-testid="baseButton-secondary"][aria-label="Chats"],
+    button[data-testid="baseButton-primary"][aria-label="Chats"]
+) > div[data-testid="column"] {
+    padding-left:  4px !important;
+    padding-right: 4px !important;
+    flex-shrink: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+            # Header: title (left) + 4 buttons (right)
+            title_col, btns_col = st.columns([1.2, 2.8], gap="small")
+            with title_col:
                 st.markdown("<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b>",
                             unsafe_allow_html=True)
-            with hc2:
-                chats_on = st.session_state.get("show_chats_panel", False)
-                if st.button("Chats", key="genie_chats_btn", use_container_width=True,
-                             type="primary" if chats_on else "secondary"):
-                    st.session_state["show_chats_panel"] = not chats_on
-                    st.rerun()
-            with hc3:
-                # Highlighted (primary) when summary is visible
-                sum_active = (st.session_state.get("show_summary", False)
-                              and bool(st.session_state.get("conversation_summary", "")))
-                if st.button("Summarize", key="summarize_top", use_container_width=True,
-                             type="primary" if sum_active else "secondary"):
-                    if st.session_state.current_messages:
-                        if sum_active:
-                            # Toggle off: hide summary
+            with btns_col:
+                b1, b2, b3, b4 = st.columns(4, gap="medium")
+                with b1:
+                    chats_on = st.session_state.get("show_chats_panel", False)
+                    if st.button("Chats", key="genie_chats_btn", use_container_width=True,
+                                 type="primary" if chats_on else "secondary"):
+                        st.session_state["show_chats_panel"] = not chats_on
+                        st.rerun()
+                with b2:
+                    sum_active = (st.session_state.get("show_summary", False)
+                                  and bool(st.session_state.get("conversation_summary", "")))
+                    if st.button("Summarize", key="summarize_top", use_container_width=True,
+                                 type="primary" if sum_active else "secondary"):
+                        if st.session_state.current_messages:
+                            if sum_active:
+                                st.session_state.show_summary = False
+                                st.session_state.conversation_summary = ""
+                            else:
+                                summarize_conversation()
+                            st.rerun()
+                        elif sum_active:
                             st.session_state.show_summary = False
                             st.session_state.conversation_summary = ""
-                        else:
-                            # Generate summary and highlight button
-                            summarize_conversation()   # sets show_summary=True internally
-                        st.rerun()
-                    elif sum_active:
-                        # Already showing summary — clicking again dismisses it
-                        st.session_state.show_summary = False
-                        st.session_state.conversation_summary = ""
-                        st.rerun()
-                    # No messages and no summary: do nothing silently
-            with hc4:
-                if st.button("Export MD", key="export_md_top", use_container_width=True):
-                    if st.session_state.current_messages or st.session_state.conversation_summary:
-                        export_conversation_md()
-            with hc5:
-                if st.button("Clear", key="clear_top", use_container_width=True):
-                    start_new_session()
+                            st.rerun()
+                with b3:
+                    if st.button("Export MD", key="export_md_top", use_container_width=True):
+                        if st.session_state.current_messages or st.session_state.conversation_summary:
+                            export_conversation_md()
+                with b4:
+                    if st.button("Clear", key="clear_top", use_container_width=True):
+                        start_new_session()
 
             st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
                         "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
