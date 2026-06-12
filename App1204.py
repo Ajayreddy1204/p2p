@@ -1805,7 +1805,7 @@ def render_charts(rng_start, rng_end, vendor_where):
             )
             donut = base_chart.mark_arc(
                 innerRadius=36, outerRadius=56,
-                stroke="white", strokeWidth=1
+                stroke="white", strokeWidth=2
             ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
@@ -3188,50 +3188,47 @@ button[kind="primary"][aria-label="Summarize"] {
 </style>
 """, unsafe_allow_html=True)
 
-            # Title left + 4 buttons right — no nested columns
-            row1, row2 = st.columns([1.1, 2.9])
-            with row1:
+            # Single flat row: title + 4 buttons (no nesting)
+            c_title, cb1, cb2, cb3, cb4 = st.columns([1.1, 0.72, 0.88, 0.88, 0.65])
+            with c_title:
                 st.markdown(
                     "<div style='display:flex;align-items:center;height:38px;'>"
                     "<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b></div>",
                     unsafe_allow_html=True,
                 )
-            with row2:
-                # 4 equal buttons with natural gap between columns
-                cb1, cb2, cb3, cb4 = st.columns([1, 1, 1, 1])
-                with cb1:
-                    chats_on = st.session_state.get("show_chats_panel", False)
-                    if st.button("Chats", key="genie_chats_btn",
-                                 use_container_width=True,
-                                 type="primary" if chats_on else "secondary"):
-                        st.session_state["show_chats_panel"] = not chats_on
-                        st.rerun()
-                with cb2:
-                    sum_active = (st.session_state.get("show_summary", False)
-                                  and bool(st.session_state.get("conversation_summary", "")))
-                    if st.button("Summarize", key="summarize_top",
-                                 use_container_width=True,
-                                 type="primary" if sum_active else "secondary"):
-                        if st.session_state.current_messages:
-                            if sum_active:
-                                st.session_state.show_summary = False
-                                st.session_state.conversation_summary = ""
-                            else:
-                                summarize_conversation()
-                            st.rerun()
-                        elif sum_active:
+            with cb1:
+                chats_on = st.session_state.get("show_chats_panel", False)
+                if st.button("Chats", key="genie_chats_btn",
+                             use_container_width=True,
+                             type="primary" if chats_on else "secondary"):
+                    st.session_state["show_chats_panel"] = not chats_on
+                    st.rerun()
+            with cb2:
+                sum_active = (st.session_state.get("show_summary", False)
+                              and bool(st.session_state.get("conversation_summary", "")))
+                if st.button("Summarize", key="summarize_top",
+                             use_container_width=True,
+                             type="primary" if sum_active else "secondary"):
+                    if st.session_state.current_messages:
+                        if sum_active:
                             st.session_state.show_summary = False
                             st.session_state.conversation_summary = ""
-                            st.rerun()
-                with cb3:
-                    if st.button("Export MD", key="export_md_top",
-                                 use_container_width=True):
-                        if st.session_state.current_messages or st.session_state.conversation_summary:
-                            export_conversation_md()
-                with cb4:
-                    if st.button("Clear", key="clear_top",
-                                 use_container_width=True):
-                        start_new_session()
+                        else:
+                            summarize_conversation()
+                        st.rerun()
+                    elif sum_active:
+                        st.session_state.show_summary = False
+                        st.session_state.conversation_summary = ""
+                        st.rerun()
+            with cb3:
+                if st.button("Export MD", key="export_md_top",
+                             use_container_width=True):
+                    if st.session_state.current_messages or st.session_state.conversation_summary:
+                        export_conversation_md()
+            with cb4:
+                if st.button("Clear", key="clear_top",
+                             use_container_width=True):
+                    start_new_session()
 
             st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
                         "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
