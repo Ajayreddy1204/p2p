@@ -1804,7 +1804,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                                 )),
             )
             donut = base_chart.mark_arc(
-                innerRadius=36, outerRadius=66,
+                innerRadius=36, outerRadius=56,
                 stroke="white", strokeWidth=1
             ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
