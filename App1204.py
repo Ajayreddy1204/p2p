@@ -1804,8 +1804,8 @@ def render_charts(rng_start, rng_end, vendor_where):
                                 )),
             )
             donut = base_chart.mark_arc(
-                innerRadius=36, outerRadius=56,
-                stroke="white", strokeWidth=1
+                innerRadius=42, outerRadius=62,
+                stroke="white", strokeWidth=2
             ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
@@ -3148,38 +3148,69 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
     with right_col:
         with st.container(border=True):
-            # ── Inject CSS for this header's buttons — nth-child targets each column ──
+            # ── CSS for the 4 header buttons matching screenshot ──────────────
             st.markdown("""
 <style>
-/* Force spacing on every column in the buttons group */
-div[data-testid="stHorizontalBlock"]:has(
-    button[data-testid="baseButton-secondary"][aria-label="Chats"],
-    button[data-testid="baseButton-primary"][aria-label="Chats"]
-) > div[data-testid="column"] {
-    padding-left:  4px !important;
-    padding-right: 4px !important;
-    flex-shrink: 0 !important;
+/* All 4 action buttons: grey pill, equal size */
+button[aria-label="Chats"],
+button[aria-label="Summarize"],
+button[aria-label="Export MD"],
+button[aria-label="Clear"] {
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 50px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    padding: 0 20px !important;
+    border: 1.5px solid #d1d5db !important;
+    background: white !important;
+    color: #374151 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+}
+button[aria-label="Chats"]:hover,
+button[aria-label="Summarize"]:hover,
+button[aria-label="Export MD"]:hover,
+button[aria-label="Clear"]:hover {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+    background: #f0f7ff !important;
+}
+/* Active = blue filled */
+button[kind="primary"][aria-label="Chats"],
+button[kind="primary"][aria-label="Summarize"] {
+    background: #2563eb !important;
+    color: white !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-            # Header: title (left) + 4 buttons (right)
-            title_col, btns_col = st.columns([1.2, 2.8], gap="small")
-            with title_col:
-                st.markdown("<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b>",
-                            unsafe_allow_html=True)
-            with btns_col:
-                b1, b2, b3, b4 = st.columns(4, gap="medium")
-                with b1:
+            # Title left + 4 buttons right — no nested columns
+            row1, row2 = st.columns([1.1, 2.9])
+            with row1:
+                st.markdown(
+                    "<div style='display:flex;align-items:center;height:38px;'>"
+                    "<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b></div>",
+                    unsafe_allow_html=True,
+                )
+            with row2:
+                # 4 equal buttons with natural gap between columns
+                cb1, cb2, cb3, cb4 = st.columns([1, 1, 1, 1])
+                with cb1:
                     chats_on = st.session_state.get("show_chats_panel", False)
-                    if st.button("Chats", key="genie_chats_btn", use_container_width=True,
+                    if st.button("Chats", key="genie_chats_btn",
+                                 use_container_width=True,
                                  type="primary" if chats_on else "secondary"):
                         st.session_state["show_chats_panel"] = not chats_on
                         st.rerun()
-                with b2:
+                with cb2:
                     sum_active = (st.session_state.get("show_summary", False)
                                   and bool(st.session_state.get("conversation_summary", "")))
-                    if st.button("Summarize", key="summarize_top", use_container_width=True,
+                    if st.button("Summarize", key="summarize_top",
+                                 use_container_width=True,
                                  type="primary" if sum_active else "secondary"):
                         if st.session_state.current_messages:
                             if sum_active:
@@ -3192,12 +3223,14 @@ div[data-testid="stHorizontalBlock"]:has(
                             st.session_state.show_summary = False
                             st.session_state.conversation_summary = ""
                             st.rerun()
-                with b3:
-                    if st.button("Export MD", key="export_md_top", use_container_width=True):
+                with cb3:
+                    if st.button("Export MD", key="export_md_top",
+                                 use_container_width=True):
                         if st.session_state.current_messages or st.session_state.conversation_summary:
                             export_conversation_md()
-                with b4:
-                    if st.button("Clear", key="clear_top", use_container_width=True):
+                with cb4:
+                    if st.button("Clear", key="clear_top",
+                                 use_container_width=True):
                         start_new_session()
 
             st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
