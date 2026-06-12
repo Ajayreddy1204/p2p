@@ -1793,13 +1793,9 @@ def render_charts(rng_start, rng_end, vendor_where):
                 theta=alt.Theta("cnt:Q", stack=True),
                 color=alt.Color("status:N", scale=cs,
                                 legend=alt.Legend(
-                                    orient="bottom",
-                                    title=None,
-                                    labelFontSize=10,
-                                    symbolSize=60,
-                                    columns=4,
-                                    columnPadding=4,
-                                    rowPadding=2,
+                                    orient="right", title=None,
+                                    labelFontSize=10, symbolSize=60,
+                                    labelLimit=60,
                                 )),
             )
             donut = base_chart.mark_arc(
@@ -1807,7 +1803,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 stroke="white", strokeWidth=2
             ).encode(tooltip=["status:N","cnt:Q","percentage:Q"])
             pct_text = base_chart.mark_text(
-                radius=95, size=10, fontWeight="bold", color="#374151"
+                radius=94, size=10, fontWeight="bold", color="#374151"
             ).encode(text=alt.Text("pct_label:N"))
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
@@ -1818,7 +1814,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 fontSize=10, color="#6b7280", dy=14
             ).encode(text="t:N")
             st.altair_chart(
-                (donut + pct_text + ct + cl).properties(height=310),
+                (donut + pct_text + ct + cl).properties(height=280),
                 use_container_width=True,
             )
 
