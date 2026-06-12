@@ -1770,8 +1770,8 @@ div[data-testid="stColorPicker"] {
     align-items:center!important;
 }
 div[data-testid="stColorPicker"] button {
-    width:52px!important; height:52px!important;
-    min-width:52px!important; min-height:52px!important;
+    width:104px!important; height:104px!important;
+    min-width:104px!important; min-height:104px!important;
     border-radius:50%!important; padding:0!important;
     background:white!important;
     border:2px solid #e5e7eb!important;
@@ -1791,12 +1791,12 @@ div[data-testid="stColorPicker"] button > span {
 div[data-testid="stColorPicker"] label {
     display:block!important;
     position:relative!important;
-    margin-top:-52px!important;
-    width:52px!important;
-    height:52px!important;
-    line-height:52px!important;
+    margin-top:-104px!important;
+    width:104px!important;
+    height:104px!important;
+    line-height:104px!important;
     text-align:center!important;
-    font-size:13px!important;
+    font-size:16px!important;
     font-weight:700!important;
     color:#374151!important;
     pointer-events:none!important;
