@@ -1764,61 +1764,52 @@ def render_charts(rng_start, rng_end, vendor_where):
         st.markdown("<div style='height:230px;'></div>", unsafe_allow_html=True)
         st.markdown("""
 <style>
-/* Hide the color text inside swatch, show label as BG */
 div[data-testid="stColorPicker"] {
     display:flex!important;
     flex-direction:column!important;
     align-items:center!important;
 }
-div[data-testid="stColorPicker"] label {
-    display:none!important;
-}
 div[data-testid="stColorPicker"] button {
-    width:52px!important; height:52px!important;
-    min-width:52px!important; min-height:52px!important;
+    width:56px!important; height:56px!important;
+    min-width:56px!important; min-height:56px!important;
     border-radius:50%!important; padding:0!important;
     background:white!important;
     border:2px solid #e5e7eb!important;
     box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
     cursor:pointer!important;
-    display:block!important; visibility:visible!important; opacity:1!important;
-    font-size:0!important;
-    color:transparent!important;
-    overflow:hidden!important;
-}
-/* Show BG text using the small color hex span — hide it and use button text instead */
-div[data-testid="stColorPicker"] button > span {
-    display:none!important;
+    display:flex!important; align-items:center!important; justify-content:center!important;
+    visibility:visible!important; opacity:1!important;
+    position:relative!important;
 }
 div[data-testid="stColorPicker"] button:hover {
     transform:scale(1.08)!important;
     box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
 }
-</style>
-""", unsafe_allow_html=True)
-        current_bg = st.session_state.get("bg_color", "#ffffff")
-        safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
-        # Use "BG" as the label — show it visually on the button
-        picked = st.color_picker("BG", value=safe_val, key="bg_cp")
-        # Move label on top of button via CSS
-        st.markdown("""
-<style>
+/* Hide the coloured swatch span inside button */
+div[data-testid="stColorPicker"] button > span {
+    display:none!important;
+}
+/* Show BG label centered on button */
 div[data-testid="stColorPicker"] label {
     display:block!important;
     position:relative!important;
-    margin-top:-44px!important;
+    margin-top:-56px!important;
+    width:56px!important;
+    height:56px!important;
     text-align:center!important;
+    line-height:56px!important;
     font-size:13px!important;
     font-weight:700!important;
     color:#374151!important;
     pointer-events:none!important;
     z-index:10!important;
-    width:52px!important;
-    line-height:52px!important;
-    height:0!important;
+    cursor:pointer!important;
 }
 </style>
 """, unsafe_allow_html=True)
+        current_bg = st.session_state.get("bg_color", "#ffffff")
+        safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+        picked = st.color_picker("BG", value=safe_val, key="bg_cp")
         if picked != current_bg:
             st.session_state["bg_color"] = picked
             st.rerun()
