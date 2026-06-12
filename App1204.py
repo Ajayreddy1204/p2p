@@ -878,12 +878,32 @@ def render_bg_button_sidebar():
 
     # ── Colour picker opens first (above button) when active ─────────────────
     if st.session_state.show_bg_panel:
+        # Hide the colour swatch button — show the picker canvas directly
+        st.markdown("""
+<style>
+/* Hide the swatch button that normally triggers the picker */
+div[data-testid="stColorPicker"] button {
+    display: none !important;
+}
+/* Show the picker popover inline, always expanded */
+div[data-testid="stColorPicker"] > div {
+    position: relative !important;
+    display: block !important;
+}
+div[data-testid="stColorPicker"] label {
+    display: none !important;
+}
+/* Make the picker panel visible inline */
+div[data-testid="stColorPicker"] {
+    min-width: 220px !important;
+}
+</style>
+""", unsafe_allow_html=True)
         safe_val = current_bg if (
             current_bg.startswith("#") and len(current_bg) in (4, 7)
         ) else "#ffffff"
-        # Native st.color_picker: gradient canvas + hue slider + hex input
         picked = st.color_picker(
-            "Background colour", value=safe_val,
+            "bg", value=safe_val,
             key="bg_cp", label_visibility="collapsed",
         )
         if picked != current_bg:
@@ -1361,7 +1381,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     # ── All CSS injected once ─────────────────────────────────────────────────
     st.markdown(f"""
 <style>
-/* Outer NA container */
+/* Outer NA container — styled via stVerticalBlockBorderWrapper */
 .na-outer {{
     background: white;
     border: 1px solid #e5e7eb;
@@ -1369,6 +1389,18 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     padding: 16px 16px 14px 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     margin-bottom: 6px;
+}}
+/* Override st.container border to match design */
+section.main div[data-testid="stVerticalBlockBorderWrapper"]:has(
+    div[class*="na-title"],
+    button[aria-label*="Overdue"],
+    button[aria-label*="Disputed"]
+) {{
+    border: 1px solid #e5e7eb !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+    background: white !important;
 }}
 /* Title */
 .na-title {{
@@ -1470,125 +1502,123 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Outer white container ─────────────────────────────────────────────────
-    st.markdown("<div class='na-outer'>", unsafe_allow_html=True)
-
-    # Title
-    st.markdown(
-        f"<div class='na-title'>Needs Attention "
-        f"<span>({urgent:,})</span></div>",
-        unsafe_allow_html=True,
-    )
-
-    # Tab buttons
-    st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
-    tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
-    with tc1:
-        t = "primary" if current_tab == "Overdue" else "secondary"
-        if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
-            st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
-    with tc2:
-        t = "primary" if current_tab == "Disputed" else "secondary"
-        if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
-            st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
-    with tc3:
-        t = "primary" if current_tab == "Due" else "secondary"
-        if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
-            st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if df.empty:
+    # ── Outer container using st.container so widgets render INSIDE it ───────
+    with st.container(border=True):
         st.markdown(
-            "<div style='padding:1.5rem;color:#64748b;text-align:center;'>"
-            "No items in this category</div>",
+            f"<div class='na-title'>Needs Attention "
+            f"<span>({urgent:,})</span></div>",
             unsafe_allow_html=True,
         )
-    else:
-        ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
-        si2 = page * ipp; ei2 = min(si2 + ipp, tot)
-        page_df = df.iloc[si2:ei2]; gi = 0
 
-        # Card grid — scoped with .na-cards-grid
-        st.markdown("<div class='na-cards-grid'>", unsafe_allow_html=True)
+        # Tab buttons
+        st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
+        tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
+        with tc1:
+            t = "primary" if current_tab == "Overdue" else "secondary"
+            if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
+                st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
+        with tc2:
+            t = "primary" if current_tab == "Disputed" else "secondary"
+            if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
+                st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
+        with tc3:
+            t = "primary" if current_tab == "Due" else "secondary"
+            if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
+                st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        for chunk_start in range(0, len(page_df), 4):
-            row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
-            cols = st.columns(4, gap="small")
-            for col, (_, r) in zip(cols, row_chunk.iterrows()):
-                with col:
-                    ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
-                    vname = html.escape(str(r.get("vendor_name", "—")))
-                    amt   = safe_number(r.get("amount"))
-                    ddr   = r.get("due_date")
-                    dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
-                    bk    = f"na_btn_{si2}_{gi}_{ref[:20]}"
-
-                    with st.container(border=True):
-                        # Invoice number button (full width, grey pill)
-                        if st.button(ref, key=bk):
-                            st.session_state["invoice_search_from_card"] = ref
-                            st.session_state["page"] = "Invoices"
-                            st.experimental_set_query_params(invoice=ref)
-                            st.rerun()
-                        # Status label overlaid top-right
-                        st.markdown(
-                            f"<div style='text-align:right;margin-top:-24px;"
-                            f"font-size:11px;font-weight:700;color:{tc_color};'>"
-                            f"{sl}</div>",
-                            unsafe_allow_html=True,
-                        )
-                        # Amount + due date right-aligned
-                        st.markdown(
-                            f"<div style='text-align:right;'>"
-                            f"<div style='font-size:14px;font-weight:800;"
-                            f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
-                            f"<div style='font-size:10px;color:#9ca3af;'>"
-                            f"Due: {dd}</div></div>",
-                            unsafe_allow_html=True,
-                        )
-                        # Vendor name bottom-left
-                        st.markdown(
-                            f"<div style='font-size:11px;color:#6b7280;"
-                            f"margin-top:1px;'>{vname}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    gi += 1
-            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)  # na-cards-grid
-
-        # Pagination
-        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
-        pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
-        with pc1:
-            if page > 0:
-                if st.button("← Prev", key="na_prev", use_container_width=True):
-                    st.session_state.na_page = max(0, page - 1); st.rerun()
-            else:
-                st.markdown(
-                    "<div style='text-align:center;color:#d1d5db;padding:8px;"
-                    "font-size:13px;'>← Prev</div>",
-                    unsafe_allow_html=True,
-                )
-        with pc2:
+        if df.empty:
             st.markdown(
-                f"<div class='na-page-info'>{page + 1} of {tp}</div>",
+                "<div style='padding:1.5rem;color:#64748b;text-align:center;'>"
+                "No items in this category</div>",
                 unsafe_allow_html=True,
             )
-        with pc3:
-            if page < tp - 1:
-                if st.button("Next →", key="na_next", use_container_width=True):
-                    st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
-            else:
+        else:
+            ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
+            si2 = page * ipp; ei2 = min(si2 + ipp, tot)
+            page_df = df.iloc[si2:ei2]; gi = 0
+
+            # Card grid — scoped with .na-cards-grid
+            st.markdown("<div class='na-cards-grid'>", unsafe_allow_html=True)
+
+            for chunk_start in range(0, len(page_df), 4):
+                row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
+                cols = st.columns(4, gap="small")
+                for col, (_, r) in zip(cols, row_chunk.iterrows()):
+                    with col:
+                        ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
+                        vname = html.escape(str(r.get("vendor_name", "—")))
+                        amt   = safe_number(r.get("amount"))
+                        ddr   = r.get("due_date")
+                        dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
+                        bk    = f"na_btn_{si2}_{gi}_{ref[:20]}"
+
+                        with st.container(border=True):
+                            # Invoice number button (full width, grey pill)
+                            if st.button(ref, key=bk):
+                                st.session_state["invoice_search_from_card"] = ref
+                                st.session_state["page"] = "Invoices"
+                                st.experimental_set_query_params(invoice=ref)
+                                st.rerun()
+                            # Status label overlaid top-right
+                            st.markdown(
+                                f"<div style='text-align:right;margin-top:-24px;"
+                                f"font-size:11px;font-weight:700;color:{tc_color};'>"
+                                f"{sl}</div>",
+                                unsafe_allow_html=True,
+                            )
+                            # Amount + due date right-aligned
+                            st.markdown(
+                                f"<div style='text-align:right;'>"
+                                f"<div style='font-size:14px;font-weight:800;"
+                                f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
+                                f"<div style='font-size:10px;color:#9ca3af;'>"
+                                f"Due: {dd}</div></div>",
+                                unsafe_allow_html=True,
+                            )
+                            # Vendor name bottom-left
+                            st.markdown(
+                                f"<div style='font-size:11px;color:#6b7280;"
+                                f"margin-top:1px;'>{vname}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        gi += 1
+                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)  # na-cards-grid
+
+            # Pagination
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
+            pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
+            with pc1:
+                if page > 0:
+                    if st.button("← Prev", key="na_prev", use_container_width=True):
+                        st.session_state.na_page = max(0, page - 1); st.rerun()
+                else:
+                    st.markdown(
+                        "<div style='text-align:center;color:#d1d5db;padding:8px;"
+                        "font-size:13px;'>← Prev</div>",
+                        unsafe_allow_html=True,
+                    )
+            with pc2:
                 st.markdown(
-                    "<div style='text-align:center;color:#d1d5db;padding:8px;"
-                    "font-size:13px;'>Next →</div>",
+                    f"<div class='na-page-info'>{page + 1} of {tp}</div>",
                     unsafe_allow_html=True,
                 )
-        st.markdown("</div>", unsafe_allow_html=True)  # na-page-row
+            with pc3:
+                if page < tp - 1:
+                    if st.button("Next →", key="na_next", use_container_width=True):
+                        st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
+                else:
+                    st.markdown(
+                        "<div style='text-align:center;color:#d1d5db;padding:8px;"
+                        "font-size:13px;'>Next →</div>",
+                        unsafe_allow_html=True,
+                    )
+            st.markdown("</div>", unsafe_allow_html=True)  # na-page-row
 
-    st.markdown("</div>", unsafe_allow_html=True)  # na-outer
+        # end st.container (na-outer)
 
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
@@ -1723,8 +1753,8 @@ def render_charts(rng_start, rng_end, vendor_where):
                                 )),
             )
             donut = base_chart.mark_arc(
-                innerRadius=36, outerRadius=56,
-                stroke="white", strokeWidth=1
+                innerRadius=42, outerRadius=62,
+                stroke="white", strokeWidth=2
             ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
             ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
                 align="center", baseline="middle",
