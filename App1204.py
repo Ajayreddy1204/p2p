@@ -3562,9 +3562,9 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Initialise bg_color only if not set
-    if "bg_color" not in st.session_state:
-        st.session_state["bg_color"] = "#ffffff"
+    # Always start with white background — reset any accidental colour
+    st.session_state["bg_color"] = "#ffffff"
+    st.session_state["show_bg_panel"] = False
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
