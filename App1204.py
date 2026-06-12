@@ -1782,13 +1782,13 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    # ── BG button: right-aligned circle, picker opens below charts ───────────
-    _bg_open = st.session_state.get("show_bg_panel", False)
+    # ── BG button: two-step — first click shows second circle, second shows picker
+    _bg_step = st.session_state.get("bg_step", 0)  # 0=hidden, 1=second btn, 2=picker
     _, bg_col = st.columns([0.95, 0.05])
     with bg_col:
         st.markdown("""
 <style>
-button[aria-label="BG"] {
+button[aria-label="BG"], button[aria-label=".."] {
     width:48px!important; height:48px!important;
     min-width:48px!important; min-height:48px!important;
     border-radius:50%!important; padding:0!important;
@@ -1798,28 +1798,18 @@ button[aria-label="BG"] {
     box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
     outline:none!important; cursor:pointer!important;
 }
-button[aria-label="BG"]:hover {
+button[aria-label="BG"]:hover, button[aria-label=".."]:hover {
     transform:scale(1.08)!important;
     box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
 }
-button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
+button[aria-label="BG"]:focus, button[aria-label="BG"]:active,
+button[aria-label=".."]:focus, button[aria-label=".."]:active {
     background:white!important; outline:none!important;
 }
-div[data-testid="stButton"]:has(button[aria-label="BG"]) {
+div[data-testid="stButton"]:has(button[aria-label="BG"]),
+div[data-testid="stButton"]:has(button[aria-label=".."])  {
     width:52px!important; max-width:52px!important; padding:0!important;
 }
-</style>""", unsafe_allow_html=True)
-        if st.button("BG", key="bg_pill_btn", use_container_width=False):
-            st.session_state["show_bg_panel"] = not _bg_open
-            st.rerun()
-
-    if _bg_open:
-        _, picker_col = st.columns([0.55, 0.45])
-        with picker_col:
-            _cur = st.session_state.get("bg_color", "#ffffff")
-            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4,7)) else "#ffffff"
-            st.markdown("""
-<style>
 div[data-testid="stColorPicker"] label { display:none!important; }
 div[data-testid="stColorPicker"] button {
     display:none!important; visibility:hidden!important;
@@ -1827,11 +1817,34 @@ div[data-testid="stColorPicker"] button {
     position:absolute!important; pointer-events:none!important;
 }
 </style>""", unsafe_allow_html=True)
+
+        # Step 0: show BG button
+        if _bg_step == 0:
+            if st.button("BG", key="bg_pill_btn", use_container_width=False):
+                st.session_state["bg_step"] = 1
+                st.rerun()
+        # Step 1: show second white circle (same style)
+        elif _bg_step == 1:
+            if st.button("..", key="bg_pill_btn", use_container_width=False):
+                st.session_state["bg_step"] = 2
+                st.rerun()
+        # Step 2: show picker + BG to close
+        elif _bg_step == 2:
+            if st.button("BG", key="bg_pill_btn", use_container_width=False):
+                st.session_state["bg_step"] = 0
+                st.rerun()
+
+    # Show picker when step == 2
+    if _bg_step == 2:
+        _, picker_col = st.columns([0.55, 0.45])
+        with picker_col:
+            _cur = st.session_state.get("bg_color", "#ffffff")
+            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4,7)) else "#ffffff"
             _picked = st.color_picker("bg", value=_safe,
                                       key="bg_cp", label_visibility="collapsed")
             if _picked != _cur:
                 st.session_state["bg_color"] = _picked
-                st.session_state["show_bg_panel"] = False
+                st.session_state["bg_step"] = 0
                 st.rerun()
 
 
@@ -3562,9 +3575,16 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Always start with white background — reset any accidental colour
-    st.session_state["bg_color"] = "#ffffff"
-    st.session_state["show_bg_panel"] = False
+    if "bg_color" not in st.session_state:
+        st.session_state["bg_color"] = "#ffffff"
+    # Safety: reject obviously bad colours (like solid red from accidental selection)
+    _stored_bg = st.session_state.get("bg_color", "#ffffff")
+    if not isinstance(_stored_bg, str) or not _stored_bg.startswith("#"):
+        st.session_state["bg_color"] = "#ffffff"
+    if "show_bg_panel" not in st.session_state:
+        st.session_state["show_bg_panel"] = False
+    if "bg_step" not in st.session_state:
+        st.session_state["bg_step"] = 0
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
