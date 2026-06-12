@@ -3137,7 +3137,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     with right_col:
         with st.container(border=True):
             # Header: title + action buttons
-            hc1, hc2, hc3, hc4, hc5 = st.columns([1.5, 0.7, 0.85, 0.85, 0.65], gap="small")
+            hc1, hc2, hc3, hc4, hc5 = st.columns([1.5, 0.8, 0.95, 0.95, 0.7], gap="medium")
             with hc1:
                 st.markdown("<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b>",
                             unsafe_allow_html=True)
