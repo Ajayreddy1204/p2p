@@ -1759,7 +1759,7 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    # ── BG button: single click shows picker, click BG again to close ────────
+    # ── BG button: one click opens picker, color applies to whole app ─────────
     _bg_open = st.session_state.get("show_bg_panel", False)
 
     _, bg_col = st.columns([0.95, 0.05])
@@ -1786,6 +1786,7 @@ button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
 div[data-testid="stButton"]:has(button[aria-label="BG"]) {
     width:52px!important; max-width:52px!important; padding:0!important;
 }
+/* Hide color picker swatch/trigger button */
 div[data-testid="stColorPicker"] label { display:none!important; }
 div[data-testid="stColorPicker"] button {
     display:none!important; visibility:hidden!important;
@@ -1793,12 +1794,11 @@ div[data-testid="stColorPicker"] button {
     position:absolute!important; pointer-events:none!important;
 }
 </style>""", unsafe_allow_html=True)
-
         if st.button("BG", key="bg_pill_btn", use_container_width=False):
             st.session_state["show_bg_panel"] = not _bg_open
             st.rerun()
 
-    # Picker panel: right-aligned, opens when BG clicked
+    # Picker: shows immediately on BG click, color applies to ALL tabs via inject_dashboard_css
     if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
@@ -1809,8 +1809,9 @@ div[data-testid="stColorPicker"] button {
                 key="bg_cp", label_visibility="collapsed",
             )
             if _picked != _cur:
+                # Store colour — inject_dashboard_css() reads this on every render
+                # so colour applies to .stApp across Dashboard, Genie, Forecast, Invoices
                 st.session_state["bg_color"] = _picked
-                st.session_state["show_bg_panel"] = False
                 st.rerun()
 
 
@@ -3541,9 +3542,9 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Reset background colour to white (prevent stuck colours)
-    # but preserve show_bg_panel so picker stays open after click
-    st.session_state["bg_color"] = "#ffffff"
+    # Initialise bg_color only on first load — preserve user's colour selection
+    if "bg_color" not in st.session_state:
+        st.session_state["bg_color"] = "#ffffff"
     if "show_bg_panel" not in st.session_state:
         st.session_state["show_bg_panel"] = False
     if "page" not in st.session_state:
