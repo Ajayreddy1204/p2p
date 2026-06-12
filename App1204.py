@@ -3090,24 +3090,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 else:
                     st.caption("No questions yet")
 
-            # Long-term Memory (from screenshot — show it)
-            memories = get_all_user_memories()
-            mem_count = len(memories)
-            with st.expander(f"Long-term Memory ({mem_count} facts)"):
-                if memories:
-                    for m in memories[:6]:
-                        type_tag = {"preference": "pref", "entity": "entity",
-                                    "context": "ctx", "insight": "insight"}.get(m["type"], m["type"])
-                        st.markdown(
-                            f"<div style='font-size:0.78rem;color:#475569;"
-                            f"padding:2px 0;border-bottom:1px solid #f1f5f9;'>"
-                            f"<b>{m['key']}</b>: {str(m['value'])[:35]}"
-                            f"<span style='color:#94a3b8;font-size:0.7rem;"
-                            f"margin-left:6px;'>[{type_tag}]</span></div>",
-                            unsafe_allow_html=True,
-                        )
-                else:
-                    st.caption("No memories yet.")
+            # Long-term Memory hidden as requested
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -3194,7 +3177,11 @@ button[kind="primary"][aria-label="Summarize"] {
             with cb4:
                 if st.button("Clear", key="clear_top",
                              use_container_width=True):
-                    start_new_session()
+                    st.session_state.current_messages = []
+                    st.session_state.show_summary = False
+                    st.session_state.conversation_summary = ""
+                    st.session_state["show_chats_panel"] = False
+                    st.rerun()
 
             st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
                         "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
@@ -3255,7 +3242,11 @@ button[kind="primary"][aria-label="Summarize"] {
 
                 if st.button("Start a New Conversation", key="start_new_conv",
                              use_container_width=True):
-                    start_new_session()
+                    st.session_state.current_messages = []
+                    st.session_state.show_summary = False
+                    st.session_state.conversation_summary = ""
+                    st.session_state["show_chats_panel"] = False
+                    st.rerun()
                 st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
 
             # ── Summary ───────────────────────────────────────────────────────
