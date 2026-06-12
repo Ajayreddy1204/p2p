@@ -801,8 +801,8 @@ def inject_dashboard_css():
     .grir-card-title {{ font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.6px; }}
     .grir-card-value {{ font-size:1.8rem; font-weight:800; color:#111827; line-height:1.1; }}
     .chart-title {{ font-size:1.1rem; font-weight:700; color:#111827; margin-bottom:0.5rem; }}
-    .main > .block-container {{ background-color:{bg} !important; }}
     .stApp {{ background-color:{bg} !important; }}
+    .main > .block-container {{ background-color:transparent !important; }}
     .message-user {{ background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:white;
         padding:10px 16px; border-radius:18px 18px 4px 18px; margin:8px 0;
         max-width:80%; margin-left:auto; text-align:right; }}
@@ -3575,16 +3575,10 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    if "bg_color" not in st.session_state:
-        st.session_state["bg_color"] = "#ffffff"
-    # Safety: reject obviously bad colours (like solid red from accidental selection)
-    _stored_bg = st.session_state.get("bg_color", "#ffffff")
-    if not isinstance(_stored_bg, str) or not _stored_bg.startswith("#"):
-        st.session_state["bg_color"] = "#ffffff"
-    if "show_bg_panel" not in st.session_state:
-        st.session_state["show_bg_panel"] = False
-    if "bg_step" not in st.session_state:
-        st.session_state["bg_step"] = 0
+    # Reset bg to white on every fresh load — prevents stuck colours
+    st.session_state["bg_color"] = "#ffffff"
+    st.session_state["bg_step"] = 0
+    st.session_state["show_bg_panel"] = False
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
@@ -3600,9 +3594,12 @@ def main():
     padding-bottom: 1rem !important;
     max-width: 100% !important;
 }}
-/* ── Background ── */
-.stApp, .main > .block-container {{
+/* ── Background — full page, no inner container border ── */
+.stApp {{
     background-color: {bg} !important;
+}}
+.main > .block-container {{
+    background-color: transparent !important;
 }}
 /* ── All buttons: base style ── */
 button {{
