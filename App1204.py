@@ -2656,6 +2656,73 @@ def export_conversation_md():
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
+    # ── Form CSS injected FIRST — guarantees visibility on every first load ───
+    st.markdown("""
+<style>
+div[data-testid="stForm"] {
+    background: white !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
+    margin-top: 10px !important;
+    width: 100% !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important; align-items: center !important;
+    gap: 10px !important; width: 100% !important;
+    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 52px !important; width: 52px !important;
+    min-width: 52px !important; padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"],
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important; padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
+    height: 52px !important; min-height: 52px !important;
+    font-size: 14px !important; padding: 0 20px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: #f8f9fa !important; color: #111827 !important;
+    box-shadow: none !important; outline: none !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #2563eb !important; background: white !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important; font-size: 13.5px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+    width: 52px !important; height: 52px !important;
+    min-width: 52px !important; min-height: 52px !important;
+    border-radius: 50% !important; padding: 0 !important;
+    font-size: 18px !important; font-weight: 700 !important;
+    background: #2563eb !important; color: white !important;
+    border: none !important;
+    box-shadow: 0 3px 12px rgba(37,99,235,0.30) !important;
+    line-height: 52px !important; text-align: center !important;
+    flex-shrink: 0 !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 5px 16px rgba(37,99,235,0.42) !important;
+    transform: scale(1.06) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
     # ── Session state init ────────────────────────────────────────────────────
     for k, v in [("genie_session_id", None), ("current_messages", []),
                  ("genie_prefill", ""), ("show_summary", False),
@@ -3228,79 +3295,8 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                             st.markdown(msg["content"])
                 pass  # end chat messages
 
-        # ── Ask input: white container, same width as AI Assistant above ──
-        st.markdown("""
-<style>
-/* Form wrapper: white rounded container matching AI Assistant width */
-div[data-testid="stForm"] {
-    background: white !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    padding: 10px 14px !important;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.07) !important;
-    margin-top: 10px !important;
-    width: 100% !important;
-}
-/* Row: input fills space, button stays fixed */
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important; align-items: center !important;
-    gap: 10px !important; width: 100% !important;
-    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
-}
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:first-child {
-    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
-}
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
-  > div[data-testid="column"]:last-child {
-    flex: 0 0 56px !important; width: 56px !important;
-    min-width: 56px !important; padding: 0 !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"],
-div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important; padding: 0 !important; margin: 0 !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input {
-    width: 100% !important;
-    height: 52px !important; min-height: 52px !important;
-    font-size: 14px !important;
-    padding: 0 20px !important;
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-    background: #f8f9fa !important;
-    color: #111827 !important;
-    box-shadow: none !important; outline: none !important;
-    box-sizing: border-box !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important; background: white !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #9ca3af !important; font-size: 13.5px !important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-/* Blue circle submit button */
-div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-    width: 50px !important; height: 50px !important;
-    min-width: 50px !important; min-height: 50px !important;
-    border-radius: 50% !important; padding: 0 !important;
-    font-size: 18px !important; font-weight: 700 !important;
-    background: #2563eb !important; color: white !important;
-    border: none !important;
-    box-shadow: 0 3px 12px rgba(37,99,235,0.30) !important;
-    line-height: 50px !important; text-align: center !important;
-}
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 5px 16px rgba(37,99,235,0.42) !important;
-    transform: scale(1.06) !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            fi, fb = st.columns([0.90, 0.10])
+            fi, fb = st.columns([0.88, 0.12])
             with fi:
                 prefill = st.session_state.pop("genie_prefill", "")
                 uq = st.text_input(
