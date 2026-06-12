@@ -1798,44 +1798,39 @@ div[data-testid="stColorPicker"] button {
             st.session_state["show_bg_panel"] = not _bg_open
             st.rerun()
 
-    # Picker: native HTML color input — opens immediately on BG click
+    # BG picker: st.color_picker with swatch auto-clicked so canvas opens directly
     if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
             _cur  = st.session_state.get("bg_color", "#ffffff")
             _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
+
+            # Auto-click the swatch button via iframe JS
             import streamlit.components.v1 as components
-            _result = components.html(f"""
-<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:8px;font-family:sans-serif;background:transparent;">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <input type="color" id="bgpicker" value="{_safe}"
-      style="width:52px;height:52px;border:2px solid #e5e7eb;border-radius:50%;
-             cursor:pointer;padding:2px;outline:none;background:none;">
-    <div>
-      <div style="font-size:13px;font-weight:600;color:#374151;">Background Colour</div>
-      <div id="hexval" style="font-size:12px;color:#6b7280;margin-top:2px;">{_safe}</div>
-    </div>
-  </div>
-  <script>
-    var picker = document.getElementById('bgpicker');
-    // Open immediately
-    picker.click();
-    picker.addEventListener('input', function() {{
-      document.getElementById('hexval').innerText = picker.value;
-    }});
-    picker.addEventListener('change', function() {{
-      window.parent.Streamlit.setComponentValue(picker.value);
-    }});
-  </script>
-</body>
-</html>
-""", height=80)
-            if _result and isinstance(_result, str) and _result.startswith("#"):
-                if _result != _cur:
-                    st.session_state["bg_color"] = _result
-                    st.rerun()
+            components.html("""
+<script>
+var t = setInterval(function(){
+    var b = window.parent.document.querySelectorAll('[data-testid="stColorPicker"] button');
+    if(b.length){ b[b.length-1].click(); clearInterval(t); }
+}, 50);
+setTimeout(function(){ clearInterval(t); }, 3000);
+</script>""", height=0)
+
+            # The actual color picker — swatch hidden, canvas opens via JS click above
+            st.markdown("""
+<style>
+div[data-testid="stColorPicker"] label { display:none!important; }
+div[data-testid="stColorPicker"] button {
+    opacity:0!important; width:1px!important; height:1px!important;
+    position:absolute!important; pointer-events:auto!important;
+}
+</style>""", unsafe_allow_html=True)
+
+            _picked = st.color_picker("bg", value=_safe,
+                                      key="bg_cp", label_visibility="collapsed")
+            if _picked != _cur:
+                st.session_state["bg_color"] = _picked
+                st.rerun()
 
 
 def render_dashboard():
