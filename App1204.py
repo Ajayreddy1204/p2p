@@ -1666,7 +1666,7 @@ def render_charts(rng_start, rng_end, vendor_where):
     )
 
     # Three-column layout: Status Distribution | Top 10 Vendors | Spend Trend
-    col1, col2, col3 = st.columns(3, gap="medium")
+    col1, col2, col3, col_bg = st.columns([1, 1, 1, 0.12], gap="small")
 
     with col1:
         with st.container(border=True):
@@ -1760,78 +1760,15 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    # ── BG button: one click opens picker, color applies to whole app ─────────
-    _bg_open = st.session_state.get("show_bg_panel", False)
-
-    _, bg_col = st.columns([0.95, 0.05])
-    with bg_col:
-        st.markdown("""
-<style>
-button[aria-label="BG"] {
-    width:48px!important; height:48px!important;
-    min-width:48px!important; min-height:48px!important;
-    border-radius:50%!important; padding:0!important;
-    font-size:13px!important; font-weight:700!important;
-    background:white!important; color:#374151!important;
-    border:2px solid #e5e7eb!important;
-    box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
-    outline:none!important; cursor:pointer!important;
-}
-button[aria-label="BG"]:hover {
-    transform:scale(1.08)!important;
-    box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
-}
-button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
-    background:white!important; outline:none!important;
-}
-div[data-testid="stButton"]:has(button[aria-label="BG"]) {
-    width:52px!important; max-width:52px!important; padding:0!important;
-}
-/* Hide color picker swatch/trigger button */
-div[data-testid="stColorPicker"] label { display:none!important; }
-div[data-testid="stColorPicker"] button {
-    display:none!important; visibility:hidden!important;
-    width:0!important; height:0!important;
-    position:absolute!important; pointer-events:none!important;
-}
-</style>""", unsafe_allow_html=True)
-        if st.button("BG", key="bg_pill_btn", use_container_width=False):
-            st.session_state["show_bg_panel"] = not _bg_open
+    with col_bg:
+        st.markdown("<div style='height:230px;'></div>", unsafe_allow_html=True)
+        current_bg = st.session_state.get("bg_color", "#ffffff")
+        safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+        picked = st.color_picker("bg", value=safe_val, key="bg_cp", label_visibility="collapsed")
+        if picked != current_bg:
+            st.session_state["bg_color"] = picked
             st.rerun()
-
-    # BG picker: st.color_picker with swatch auto-clicked so canvas opens directly
-    if st.session_state.get("show_bg_panel", False):
-        _, picker_col = st.columns([0.55, 0.45])
-        with picker_col:
-            _cur  = st.session_state.get("bg_color", "#ffffff")
-            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
-
-            # Auto-click the swatch button via iframe JS
-            import streamlit.components.v1 as components
-            components.html("""
-<script>
-var t = setInterval(function(){
-    var b = window.parent.document.querySelectorAll('[data-testid="stColorPicker"] button');
-    if(b.length){ b[b.length-1].click(); clearInterval(t); }
-}, 50);
-setTimeout(function(){ clearInterval(t); }, 3000);
-</script>""", height=0)
-
-            # The actual color picker — swatch hidden, canvas opens via JS click above
-            st.markdown("""
-<style>
-div[data-testid="stColorPicker"] label { display:none!important; }
-div[data-testid="stColorPicker"] button {
-    opacity:0!important; width:1px!important; height:1px!important;
-    position:absolute!important; pointer-events:auto!important;
-}
-</style>""", unsafe_allow_html=True)
-
-            _picked = st.color_picker("bg", value=_safe,
-                                      key="bg_cp", label_visibility="collapsed")
-            if _picked != _cur:
-                st.session_state["bg_color"] = _picked
-                st.rerun()
+        st.button("BG", key="bg_pill_btn", use_container_width=False)
 
 
 def render_dashboard():
