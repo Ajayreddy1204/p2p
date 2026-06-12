@@ -1759,13 +1759,14 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    # ── BG button: two-step — first click shows second circle, second shows picker
-    _bg_step = st.session_state.get("bg_step", 0)  # 0=hidden, 1=second btn, 2=picker
+    # ── BG button: single click shows picker, click BG again to close ────────
+    _bg_open = st.session_state.get("show_bg_panel", False)
+
     _, bg_col = st.columns([0.95, 0.05])
     with bg_col:
         st.markdown("""
 <style>
-button[aria-label="BG"], button[aria-label=".."] {
+button[aria-label="BG"] {
     width:48px!important; height:48px!important;
     min-width:48px!important; min-height:48px!important;
     border-radius:50%!important; padding:0!important;
@@ -1775,16 +1776,14 @@ button[aria-label="BG"], button[aria-label=".."] {
     box-shadow:0 2px 10px rgba(0,0,0,0.14)!important;
     outline:none!important; cursor:pointer!important;
 }
-button[aria-label="BG"]:hover, button[aria-label=".."]:hover {
+button[aria-label="BG"]:hover {
     transform:scale(1.08)!important;
     box-shadow:0 4px 16px rgba(0,0,0,0.20)!important;
 }
-button[aria-label="BG"]:focus, button[aria-label="BG"]:active,
-button[aria-label=".."]:focus, button[aria-label=".."]:active {
+button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
     background:white!important; outline:none!important;
 }
-div[data-testid="stButton"]:has(button[aria-label="BG"]),
-div[data-testid="stButton"]:has(button[aria-label=".."])  {
+div[data-testid="stButton"]:has(button[aria-label="BG"]) {
     width:52px!important; max-width:52px!important; padding:0!important;
 }
 div[data-testid="stColorPicker"] label { display:none!important; }
@@ -1795,33 +1794,23 @@ div[data-testid="stColorPicker"] button {
 }
 </style>""", unsafe_allow_html=True)
 
-        # Step 0: show BG button
-        if _bg_step == 0:
-            if st.button("BG", key="bg_pill_btn", use_container_width=False):
-                st.session_state["bg_step"] = 1
-                st.rerun()
-        # Step 1: show second white circle (same style)
-        elif _bg_step == 1:
-            if st.button("..", key="bg_pill_btn", use_container_width=False):
-                st.session_state["bg_step"] = 2
-                st.rerun()
-        # Step 2: show picker + BG to close
-        elif _bg_step == 2:
-            if st.button("BG", key="bg_pill_btn", use_container_width=False):
-                st.session_state["bg_step"] = 0
-                st.rerun()
+        if st.button("BG", key="bg_pill_btn", use_container_width=False):
+            st.session_state["show_bg_panel"] = not _bg_open
+            st.rerun()
 
-    # Show picker when step == 2
-    if _bg_step == 2:
+    # Picker panel: right-aligned, opens when BG clicked
+    if st.session_state.get("show_bg_panel", False):
         _, picker_col = st.columns([0.55, 0.45])
         with picker_col:
-            _cur = st.session_state.get("bg_color", "#ffffff")
-            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4,7)) else "#ffffff"
-            _picked = st.color_picker("bg", value=_safe,
-                                      key="bg_cp", label_visibility="collapsed")
+            _cur  = st.session_state.get("bg_color", "#ffffff")
+            _safe = _cur if (_cur.startswith("#") and len(_cur) in (4, 7)) else "#ffffff"
+            _picked = st.color_picker(
+                "Background colour", value=_safe,
+                key="bg_cp", label_visibility="collapsed",
+            )
             if _picked != _cur:
                 st.session_state["bg_color"] = _picked
-                st.session_state["bg_step"] = 0
+                st.session_state["show_bg_panel"] = False
                 st.rerun()
 
 
@@ -3552,13 +3541,11 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Clear any stored background colour — always start white
-    for _k in ["bg_color", "bg_step", "show_bg_panel", "bg_cp"]:
-        if _k in st.session_state:
-            del st.session_state[_k]
+    # Reset background colour to white (prevent stuck colours)
+    # but preserve show_bg_panel so picker stays open after click
     st.session_state["bg_color"] = "#ffffff"
-    st.session_state["bg_step"] = 0
-    st.session_state["show_bg_panel"] = False
+    if "show_bg_panel" not in st.session_state:
+        st.session_state["show_bg_panel"] = False
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
