@@ -911,8 +911,17 @@ div[data-testid="stButton"]:has(button[aria-label="BG"]),
 div[data-testid="stButton"]:has(button[aria-label="X"]) {
     width:56px!important; max-width:56px!important; padding:0!important;
 }
-/* Colour picker: hide label */
+/* Colour picker: hide label AND swatch button */
 div[data-testid="stColorPicker"] label { display:none!important; }
+div[data-testid="stColorPicker"] button { 
+    display:none!important; 
+    visibility:hidden!important;
+    width:0!important; height:0!important;
+    position:absolute!important; pointer-events:none!important;
+}
+div[data-testid="stColorPicker"] > div > div {
+    border:none!important; padding:0!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -3517,9 +3526,9 @@ def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Force reset to white — clear any accidentally applied colour
-    st.session_state["bg_color"] = "#ffffff"
-    st.session_state["show_bg_panel"] = False
+    # Initialise bg_color only if not set
+    if "bg_color" not in st.session_state:
+        st.session_state["bg_color"] = "#ffffff"
     if "page" not in st.session_state:
         st.session_state["page"] = "Dashboard"
 
