@@ -1560,12 +1560,16 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     padding:       0 10px !important;
     box-shadow:    none !important;
     outline:       none !important;
-    width: auto !important;
-    display: inline-block !important;
+    width:         auto !important;
+    max-width:     none !important;
+    display:       inline-block !important;
+    white-space:   nowrap !important;
+    overflow:      visible !important;
 }
 .na-grid-wrap div[data-testid="stVerticalBlockBorderWrapper"] button:hover {
-    background:    #e8e8e8 !important;
-    border-color:  #9ca3af !important;
+    background:    #eff6ff !important;
+    border-color:  #2563eb !important;
+    color:         #2563eb !important;
     box-shadow:    none !important;
     outline:       none !important;
 }
@@ -1598,21 +1602,20 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     bk    = f"na_btn_{si}_{gi}_{ref[:20]}"
 
                     with st.container(border=True):
-                        # ── Row 1: invoice button (left) + status text (right) ──
-                        top_l, top_r = st.columns([1.4, 1], gap="small")
-                        with top_l:
-                            if st.button(ref, key=bk):
-                                st.session_state["invoice_search_from_card"] = ref
-                                st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref)
-                                st.rerun()
-                        with top_r:
-                            st.markdown(
-                                f"<div style='text-align:right;font-size:11px;"
-                                f"font-weight:700;color:{tc_color};"
-                                f"padding-top:7px;'>{sl}</div>",
-                                unsafe_allow_html=True,
-                            )
+                        # ── Row 1: invoice number button + status label ──────────
+                        # No inner st.columns — they squeeze the number.
+                        # Use full-width button + right-aligned status via CSS.
+                        if st.button(ref, key=bk):
+                            st.session_state["invoice_search_from_card"] = ref
+                            st.session_state["page"] = "Invoices"
+                            st.experimental_set_query_params(invoice=ref)
+                            st.rerun()
+                        st.markdown(
+                            f"<div style='text-align:right;margin-top:-28px;"
+                            f"font-size:11px;font-weight:700;color:{tc_color};'>"
+                            f"{sl}</div>",
+                            unsafe_allow_html=True,
+                        )
                         # ── Row 2: amount + due date (right) ──
                         st.markdown(
                             f"<div style='text-align:right;margin-top:2px;'>"
