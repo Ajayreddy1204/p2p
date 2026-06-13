@@ -1,4 +1,4 @@
-\import streamlit as st
+import streamlit as st
 import boto3
 import awswrangler as wr
 import pandas as pd
