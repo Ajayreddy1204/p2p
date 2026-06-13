@@ -2563,6 +2563,18 @@ input:focus { outline: none !important; }
     margin: 0 0 12px 0;
 }
 
+/* Ensure left panel container aligns with AI Assistant container */
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child
+  > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"] {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+/* Input inside ask question container — full width */
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
+}
+
 .genie-left-panel div[data-testid="stExpander"] {
     border: none !important;
     border-bottom: 1px solid #f1f5f9 !important;
@@ -2891,7 +2903,6 @@ div.genie-card-wrap button:hover {
 
     # ── LEFT PANEL ────────────────────────────────────────────────────────────
     with left_col:
-        st.markdown("<div class='genie-left-panel'>", unsafe_allow_html=True)
         with st.container(border=True):
             with st.expander("Saved Insights"):
                 ins = get_saved_insights_cached(page="genie")
@@ -2933,7 +2944,6 @@ div.genie-card-wrap button:hover {
                 else:
                     st.caption("No questions yet")
 
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
     with right_col:
@@ -3244,7 +3254,10 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid
     flex:1 1 0%!important; min-width:0!important; padding:0!important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    flex:0 0 90px!important; width:90px!important; min-width:90px!important; padding:0!important;
+    flex:0 0 90px!important; width:90px!important; min-width:90px!important; max-width:90px!important; padding:0!important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
+    flex:1 1 auto!important; min-width:0!important; width:100%!important; padding:0!important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div { width:100%!important; padding:0!important; margin:0!important; }
@@ -3282,7 +3295,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 </style>
 """, unsafe_allow_html=True)
             with st.form(key="genie_chat_form", clear_on_submit=True):
-                c_inp, c_btn = st.columns([0.82, 0.18], gap="small")
+                c_inp, c_btn = st.columns([0.85, 0.15], gap="small")
                 with c_inp:
                     prefill = st.session_state.pop("genie_prefill", "")
                     uq = st.text_input(
