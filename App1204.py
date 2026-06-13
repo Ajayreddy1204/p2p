@@ -2860,26 +2860,27 @@ div.genie-card-wrap button:hover {
     card_cols = st.columns(4, gap="small")
     for idx, (col, card) in enumerate(zip(card_cols, card_data)):
         with col:
-            with st.container(border=True):
-                # Icon + title + desc rendered as HTML inside the container
-                st.markdown(
-                    f"<div style='display:flex;flex-direction:column;'>"
-                    f"<div style='width:46px;height:46px;border-radius:11px;"
-                    f"background:{card['icon_bg']};display:flex;align-items:center;"
-                    f"justify-content:center;margin-bottom:13px;flex-shrink:0;'>"
-                    f"{card['icon_svg']}"
-                    f"</div>"
-                    f"<div style='font-size:0.93rem;font-weight:700;color:#111827;"
-                    f"margin:0 0 5px 0;line-height:1.3;'>{card['title']}</div>"
-                    f"<div style='font-size:0.77rem;color:#6b7280;line-height:1.45;"
-                    f"margin:0 0 8px 0;'>{card['desc']}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-                # Button rendered natively inside st.container so it's truly inside the card
-                if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
-                    st.session_state.auto_run_query = card["title"]
-                    st.rerun()
+            # Icon + title + desc rendered as HTML
+            st.markdown(
+                f"<div style='background:white;border:1px solid #e5e7eb;border-radius:14px;"
+                f"padding:20px 18px 14px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06);"
+                f"display:flex;flex-direction:column;min-height:158px;'>"
+                f"<div style='width:46px;height:46px;border-radius:11px;"
+                f"background:{card['icon_bg']};display:flex;align-items:center;"
+                f"justify-content:center;margin-bottom:13px;flex-shrink:0;'>"
+                f"{card['icon_svg']}"
+                f"</div>"
+                f"<div style='font-size:0.93rem;font-weight:700;color:#111827;"
+                f"margin:0 0 5px 0;line-height:1.3;'>{card['title']}</div>"
+                f"<div style='font-size:0.77rem;color:#6b7280;line-height:1.45;"
+                f"margin:0 0 8px 0;'>{card['desc']}</div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            # Ask Genie button below the card
+            if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
+                st.session_state.auto_run_query = card["title"]
+                st.rerun()
 
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
