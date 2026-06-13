@@ -35,18 +35,11 @@ BG_COLOR_OPTIONS = {
 }
 
 def compute_range_preset(preset: str):
-    """
-    Date range definitions:
-      YTD        = last 365 days  (today-365 → today)
-      QTD        = last 120 days  (today-120 → today)
-      Last 30 Days = last 30 days (today-30  → today)
-      Custom     = user-defined
-    """
     today = date.today()
     if preset == "Last 30 Days": return today - timedelta(days=30), today
     if preset == "QTD":          return today - timedelta(days=120), today
     if preset == "YTD":          return today - timedelta(days=365), today
-    return today - timedelta(days=30), today   # fallback = last 30 days
+    return today - timedelta(days=30), today
 
 # ── utils ────────────────────────────────────────────────────
 def safe_number(val, default=0.0):
@@ -114,21 +107,12 @@ def safe_dataframe_display(df: pd.DataFrame) -> pd.DataFrame:
 
 def render_simple_table(df: pd.DataFrame, col_labels: dict = None,
                         striped: bool = True, max_rows: int = 500):
-    """
-    Render a pandas DataFrame as a clean, plain HTML table.
-    Replaces st.dataframe() for tables that need simple styling:
-    - Clean borders, no Streamlit column-resize handles
-    - Optional striped rows
-    - Optional column label override via col_labels dict
-    - Numbers right-aligned, text left-aligned
-    """
     if df.empty:
         st.caption("No data available.")
         return
 
     df = df.head(max_rows).copy()
 
-    # Build header
     headers = []
     for col in df.columns:
         label = col_labels.get(col, col.replace("_", " ").title()) if col_labels else col.replace("_", " ").title()
@@ -142,7 +126,6 @@ def render_simple_table(df: pd.DataFrame, col_labels: dict = None,
         cells = []
         for col in df.columns:
             val = row[col]
-            # Format value
             if pd.isna(val) if not isinstance(val, str) else False:
                 display = "—"
                 align = "left"
@@ -200,9 +183,7 @@ def ensure_limit(sql: str, default_limit: int = 100) -> str:
     if re.search(r'\b(count|sum|avg|min|max)\b', sl) and "group by" not in sl: return sql
     return f"{sql.rstrip(';')} LIMIT {default_limit}"
 
-# ── year/month filter (for views without posting_date) ──────
 def year_month_filter(start: date, end: date) -> str:
-    """Build WHERE clause for views that use year/month columns (no posting_date)."""
     pairs = []
     cur = date(start.year, start.month, 1)
     end_ym = date(end.year, end.month, 1)
@@ -302,18 +283,8 @@ def ask_bedrock(prompt: str, system_prompt: str) -> str:
 
 # ── persistence ──────────────────────────────────────────────
 def init_db():
-    """
-    Initialise all SQLite tables for:
-      - Short-term memory  : chat_sessions + chat_messages (current session context)
-      - Long-term memory   : user_memory (persistent facts/preferences per user)
-                             question_history (all past queries)
-                             saved_insights (bookmarked analyses)
-      - Query cache        : query_cache (LLM+SQL response cache with TTL + hit tracking)
-      - KPI snapshot cache : kpi_snapshot_cache (dashboard KPI history for trend display)
-    """
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
 
-    # ── Short-term memory: conversation sessions ─────────────────
     c.execute('''CREATE TABLE IF NOT EXISTS chat_sessions (
         session_id    TEXT PRIMARY KEY,
         session_label TEXT,
@@ -326,7 +297,6 @@ def init_db():
     try: c.execute("ALTER TABLE chat_sessions ADD COLUMN page_context TEXT DEFAULT 'Dashboard'")
     except sqlite3.OperationalError: pass
 
-    # ── Short-term memory: individual messages ───────────────────
     c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id  TEXT,
@@ -338,15 +308,13 @@ def init_db():
         timestamp   TIMESTAMP,
         FOREIGN KEY(session_id) REFERENCES chat_sessions(session_id))''')
 
-    # ── Long-term memory: persistent user facts/preferences ──────
-    # Stores things like "user prefers YTD view", "user tracks vendor X", etc.
     c.execute('''CREATE TABLE IF NOT EXISTS user_memory (
         memory_id   TEXT PRIMARY KEY,
         user_name   TEXT NOT NULL,
-        memory_type TEXT NOT NULL,   -- "preference" | "entity" | "context" | "insight"
-        memory_key  TEXT NOT NULL,   -- e.g. "preferred_preset", "favourite_vendor"
-        memory_val  TEXT NOT NULL,   -- stored value (JSON or plain text)
-        source      TEXT,            -- "explicit" (user set) | "inferred" (auto-detected)
+        memory_type TEXT NOT NULL,
+        memory_key  TEXT NOT NULL,
+        memory_val  TEXT NOT NULL,
+        source      TEXT,
         confidence  REAL DEFAULT 1.0,
         created_at  TIMESTAMP,
         updated_at  TIMESTAMP,
@@ -354,7 +322,6 @@ def init_db():
     try: c.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_user_memory ON user_memory(user_name, memory_key)")
     except sqlite3.OperationalError: pass
 
-    # ── Long-term memory: question / query history ───────────────
     c.execute('''CREATE TABLE IF NOT EXISTS question_history (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
         normalized_query TEXT,
@@ -366,7 +333,6 @@ def init_db():
     try: c.execute("ALTER TABLE question_history ADD COLUMN result_layout TEXT")
     except sqlite3.OperationalError: pass
 
-    # ── Long-term memory: saved insights ─────────────────────────
     c.execute('''CREATE TABLE IF NOT EXISTS saved_insights (
         insight_id          TEXT PRIMARY KEY,
         created_by          TEXT,
@@ -376,8 +342,6 @@ def init_db():
         verified_query_name TEXT,
         created_at          TIMESTAMP)''')
 
-    # ── Query / LLM response cache ────────────────────────────────
-    # TTL-aware: expired entries are ignored and overwritten on next miss.
     c.execute('''CREATE TABLE IF NOT EXISTS query_cache (
         query_hash   TEXT PRIMARY KEY,
         question     TEXT,
@@ -386,23 +350,20 @@ def init_db():
         last_hit_at  TIMESTAMP,
         hit_count    INTEGER DEFAULT 0,
         ttl_seconds  INTEGER DEFAULT 3600,
-        cache_type   TEXT DEFAULT "genie"  -- "genie" | "kpi" | "chart"
+        cache_type   TEXT DEFAULT "genie"
     )''')
     try: c.execute("ALTER TABLE query_cache ADD COLUMN ttl_seconds INTEGER DEFAULT 3600")
     except sqlite3.OperationalError: pass
     try: c.execute("ALTER TABLE query_cache ADD COLUMN cache_type TEXT DEFAULT 'genie'")
     except sqlite3.OperationalError: pass
 
-    # ── KPI snapshot cache (for delta trend display) ─────────────
-    # Stores dashboard KPI values at each snapshot so we can show
-    # period-over-period deltas without re-querying Athena.
     c.execute('''CREATE TABLE IF NOT EXISTS kpi_snapshot_cache (
         snapshot_id  TEXT PRIMARY KEY,
         user_name    TEXT,
         preset       TEXT,
         start_date   TEXT,
         end_date     TEXT,
-        kpi_json     TEXT,  -- serialised KPI dict
+        kpi_json     TEXT,
         created_at   TIMESTAMP
     )''')
 
@@ -410,27 +371,7 @@ def init_db():
 
 def get_current_user(): return "user1"
 
-# ═══════════════════════════════════════════════════════════════════
-# MEMORY SYSTEM
-# ─────────────────────────────────────────────────────────────────
-# Short-term  : last N messages in current session (in-process RAM +
-#               SQLite chat_messages, scoped to session_id)
-# Long-term   : user_memory table — persists preferences, entities,
-#               and inferred context across sessions and reruns
-# Cache       : query_cache table — TTL-aware LLM/SQL response store
-#               with hit counting and type tagging
-# KPI history : kpi_snapshot_cache — stores KPI snapshots per preset
-#               so the dashboard can show meaningful delta arrows even
-#               when Athena is slow or unavailable
-# ═══════════════════════════════════════════════════════════════════
-
-# ── Short-term memory helpers ─────────────────────────────────────
-
 def get_short_term_context(session_id: str, max_turns: int = 10) -> list:
-    """
-    Return the last `max_turns` messages for a session as a list of dicts.
-    Used to build the rolling conversation window sent to Bedrock.
-    """
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('''SELECT role, content, timestamp
                  FROM chat_messages
@@ -443,18 +384,12 @@ def get_short_term_context(session_id: str, max_turns: int = 10) -> list:
 
 
 def build_bedrock_context(session_id: str, max_turns: int = 6) -> str:
-    """
-    Build a compact conversation context string from short-term memory.
-    Passed as the `history` prefix to Bedrock prompts so the model
-    can answer follow-up questions intelligently.
-    """
     msgs = get_short_term_context(session_id, max_turns)
     if not msgs:
         return ""
     parts = []
     for m in msgs:
         label = "User" if m["role"] == "user" else "Assistant"
-        # Truncate very long assistant responses to keep prompt size manageable
         text = m["content"][:600] + "…" if len(m["content"]) > 600 else m["content"]
         parts.append(f"{label}: {text}")
     return (
@@ -464,13 +399,10 @@ def build_bedrock_context(session_id: str, max_turns: int = 6) -> str:
     )
 
 
-# ── Long-term memory helpers ──────────────────────────────────────
-
 def set_user_memory(key: str, value: str,
                     memory_type: str = "preference",
                     source: str = "explicit",
                     confidence: float = 1.0):
-    """Upsert a long-term memory entry for the current user."""
     import uuid as _uuid
     user = get_current_user()
     mid  = hashlib.md5(f"{user}:{key}".encode()).hexdigest()
@@ -491,14 +423,12 @@ def set_user_memory(key: str, value: str,
 
 
 def get_user_memory(key: str, default=None):
-    """Retrieve a long-term memory value for the current user."""
     user = get_current_user()
     mid  = hashlib.md5(f"{user}:{key}".encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('SELECT memory_val, access_count FROM user_memory WHERE memory_id=?', (mid,))
     row = c.fetchone()
     if row:
-        # Increment access counter (helps rank importance)
         c.execute('UPDATE user_memory SET access_count=? WHERE memory_id=?',
                   (row[1]+1, mid))
         conn.commit()
@@ -507,7 +437,6 @@ def get_user_memory(key: str, default=None):
 
 
 def get_all_user_memories(memory_type: str = None) -> list:
-    """Return all long-term memories for the current user, optionally filtered by type."""
     user = get_current_user()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     if memory_type:
@@ -524,7 +453,6 @@ def get_all_user_memories(memory_type: str = None) -> list:
 
 
 def delete_user_memory(key: str):
-    """Delete a specific long-term memory entry."""
     user = get_current_user()
     mid  = hashlib.md5(f"{user}:{key}".encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
@@ -533,27 +461,14 @@ def delete_user_memory(key: str):
 
 
 def infer_and_save_preferences(question: str, result: dict):
-    """
-    Auto-infer user preferences from query patterns and save to long-term memory.
-    Called after every successful Genie response.
-    Examples:
-      - If user often asks about a specific vendor → save as 'favourite_vendor'
-      - If user consistently uses YTD queries → save 'preferred_time_range'
-    """
     ql = question.lower()
-    # Detect vendor preference
-    vendors_in_query = []
     try:
         conn = sqlite3.connect(DB_PATH); c = conn.cursor()
         c.execute('SELECT DISTINCT query_text FROM question_history WHERE user_name=? ORDER BY asked_at DESC LIMIT 20',
                   (get_current_user(),))
         recent = [r[0].lower() for r in c.fetchall()]; conn.close()
-        # Simple heuristic: count vendor mentions across recent queries
-        from collections import Counter
-        words = " ".join(recent).split()
-        # We can only reliably detect this if dim_vendor_vw data is in session
-        vendors = st.session_state.get("vendor_list_stable", [])[1:]  # skip "All Vendors"
-        for v in vendors[:50]:  # limit scan
+        vendors = st.session_state.get("vendor_list_stable", [])[1:]
+        for v in vendors[:50]:
             vl = v.lower()
             cnt = sum(1 for q in recent if vl in q)
             if cnt >= 3:
@@ -562,7 +477,6 @@ def infer_and_save_preferences(question: str, result: dict):
     except Exception:
         pass
 
-    # Detect time range preference
     if "ytd" in ql:
         set_user_memory("preferred_preset", "YTD", "preference", "inferred", 0.8)
     elif "last 30" in ql or "30 days" in ql:
@@ -571,13 +485,7 @@ def infer_and_save_preferences(question: str, result: dict):
         set_user_memory("preferred_preset", "QTD", "preference", "inferred", 0.7)
 
 
-# ── Cache helpers (TTL-aware) ─────────────────────────────────────
-
 def get_cache_with_ttl(question: str, cache_type: str = "genie"):
-    """
-    Retrieve a cached response, respecting TTL.
-    Returns None if not found or expired.
-    """
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('''SELECT response_json, created_at, ttl_seconds
@@ -587,15 +495,13 @@ def get_cache_with_ttl(question: str, cache_type: str = "genie"):
     if not row:
         return None
     response_json, created_at_str, ttl = row
-    # Check TTL expiry
     try:
         created_at = datetime.fromisoformat(created_at_str) if isinstance(created_at_str, str) else created_at_str
         age_seconds = (datetime.now() - created_at).total_seconds()
         if age_seconds > (ttl or 3600):
-            return None  # expired
+            return None
     except Exception:
         pass
-    # Update hit count
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('UPDATE query_cache SET hit_count=hit_count+1, last_hit_at=? WHERE query_hash=?',
               (datetime.now(), q_hash))
@@ -605,7 +511,6 @@ def get_cache_with_ttl(question: str, cache_type: str = "genie"):
 
 def set_cache_with_ttl(question: str, response: dict,
                        cache_type: str = "genie", ttl_seconds: int = 3600):
-    """Store a response in cache with explicit TTL and type tag."""
     q_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
     try:
         response_json = json.dumps(make_json_serializable(response))
@@ -624,7 +529,6 @@ def set_cache_with_ttl(question: str, response: dict,
 
 
 def invalidate_cache(cache_type: str = None):
-    """Clear all cache entries, optionally filtered by type."""
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     if cache_type:
         c.execute('DELETE FROM query_cache WHERE cache_type=?', (cache_type,))
@@ -634,7 +538,6 @@ def invalidate_cache(cache_type: str = None):
 
 
 def get_cache_stats() -> dict:
-    """Return cache statistics for the admin panel."""
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('''SELECT
                     COUNT(*) AS total_entries,
@@ -651,10 +554,7 @@ def get_cache_stats() -> dict:
             for r in rows]
 
 
-# ── KPI snapshot cache ────────────────────────────────────────────
-
 def save_kpi_snapshot(preset: str, start_date: str, end_date: str, kpi: dict):
-    """Persist a KPI result set for historical comparison."""
     snap_id = hashlib.md5(f"{get_current_user()}:{preset}:{start_date}:{end_date}".encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('''INSERT OR REPLACE INTO kpi_snapshot_cache
@@ -666,7 +566,6 @@ def save_kpi_snapshot(preset: str, start_date: str, end_date: str, kpi: dict):
 
 
 def load_kpi_snapshot(preset: str, start_date: str, end_date: str) -> dict:
-    """Load a cached KPI snapshot if available."""
     snap_id = hashlib.md5(f"{get_current_user()}:{preset}:{start_date}:{end_date}".encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('SELECT kpi_json FROM kpi_snapshot_cache WHERE snapshot_id=?', (snap_id,))
@@ -692,7 +591,6 @@ def save_chat_session(session_id: str, label: str = None):
     conn.commit(); conn.close()
 
 def load_session_messages(session_id: str) -> list:
-    """Load all messages for a session from the DB (used to resume a conversation)."""
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
     c.execute('''SELECT role, content, sql_used, source, timestamp
                  FROM chat_messages
@@ -816,14 +714,12 @@ def inject_dashboard_css():
         text-align:center; height:100%; display:flex; flex-direction:column; }}
     .quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 0.4rem 0; }}
     .quick-card p  {{ font-size:0.8rem; color:#64748b; flex-grow:1; margin:0 0 0.8rem 0; }}
-    /* ── Hide st.color_picker swatch button (coloured square) ── */
     div[data-testid="stColorPicker"] button {{
         display: none !important;
         width: 0 !important; height: 0 !important;
         overflow: hidden !important; opacity: 0 !important;
         pointer-events: none !important;
     }}
-    /* ── BG CIRCLE BUTTON — global, fires on every page ── */
     button[data-testid="baseButton-secondary"][aria-label="BG"],
     button[data-testid="baseButton-secondary"][aria-label="X"] {{
         width:52px!important;height:52px!important;
@@ -872,17 +768,11 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
   <div class="grir-card-value">{value}</div>
 </div>""", unsafe_allow_html=True)
 
-# ── BG Button: fixed bottom-right, pure Streamlit (no JS/HTML floating) ──
 def render_bg_button_sidebar():
-    """
-    BG button: white circle + colour picker always visible above it.
-    No toggle — picker is always shown when this function is called.
-    """
     current_bg = st.session_state.get("bg_color", "#ffffff")
 
     st.markdown("""
 <style>
-/* White circle BG button */
 button[aria-label="BG"] {
     width:52px!important; height:52px!important;
     min-width:52px!important; min-height:52px!important;
@@ -907,7 +797,6 @@ button[aria-label="BG"]:focus, button[aria-label="BG"]:active {
 div[data-testid="stButton"]:has(button[aria-label="BG"]) {
     width:56px!important; max-width:56px!important; padding:0!important;
 }
-/* Hide colour picker swatch button — show canvas only */
 div[data-testid="stColorPicker"] label { display:none!important; }
 div[data-testid="stColorPicker"] button {
     display:none!important; visibility:hidden!important;
@@ -917,7 +806,6 @@ div[data-testid="stColorPicker"] button {
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Always show colour picker above BG button ─────────────────────────────
     safe_val = current_bg if (
         current_bg.startswith("#") and len(current_bg) in (4, 7)
     ) else "#ffffff"
@@ -929,28 +817,16 @@ div[data-testid="stColorPicker"] button {
         st.session_state["bg_color"] = picked
         st.rerun()
 
-    # ── White circle BG button (decorative — picker is always visible) ─────────
     st.button("BG", key="bg_pill_btn", use_container_width=False)
 
-# ── FIXED KPI fetching using correct view column names ───────
+# ── FIXED KPI fetching ───────────────────────────────────────
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str,
                    start_iso: str, end_iso: str) -> dict:
-    """
-    PERFORMANCE: All 8 KPIs + vendor list in ONE merged Athena query.
-    Old approach: 5 sequential queries per period (10 total for cur+prev).
-    New approach: 1 query per period → 2 Athena calls total for all KPIs.
-
-    Uses a single pass over fact_all_sources_vw + LEFT JOINs to the
-    aggregate views, all in one CTE/subquery block.
-    """
     start = date.fromisoformat(start_iso)
     end   = date.fromisoformat(end_iso)
     ym    = year_month_filter(start, end)
 
-    # ── Single merged query: all KPIs from fact table + aggregate views ──────
-    # We UNION the three aggregate views as scalar subqueries so Athena
-    # can scan fact_all_sources_vw only once.
     merged_sql = f"""
         WITH fact_agg AS (
             SELECT
@@ -1024,7 +900,6 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str,
     auto_proc        = safe_int(row.get("auto_processed", 0))
     auto_rate        = (auto_proc / auto_total * 100) if auto_total > 0 else 0.0
 
-    # Fallback for avg_processing_days if view returned NULL
     if avg_proc_days == 0.0 or pd.isna(avg_proc_days):
         fb = run_query(f"""
             SELECT AVG(CAST(DATE_DIFF('day',posting_date,payment_date) AS DOUBLE)) AS avg_days
@@ -1047,15 +922,8 @@ def fetch_kpi_data(start_lit: str, end_lit: str, vendor_where: str,
     }
 
 
-    return result
-
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
-    """
-    PERFORMANCE: Single UNION query replaces 3 sequential queries.
-    One Athena scan of fact_all_sources_vw instead of three.
-    A 'category' column tags each row so we can split into DataFrames in Python.
-    """
     union_sql = f"""
         SELECT f.invoice_number AS ref_no,
                f.invoice_amount_local AS amount,
@@ -1113,16 +981,10 @@ def fetch_needs_attention(start_lit: str, end_lit: str, vendor_where: str):
     return overdue_df, disputed_df, due_df
 
 def _load_vendor_list():
-    """
-    Load vendor list into a SINGLE stable session_state key: "vendor_list_stable".
-    Only re-fetches when the date range actually changes.
-    This prevents the selectbox from duplicating when preset buttons are clicked.
-    """
     rng_start, rng_end = st.session_state.date_range
     last_start = st.session_state.get("_vendor_list_last_start")
     last_end   = st.session_state.get("_vendor_list_last_end")
 
-    # Only re-query when date range truly changed
     needs_reload = (
         "vendor_list_stable" not in st.session_state
         or last_start != rng_start
@@ -1130,7 +992,6 @@ def _load_vendor_list():
     )
 
     if needs_reload:
-        # Use @st.cache_data — run_query already caches this call at 600s
         vdf = run_query(
             f"SELECT DISTINCT v.vendor_name "
             f"FROM {DATABASE}.fact_all_sources_vw f "
@@ -1149,22 +1010,6 @@ def _load_vendor_list():
 
 
 def render_filters():
-    """
-    Renders date range, vendor selector, and preset buttons.
-
-    KEY FIX — vendor list duplication:
-    ─────────────────────────────────
-    Root cause: old code used a date-keyed cache (vendor_list_2026-01-01_2026-06-11)
-    so each preset click created a brand-new list in session_state, and the
-    selectbox (with a fixed key) received a different options list every render,
-    causing Streamlit to reset and visually duplicate the dropdown.
-
-    Fix: single stable key "vendor_list_stable" managed by _load_vendor_list().
-    The list is only reloaded when the date range actually changes — NOT on every
-    preset button click. The selectbox always reads from the same stable key and
-    the same widget key, so it never duplicates.
-    """
-    # ── Step 1: ensure vendor list is loaded (stable single key) ──
     _load_vendor_list()
 
     rng_start, rng_end = st.session_state.date_range
@@ -1172,15 +1017,12 @@ def render_filters():
     current_preset     = st.session_state.preset
     vendor_list        = st.session_state["vendor_list_stable"]
 
-    # ── Inject CSS: filter row — all elements same height, visible, no wrap ─
     st.markdown("""
 <style>
-/* ── Filter row: align all elements to centre vertically ── */
 section.main div[data-testid="stHorizontalBlock"]:nth-of-type(2) {
     align-items: center !important;
     min-height: 44px !important;
 }
-/* Date input */
 div[data-testid="stDateInput"] input {
     height: 40px !important;
     min-height: 40px !important;
@@ -1189,7 +1031,6 @@ div[data-testid="stDateInput"] input {
     padding: 0 10px !important;
     white-space: nowrap !important;
 }
-/* Vendor selectbox */
 div[data-testid="stSelectbox"] > div {
     height: 40px !important;
     min-height: 40px !important;
@@ -1203,7 +1044,6 @@ div[data-testid="stSelectbox"] > div > div {
     display: flex !important;
     align-items: center !important;
 }
-/* Preset buttons — no text wrap, fixed height */
 div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
     height: 40px !important;
     min-height: 40px !important;
@@ -1218,13 +1058,10 @@ div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
 </style>
 """, unsafe_allow_html=True)
 
-    # Layout: date(1.4) | vendor(1.4) | [Last30(1.4) QTD(0.8) YTD(0.8) Custom(0.8)]
-    # Total ratio sums to ~6.6 — "Last 30 Days" gets enough room to fit on one line
     col_date, col_vendor, col_l30, col_qtd, col_ytd, col_custom = st.columns(
         [1.4, 1.4, 1.35, 0.75, 0.75, 0.75], gap="small"
     )
 
-    # ── Date range picker ──────────────────────────────────────
     with col_date:
         date_range = st.date_input(
             "Date Range",
@@ -1243,7 +1080,6 @@ div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
                 else:
                     st.session_state._preset_clicked = False
 
-    # ── Vendor selector ────────────────────────────────────────
     with col_vendor:
         try:
             v_idx = vendor_list.index(selected_vendor)
@@ -1259,7 +1095,6 @@ div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {
         if chosen != st.session_state.selected_vendor:
             st.session_state.selected_vendor = chosen
 
-    # ── Preset buttons — each in its own sized column so text never wraps ──
     preset_map = [
         (col_l30,    "Last 30 Days"),
         (col_qtd,    "QTD"),
@@ -1319,7 +1154,6 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
     with col1: render_kpi_card("PENDING INVOICES", f"{cur_pend:,}", pend_d, not pend_up, "yellow")
     with col2: render_kpi_card("AVG PROCESSING TIME", f"{cur_avg:.1f}d", avg_d_str, avg_up, "cyan")
     with col3: render_kpi_card("FIRST PASS INVOICES %", f"{cur_fp:.1f}%", fp_d_str, fp_up, "green")
-    # Show green +0.0% ↑ even when auto_rate is 0 (not a dash)
     auto_delta = f"+{auto_rate:.1f}%"
     with col4: render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", auto_delta, True, "green")
 
@@ -1346,17 +1180,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     else:
         df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"
 
-    # ── All CSS injected once ─────────────────────────────────────────────────
     st.markdown(f"""
 <style>
-/* Title */
 .na-title {{
     font-size: 16px; font-weight: 800; color: #111827;
     margin-bottom: 10px;
 }}
 .na-title span {{ font-weight: 600; color: #6b7280; font-size: 14px; }}
-
-/* Tab buttons */
 .na-tabs-row button {{
     height: 44px !important;
     min-height: 44px !important;
@@ -1377,12 +1207,9 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     border-color: #2563eb !important;
     box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
 }}
-
-/* Card grid */
 .na-cards-grid {{
     margin-top: 12px;
 }}
-/* Card containers */
 .na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] {{
     background: #FFF0F2 !important;
     border: 1.5px solid #f5c6cb !important;
@@ -1390,13 +1217,11 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     box-shadow: 0 1px 4px rgba(229,57,53,0.06) !important;
     overflow: visible !important;
 }}
-/* Tighten internal card padding */
 .na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"]
   > div[data-testid="stVerticalBlock"] {{
     padding: 8px 10px 8px 10px !important;
     gap: 0 !important;
 }}
-/* Invoice number button in card */
 .na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button {{
     background:    #f3f4f6 !important;
     border:        1px solid #d1d5db !important;
@@ -1430,8 +1255,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     outline:            none !important;
     outline-width:      0 !important;
 }}
-
-/* Pagination */
 .na-page-row button {{
     height: 38px !important;
     min-height: 38px !important;
@@ -1456,7 +1279,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             unsafe_allow_html=True,
         )
 
-        # Tab buttons
         st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
         tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
         with tc1:
@@ -1484,7 +1306,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
             si2 = page * ipp; ei2 = min(si2 + ipp, tot)
             page_df = df.iloc[si2:ei2]; gi = 0
 
-            # Card grid — scoped with .na-cards-grid
             st.markdown("<div class='na-cards-grid'>", unsafe_allow_html=True)
 
             for chunk_start in range(0, len(page_df), 4):
@@ -1500,20 +1321,17 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         bk    = f"na_btn_{si2}_{gi}_{ref[:20]}"
 
                         with st.container(border=True):
-                            # Invoice number button (full width, grey pill)
                             if st.button(ref, key=bk):
                                 st.session_state["invoice_search_from_card"] = ref
                                 st.session_state["page"] = "Invoices"
                                 st.experimental_set_query_params(invoice=ref)
                                 st.rerun()
-                            # Status label overlaid top-right
                             st.markdown(
                                 f"<div style='text-align:right;margin-top:-24px;"
                                 f"font-size:11px;font-weight:700;color:{tc_color};'>"
                                 f"{sl}</div>",
                                 unsafe_allow_html=True,
                             )
-                            # Amount + due date right-aligned
                             st.markdown(
                                 f"<div style='text-align:right;'>"
                                 f"<div style='font-size:14px;font-weight:800;"
@@ -1522,7 +1340,6 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                                 f"Due: {dd}</div></div>",
                                 unsafe_allow_html=True,
                             )
-                            # Vendor name bottom-left
                             st.markdown(
                                 f"<div style='font-size:11px;color:#6b7280;"
                                 f"margin-top:1px;'>{vname}</div>",
@@ -1531,9 +1348,8 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         gi += 1
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)  # na-cards-grid
+            st.markdown("</div>", unsafe_allow_html=True)
 
-            # Pagination
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
             st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
             pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
@@ -1562,19 +1378,14 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                         "font-size:13px;'>Next →</div>",
                         unsafe_allow_html=True,
                     )
-            st.markdown("</div>", unsafe_allow_html=True)  # na-page-row
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 
 def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
                      end_lit_6m: str) -> tuple:
-    """
-    PERFORMANCE: Fetch all 3 chart datasets in ONE Athena query using CTEs.
-    Old: 3 sequential queries. New: 1 query, split into 3 DataFrames in Python.
-    """
     merged_sql = f"""
         WITH
-        -- Status distribution
         status_dist AS (
             SELECT
                 CASE
@@ -1589,7 +1400,6 @@ def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
             WHERE posting_date BETWEEN {start_lit} AND {end_lit}
             GROUP BY 1
         ),
-        -- Top 10 vendors by spend
         top_vendors AS (
             SELECT
                 COALESCE(v.vendor_name,'Unknown') AS vendor_name,
@@ -1603,7 +1413,6 @@ def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
             ORDER BY spend DESC
             LIMIT 10
         ),
-        -- Monthly spend trend (last 6 months)
         spend_trend AS (
             SELECT
                 DATE_TRUNC('month', posting_date) AS month,
@@ -1615,7 +1424,6 @@ def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
             GROUP BY 1
             ORDER BY 1
         )
-        -- Return all three result sets tagged by _type
         SELECT CAST(status AS VARCHAR) AS col_a, CAST(cnt AS VARCHAR) AS col_b,
                CAST(NULL AS VARCHAR) AS col_c, _type FROM status_dist
         UNION ALL
@@ -1627,7 +1435,6 @@ def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
     """
     all_df = run_query(merged_sql)
 
-    # Split by _type tag
     if all_df.empty:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
@@ -1649,14 +1456,10 @@ def fetch_chart_data(start_lit: str, end_lit: str, vendor_where: str,
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_chart_data_cached(start_lit: str, end_lit: str, vendor_where: str,
                              end_lit_6m: str) -> tuple:
-    """Cached wrapper for fetch_chart_data."""
     return fetch_chart_data(start_lit, end_lit, vendor_where, end_lit_6m)
 
 
 def render_charts(rng_start, rng_end, vendor_where):
-    """
-    PERFORMANCE: One cached Athena call for all 3 charts (was 3 sequential).
-    """
     start_lit   = sql_date(rng_start)
     end_lit     = sql_date(rng_end)
     end_lit_6m  = f"DATE_ADD('month', -6, {end_lit})"
@@ -1665,7 +1468,6 @@ def render_charts(rng_start, rng_end, vendor_where):
         start_lit, end_lit, vendor_where, end_lit_6m
     )
 
-    # Three-column layout: Status Distribution | Top 10 Vendors | Spend Trend
     col1, col2, col3 = st.columns(3, gap="medium")
 
     with col1:
@@ -1678,7 +1480,6 @@ def render_charts(rng_start, rng_end, vendor_where):
                     {"status":"Disputed","cnt":33},{"status":"Other","cnt":30}])
             total = status_df["cnt"].sum()
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
-            # Build legend label = "Paid 63.4%" — shows % clearly without arc clipping
             status_df["legend_label"] = status_df.apply(
                 lambda r: f"{r['status']}  {r['percentage']}%", axis=1
             )
@@ -1760,11 +1561,6 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    # ── BG colour picker — exact pattern from reference app ──────────────────
-    # Technique: render a visible .theme-anchor circle div (HTML), then place
-    # the real st.color_picker OVER it with opacity:0 so it is invisible but
-    # fully clickable. Clicking the circle opens the native browser color
-    # picker. No JS, no iframes, no portal hacks needed.
     if "bg_color" not in st.session_state:
         st.session_state.bg_color = "#ffffff"
     current_bg = st.session_state.bg_color
@@ -1773,7 +1569,6 @@ def render_charts(rng_start, rng_end, vendor_where):
     st.markdown(
         f"""
         <style>
-            /* Visible round BG button — fixed bottom-right */
             .theme-anchor {{
                 position: fixed;
                 bottom: 20px;
@@ -1797,7 +1592,6 @@ def render_charts(rng_start, rng_end, vendor_where):
             .theme-anchor .theme-label-text {{
                 pointer-events: none;
             }}
-            /* Invisible but clickable color picker sits exactly on top */
             div[data-testid="stColorPicker"] {{
                 position: fixed !important;
                 bottom: 20px !important;
@@ -1819,7 +1613,6 @@ def render_charts(rng_start, rng_end, vendor_where):
         unsafe_allow_html=True,
     )
 
-    # Render the visible white "BG" circle (purely decorative — picker sits on top)
     st.markdown(
         """
         <div class="theme-anchor">
@@ -1829,7 +1622,6 @@ def render_charts(rng_start, rng_end, vendor_where):
         unsafe_allow_html=True,
     )
 
-    # Render the actual color picker (invisible, but clickable over the circle)
     picked = st.color_picker("picker", key="bg_color", label_visibility="collapsed")
     if picked != current_bg:
         st.session_state["bg_color"] = picked
@@ -1837,18 +1629,6 @@ def render_charts(rng_start, rng_end, vendor_where):
 
 
 def render_dashboard():
-    """
-    Main dashboard page.
-    PERFORMANCE summary (after optimisation):
-      - Old: 17 sequential Athena queries per load (~35–70s cold)
-      - New:  4 Athena queries per load (~8–16s cold), ~instant on cache hit
-        1. fetch_kpi_data current  — 1 merged CTE query (5 KPIs in one scan)
-        2. fetch_kpi_data previous — 1 merged CTE query (delta calculations)
-        3. fetch_needs_attention   — 1 UNION query (overdue+disputed+due in one scan)
-        4. fetch_chart_data_cached — 1 merged CTE query (all 3 charts in one scan)
-      - Cache TTL 600s — all queries cached for 10 minutes
-    """
-    # ── Initialise session state (first load only) ───────────────────────────
     for k, v in [
         ("date_range",      compute_range_preset("Last 30 Days")),
         ("selected_vendor", "All Vendors"),
@@ -1860,7 +1640,6 @@ def render_dashboard():
         if k not in st.session_state:
             st.session_state[k] = v
 
-    # Remove any stale date-keyed vendor cache entries from old code
     stale = [k for k in list(st.session_state.keys())
              if isinstance(k, str) and k.startswith("vendor_list_") and k != "vendor_list_stable"]
     for k in stale:
@@ -1871,18 +1650,15 @@ def render_dashboard():
     sl  = sql_date(rng_start);  el  = sql_date(rng_end)
     ps, pe = prior_window(rng_start, rng_end)
 
-    # ── KPI Cards: 2 merged Athena queries (current + prior period) ──────────
     with st.spinner("Loading dashboard..."):
         cur_kpi  = fetch_kpi_data(sl, el, vendor_where,
                                    rng_start.isoformat(), rng_end.isoformat())
         prev_kpi = fetch_kpi_data(sql_date(ps), sql_date(pe), vendor_where,
                                    ps.isoformat(), pe.isoformat())
-    # ── Save KPI snapshot to long-term cache (for history / trend replay) ────
     save_kpi_snapshot(
         st.session_state.get("preset","Custom"),
         rng_start.isoformat(), rng_end.isoformat(), cur_kpi
     )
-    # ── Auto-save preferred preset to long-term memory ────────────────────────
     preset_now = st.session_state.get("preset","Last 30 Days")
     if preset_now != "Custom":
         set_user_memory("preferred_preset", preset_now, "preference", "inferred", 0.9)
@@ -1890,18 +1666,15 @@ def render_dashboard():
     st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
     render_kpi_rows(cur_kpi, prev_kpi)
 
-    # ── Needs Attention: 1 UNION query ───────────────────────────────────────
     st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
     render_needs_attention(rng_start, rng_end, vendor_where)
 
-    # ── Charts: 1 merged CTE query ───────────────────────────────────────────
     st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
     render_charts(rng_start, rng_end, vendor_where)
 
 
 # ── Forecast ─────────────────────────────────────────────────
 def render_forecast():
-    # Cache forecast data to stop flicker on every rerun
     if "forecast_cf_df" not in st.session_state:
         st.session_state.forecast_cf_df = None
     if st.session_state.forecast_cf_df is None:
@@ -1953,7 +1726,6 @@ def render_forecast():
         st.markdown("---")
         st.markdown("#### Obligations by time bucket")
         if not cf_df.empty:
-            # Clean up bucket labels for display
             display_df = cf_df.copy()
             bucket_labels = {
                 "TOTAL_UNPAID": "Total Unpaid",
@@ -2082,13 +1854,8 @@ OUT_OF_DOMAIN_MSG = ("Hello! I am ProcureIQ Assistant. I can help you with procu
     "and related business data. Please ask a procurement or dashboard-related question.")
 
 def is_relevant_question(q: str) -> bool:
-    """
-    Strict whitelist-only: ONLY returns True when procurement keywords are present.
-    Any greeting, small talk, or general knowledge question returns False immediately.
-    """
     ql = q.lower().strip()
 
-    # Step 1: Hard-block non-procurement patterns
     non_proc_patterns = [
         r"^(hi|hello|hey|howdy|hiya|yo)\b",
         r"^good\s*(morning|afternoon|evening|night|day)\b",
@@ -2116,7 +1883,6 @@ def is_relevant_question(q: str) -> bool:
         if re.search(pat, ql):
             return False
 
-    # Step 2: Strict procurement keyword whitelist — MUST match at least one
     procurement_keywords = [
         "spend","vendor","invoice","invoices","purchase order","payment","payments",
         "due date","overdue","dispute","disputed","gr/ir","grir","gr ir",
@@ -2133,26 +1899,22 @@ def is_relevant_question(q: str) -> bool:
         if kw in ql:
             return True
 
-    # Nothing matched → not a procurement question
     return False
 
 def generate_sql(question: str) -> str:
-    """Generate SQL via Bedrock. Returns empty string if generation fails (no hardcoded fallback)."""
     sql = ask_bedrock(f"Question: {question}\n\nGenerate SQL.", SYS_SEMANTIC)
     if sql:
         sql = re.sub(r"```sql\s*","",sql); sql = re.sub(r"```\s*","",sql).strip()
         if not sql.lower().startswith("select"): sql=""
-    return sql  # Empty string if Bedrock couldn't generate — caller handles this
+    return sql
 
 SYS_ANALYST = "You are a helpful senior procurement analyst. Respond in markdown with Descriptive (What the data shows) and Prescriptive (Recommendations) sections."
 
 def process_custom_query(query: str, history: str="") -> dict:
-    # ALWAYS check relevance first — this is the primary gate
     if not is_relevant_question(query):
         return {"layout":"static","analyst_response":OUT_OF_DOMAIN_MSG,"question":query}
     sql = generate_sql(query)
     if not sql or not is_safe_sql(sql):
-        # If SQL generation failed, still try to give a helpful answer via Bedrock text
         txt = ask_bedrock(
             f'{history}\nUser asked: "{query}"\nNo SQL was generated. Provide a general procurement answer.',
             SYS_ANALYST)
@@ -2503,14 +2265,6 @@ GRIR_WC_Q        = "Estimate the working capital that would be released by clear
 GRIR_FOLLOWUP_Q  = "Based on GR/IR aging and outstanding balances, draft vendor-facing follow-up templates we can use for high-priority GR/IR items, with realistic subject lines and concise bullet points."
 
 def _dispatch_query(q: str, history: str) -> dict:
-    """
-    Central dispatcher for all Genie queries.
-    FIRST gate: is_relevant_question() — if the question is not procurement-related,
-    return the standard out-of-domain message immediately, before any SQL or LLM call.
-    Hard-coded quick-analysis labels ("Spending Overview" etc.) bypass the relevance
-    check because they are internal system triggers, not user free-text.
-    """
-    # ── Internal quick-analysis triggers (system labels — bypass relevance check) ──
     if q == GRIR_HOTSPOTS_Q:  return process_grir_hotspots(q, history)
     if q == GRIR_ROOTCAUSE_Q: return process_grir_root_causes(q, history)
     if q == GRIR_WC_Q:        return process_grir_working_capital(q, history)
@@ -2520,13 +2274,9 @@ def _dispatch_query(q: str, history: str) -> dict:
     if q == "Payment Performance":  return _quick_payment_performance()
     if q == "Invoice Aging":        return _quick_invoice_aging()
 
-    # ── RELEVANCE GATE — must pass before any LLM or Athena call ──────────────
-    # This is the definitive check. If it returns False, no SQL is generated,
-    # no Bedrock call is made, no data is returned — only the default message.
     if not is_relevant_question(q):
         return {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": q}
 
-    # ── Procurement-confirmed: route to appropriate handler ───────────────────
     lq = q.lower()
     if any(kw in lq for kw in ["forecast cash outflow", "cash flow forecast"]):
         return process_cash_flow_forecast(q, history)
@@ -2537,13 +2287,10 @@ def _dispatch_query(q: str, history: str) -> dict:
     if "late payment trend" in lq:
         return process_late_payment_trend(q, history)
 
-    # Default: generate SQL from free-text question
     return process_custom_query(q, history)
 
 def process_user_question(user_question: str):
     with st.spinner("Generating insights..."):
-        # Skip cache entirely for out-of-domain questions
-        # (avoids serving stale procurement responses for greetings)
         if not is_relevant_question(user_question):
             result = {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": user_question}
             st.session_state.current_messages = [
@@ -2554,7 +2301,6 @@ def process_user_question(user_question: str):
             st.rerun()
             return
 
-        # ── Use TTL-aware cache (replaces old get_cache) ─────────────
         cached = get_cache_with_ttl(user_question, cache_type="genie")
         if cached:
             st.session_state.current_messages=[
@@ -2567,7 +2313,6 @@ def process_user_question(user_question: str):
                               sql_used=_safe_sql_string(cached.get("sql")))
             save_question(user_question,"custom")
         else:
-            # ── Use short-term memory for conversation context ──────────────
             history = build_bedrock_context(
                 st.session_state.genie_session_id, max_turns=6
             )
@@ -2576,13 +2321,11 @@ def process_user_question(user_question: str):
             if result.get("layout")!="error":
                 ac=result.get('analyst_response','Analysis complete.')
                 st.session_state.current_messages.append({"role":"assistant","content":ac,"response":result,"timestamp":datetime.now()})
-                # ── TTL cache: Genie responses valid for 1 hour ─────────────
                 set_cache_with_ttl(user_question, result, cache_type="genie", ttl_seconds=3600)
                 save_chat_message(st.session_state.genie_session_id,0,"user",user_question)
                 save_chat_message(st.session_state.genie_session_id,1,"assistant",ac,
                                   sql_used=_safe_sql_string(result.get("sql")))
                 save_question(user_question,"forecast")
-                # ── Auto-infer long-term preferences ────────────────────────
                 infer_and_save_preferences(user_question, result)
             else:
                 st.session_state.current_messages.append({"role":"assistant","content":result.get("message","Error"),"timestamp":datetime.now()})
@@ -2593,15 +2336,14 @@ def start_new_session():
     st.session_state.current_messages = []
     st.session_state.show_summary = False
     st.session_state.conversation_summary = ""
-    st.session_state["show_chats_panel"] = False  # close chats panel
+    st.session_state["show_chats_panel"] = False
     save_chat_session(st.session_state.genie_session_id,
                       label=f"New Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     st.rerun()
 
 def summarize_conversation():
-    """Summarise current conversation. Sets show_summary=True so button stays highlighted."""
     if not st.session_state.current_messages:
-        return  # Caller checks messages exist before calling — no false warning here
+        return
     txt = "\n\n".join(
         f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}"
         for m in st.session_state.current_messages
@@ -2610,7 +2352,6 @@ def summarize_conversation():
     if s:
         st.session_state.conversation_summary = s
         st.session_state.show_summary = True
-        # Keep messages — user can keep chatting; summary shown above chat
     else:
         st.error("Could not generate summary.")
 
@@ -2626,7 +2367,7 @@ def export_conversation_md():
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
-    # ── Form CSS injected FIRST — guarantees visibility on every first load ───
+    # ── Form CSS ─────────────────────────────────────────────────────────────
     st.markdown("""
 <style>
 div[data-testid="stForm"] {
@@ -2638,7 +2379,6 @@ div[data-testid="stForm"] {
     margin-top: 10px !important;
     width: 100% !important;
 }
-/* Horizontal block inside form: no gaps */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     align-items: center !important;
@@ -2661,7 +2401,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     min-width: 54px !important;
     padding: 0 !important;
 }
-/* Text input fills its column */
 div[data-testid="stForm"] div[data-testid="stTextInput"] {
     width: 100% !important;
     padding: 0 !important;
@@ -2688,7 +2427,6 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important; font-size: 13.5px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-/* Submit button: inline circle at right */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
     flex-shrink: 0 !important;
     width: 50px !important; height: 50px !important;
@@ -2722,7 +2460,7 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
         save_chat_session(st.session_state.genie_session_id,
                           label=f"Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    # ── Auto-run query from quick cards or nav ────────────────────────────────
+    # ── Auto-run query ────────────────────────────────────────────────────────
     auto_query = st.session_state.pop("auto_run_query", None)
     if auto_query:
         with st.spinner("Running analysis..."):
@@ -2749,40 +2487,50 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
                 )
         st.rerun()
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # ALL CSS for the Genie page — injected once at the top
-    # ══════════════════════════════════════════════════════════════════════════
+    # ── All page CSS ──────────────────────────────────────────────────────────
     st.markdown("""
 <style>
-/* ── Page title ── */
 .genie-welcome h1 {
     font-size: 1.75rem; font-weight: 700; color: #1e293b; margin-bottom: 4px;
 }
 .genie-welcome p { font-size: 0.9rem; color: #64748b; margin: 0; }
 
-/* ── Quick-analysis cards ── */
-.quick-card {
+/* ── Quick-analysis cards — matching screenshot exactly ── */
+.genie-card {
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 14px;
-    padding: 16px 14px 10px 14px;
+    padding: 20px 18px 14px 18px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    min-height: 130px;
-    display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    min-height: 158px;
 }
-.quick-card-icon {
-    font-size: 1.6rem; margin-bottom: 8px; line-height: 1;
+.genie-card-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 13px;
+    flex-shrink: 0;
 }
-.quick-card h3 {
-    font-size: 0.92rem; font-weight: 700; color: #1e293b;
+.genie-card-title {
+    font-size: 0.93rem;
+    font-weight: 700;
+    color: #111827;
     margin: 0 0 5px 0;
+    line-height: 1.3;
 }
-.quick-card p {
-    font-size: 0.78rem; color: #64748b; flex-grow: 1;
-    margin: 0 0 10px 0; line-height: 1.4;
+.genie-card-desc {
+    font-size: 0.77rem;
+    color: #6b7280;
+    line-height: 1.45;
+    flex-grow: 1;
+    margin: 0 0 12px 0;
 }
 
-/* ── Left panel expanders ── */
 .genie-left-panel div[data-testid="stExpander"] {
     border: none !important;
     border-bottom: 1px solid #f1f5f9 !important;
@@ -2795,7 +2543,6 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     color: #374151 !important;
     padding: 8px 4px !important;
 }
-/* Left panel buttons — left-aligned, no border */
 .genie-left-panel button {
     text-align: left !important;
     justify-content: flex-start !important;
@@ -2814,8 +2561,6 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     color: #2563eb !important;
     border: none !important;
 }
-
-/* ── Right panel: AI Assistant ── */
 .genie-right-container {
     background: white;
     border: 1.5px solid #e2e8f0;
@@ -2823,7 +2568,6 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     padding: 14px 16px 12px 16px;
     box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
-/* Header buttons — target by key, pill shaped with clear separation */
 button[data-testid="baseButton-secondary"][aria-label="Chats"],
 button[data-testid="baseButton-primary"][aria-label="Chats"],
 button[data-testid="baseButton-secondary"][aria-label="Summarize"],
@@ -2860,8 +2604,6 @@ button[data-testid="baseButton-primary"][aria-label="Summarize"] {
     border-color: #2563eb !important;
     box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
 }
-
-/* ── Empty state ── */
 .genie-empty {
     background: #f8fafc; border-radius: 12px;
     padding: 2.2rem 1rem; text-align: center;
@@ -2872,23 +2614,15 @@ button[data-testid="baseButton-primary"][aria-label="Summarize"] {
 .genie-empty-icon  { font-size: 1.8rem; color: #cbd5e1; margin-bottom: 8px; }
 .genie-empty-title { font-size: 0.98rem; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
 .genie-empty-sub   { font-size: 0.8rem; color: #94a3b8; max-width: 240px; line-height: 1.4; }
-
-/* ── Chat messages ── */
 .chat-messages {
     max-height: 360px; overflow-y: auto; padding: 4px 2px;
     margin-bottom: 6px; background: #fafcff;
     border-radius: 10px; border: 1px solid #e8edf3;
 }
-
-/* ── Resume panel ── */
 .resume-panel {
     background: #f0f7ff; border-radius: 10px; padding: 10px 12px;
     border: 1px solid #bfdbfe; margin: 4px 0 8px 0;
 }
-
-/* ══════════════════════════════════════════════════════════════
-   ASK INPUT FORM — full width stretching to submit button
-   ══════════════════════════════════════════════════════════════ */
 div[data-testid="stForm"] {
     background: white !important;
     border: 1.5px solid #e2e8f0 !important;
@@ -2899,12 +2633,10 @@ div[data-testid="stForm"] {
     width: 100% !important;
     box-sizing: border-box !important;
 }
-/* Outer vertical block inside form: remove all padding */
 div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
     padding: 0 !important;
     gap: 0 !important;
 }
-/* Horizontal row: flex, no gaps eating width */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     align-items: center !important;
@@ -2914,7 +2646,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     padding: 0 !important;
     margin: 0 !important;
 }
-/* Input column: grow to fill ALL remaining space */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
     flex: 1 1 0% !important;
@@ -2922,7 +2653,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     width: 0 !important;
     padding: 0 !important;
 }
-/* Button column: fixed narrow */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
     flex: 0 0 52px !important;
@@ -2930,7 +2660,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     min-width: 52px !important;
     padding: 0 !important;
 }
-/* Input element: truly 100% of its column */
 div[data-testid="stForm"] div[data-testid="stTextInput"] {
     width: 100% !important; padding: 0 !important; margin: 0 !important;
 }
@@ -2963,7 +2692,6 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
 div[data-testid="stForm"] div[data-testid="stTextInput"] label {
     display: none !important;
 }
-/* Circular submit button */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 48px !important;
@@ -2991,49 +2719,85 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 """, unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # SECTION 1 — Title + Quick-analysis cards
+    # SECTION 1 — Title + Quick-analysis cards (UPDATED to match screenshot)
     # ══════════════════════════════════════════════════════════════════════════
     st.markdown("""
 <div class="genie-welcome">
-  <h1>Welcome to ProcureIQ Genie</h1>
+  <h1>Welcome to ProcureSpendIQ Genie</h1>
   <p>Let Genie run one of these quick analyses for you</p>
 </div>""", unsafe_allow_html=True)
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-    # 4 cards — icon text (ASCII/unicode safe for Snowflake)
+    # Card data — SVG icons on colored square backgrounds, matching screenshot style
     card_data = [
-        {"title": "Spending Overview",
-         "icon_bg": "#EEF2FF", "icon_color": "#4F46E5",
-         "icon_char": "📊",
-         "desc": "Track total spend, monthly trends and major changes"},
-        {"title": "Vendor Analysis",
-         "icon_bg": "#F0FDF4", "icon_color": "#16A34A",
-         "icon_char": "🏭",
-         "desc": "Understand vendor-wise spend, concentration, and dependency"},
-        {"title": "Payment Performance",
-         "icon_bg": "#FFF7ED", "icon_color": "#EA580C",
-         "icon_char": "⏱️",
-         "desc": "Identify delays, late payments, and cycle time issues"},
-        {"title": "Invoice Aging",
-         "icon_bg": "#FFF1F2", "icon_color": "#E11D48",
-         "icon_char": "📅",
-         "desc": "See overdue invoices, risk buckets, and problem areas"},
+        {
+            "title": "Spending Overview",
+            "icon_svg": (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" '
+                'fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                '<line x1="18" y1="20" x2="18" y2="10"/>'
+                '<line x1="12" y1="20" x2="12" y2="4"/>'
+                '<line x1="6" y1="20" x2="6" y2="14"/>'
+                '</svg>'
+            ),
+            "icon_bg": "#6366F1",
+            "desc": "Track total spend, monthly trends and major changes",
+        },
+        {
+            "title": "Vendor Analysis",
+            "icon_svg": (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" '
+                'fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
+                '<polyline points="9 22 9 12 15 12 15 22"/>'
+                '</svg>'
+            ),
+            "icon_bg": "#8B5CF6",
+            "desc": "Understand vendor-wise spend, concentration, and dependency",
+        },
+        {
+            "title": "Payment Performance",
+            "icon_svg": (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" '
+                'fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                '<circle cx="12" cy="12" r="10"/>'
+                '<polyline points="12 6 12 12 16 14"/>'
+                '</svg>'
+            ),
+            "icon_bg": "#3B82F6",
+            "desc": "Identify delays, late payments, and cycle time issues",
+        },
+        {
+            "title": "Invoice Aging",
+            "icon_svg": (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" '
+                'fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
+                '<line x1="16" y1="2" x2="16" y2="6"/>'
+                '<line x1="8" y1="2" x2="8" y2="6"/>'
+                '<line x1="3" y1="10" x2="21" y2="10"/>'
+                '</svg>'
+            ),
+            "icon_bg": "#1E3A5F",
+            "desc": "See overdue invoices, risk buckets, and problem areas",
+        },
     ]
+
     card_cols = st.columns(4, gap="small")
     for idx, (col, card) in enumerate(zip(card_cols, card_data)):
         with col:
+            # Render card HTML: colored square icon + title + desc
             st.markdown(
-                f"<div class='quick-card'>"
-                f"<div style='width:44px;height:44px;border-radius:12px;"
-                f"background:{card['icon_bg']};display:flex;align-items:center;"
-                f"justify-content:center;margin-bottom:10px;"
-                f"font-size:1.3rem;font-weight:800;color:{card['icon_color']};'>"
-                f"{card['icon_char']}</div>"
-                f"<h3>{card['title']}</h3>"
-                f"<p>{card['desc']}</p>"
+                f"<div class='genie-card'>"
+                f"<div class='genie-card-icon' style='background:{card['icon_bg']};'>"
+                f"{card['icon_svg']}"
+                f"</div>"
+                f"<div class='genie-card-title'>{card['title']}</div>"
+                f"<div class='genie-card-desc'>{card['desc']}</div>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
+            # Ask Genie button sits below the card HTML block
             if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
                 st.session_state.auto_run_query = card["title"]
                 st.rerun()
@@ -3049,7 +2813,6 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
     with left_col:
         st.markdown("<div class='genie-left-panel'>", unsafe_allow_html=True)
         with st.container(border=True):
-            # Saved Insights
             with st.expander("Saved Insights"):
                 ins = get_saved_insights_cached(page="genie")
                 if ins:
@@ -3061,7 +2824,6 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 else:
                     st.caption("No saved insights yet")
 
-            # Frequently asked by you
             with st.expander("Frequently Asked by You"):
                 faqs = get_frequent_questions_by_user_cached(5)
                 if faqs:
@@ -3078,7 +2840,6 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                             st.session_state.genie_prefill = sug
                             st.rerun()
 
-            # Most frequent (all)
             with st.expander("Most Frequent (All)"):
                 af = get_frequent_questions_all_cached(5)
                 if af:
@@ -3092,17 +2853,13 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 else:
                     st.caption("No questions yet")
 
-            # Long-term Memory hidden as requested
-
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
     with right_col:
         with st.container(border=True):
-            # ── CSS for the 4 header buttons matching screenshot ──────────────
             st.markdown("""
 <style>
-/* All 4 action buttons: grey pill, equal size */
 button[aria-label="Chats"],
 button[aria-label="Summarize"],
 button[aria-label="Export MD"],
@@ -3128,7 +2885,6 @@ button[aria-label="Clear"]:hover {
     color: #2563eb !important;
     background: #f0f7ff !important;
 }
-/* Active = blue filled */
 button[kind="primary"][aria-label="Chats"],
 button[kind="primary"][aria-label="Summarize"] {
     background: #2563eb !important;
@@ -3139,7 +2895,6 @@ button[kind="primary"][aria-label="Summarize"] {
 </style>
 """, unsafe_allow_html=True)
 
-            # Single flat row: title + 4 buttons (no nesting)
             c_title, cb1, cb2, cb3, cb4 = st.columns([1.1, 0.72, 0.88, 0.88, 0.65])
             with c_title:
                 st.markdown(
@@ -3188,7 +2943,7 @@ button[kind="primary"][aria-label="Summarize"] {
             st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
                         "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
 
-            # ── Chats: resume previous conversations ──────────────────────────
+            # ── Chats panel ───────────────────────────────────────────────────
             if st.session_state.get("show_chats_panel", False):
                 conn_c = sqlite3.connect(DB_PATH); cur_c = conn_c.cursor()
                 cur_c.execute("""SELECT session_id, session_label, created_at
@@ -3256,7 +3011,6 @@ button[kind="primary"][aria-label="Summarize"] {
                 st.markdown("**Conversation Summary**")
                 st.markdown(st.session_state.conversation_summary)
                 if st.button("Dismiss", key="dismiss_summary", use_container_width=True):
-                    # Clear everything so "Start a Conversation" empty state shows
                     st.session_state.show_summary = False
                     st.session_state.conversation_summary = ""
                     st.session_state.current_messages = []
@@ -3314,7 +3068,6 @@ button[kind="primary"][aria-label="Summarize"] {
                             elif layout == "analyst":
                                 if resp.get("analyst_response"):
                                     st.markdown(resp["analyst_response"])
-                                # Load data — stored as list of dicts (to_dict orient=records)
                                 try:
                                     raw_df = resp.get("df", [])
                                     if isinstance(raw_df, list) and len(raw_df) > 0:
@@ -3327,7 +3080,6 @@ button[kind="primary"][aria-label="Summarize"] {
                                     df_r = pd.DataFrame()
                                 if not df_r.empty:
                                     st.markdown("**Supporting Data**")
-                                    # st.dataframe is always visible (no HTML wrapper issues)
                                     st.dataframe(
                                         safe_dataframe_display(df_r),
                                         use_container_width=True,
@@ -3344,7 +3096,6 @@ button[kind="primary"][aria-label="Summarize"] {
                                 st.error(resp.get("message", "Unknown error"))
                         else:
                             st.markdown(msg["content"])
-                pass  # end chat messages
 
         with st.form(key="genie_chat_form", clear_on_submit=True):
             c_inp, c_btn = st.columns([0.91, 0.09], gap="small")
@@ -3360,8 +3111,6 @@ button[kind="primary"][aria-label="Summarize"] {
                                                   use_container_width=True)
             if submitted and uq:
                 process_user_question(uq)
-
-    # form is inside right_col — see above
 
 
 # ── Invoices ──────────────────────────────────────────────────
@@ -3399,7 +3148,6 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
     st.markdown(ht,unsafe_allow_html=True)
 
     st.markdown("---"); st.markdown("### Status History")
-    # Cache status history per invoice to stop flicker
     hist_key = f"inv_hist_{inv_num}"
     if hist_key not in st.session_state:
         hsql=f"""SELECT UPPER(status) AS status,effective_date,status_notes
@@ -3555,13 +3303,10 @@ def render_invoices():
     else: st.info("No invoices found.")
 
 # ── Main app ──────────────────────────────────────────────────
-
-# ── Main app ──────────────────────────────────────────────────
 def main():
     init_db()
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    # Initialise bg_color only on first load — preserve user's colour selection
     if "bg_color" not in st.session_state:
         st.session_state["bg_color"] = "#ffffff"
     if "show_bg_panel" not in st.session_state:
@@ -3571,24 +3316,20 @@ def main():
 
     inject_dashboard_css()
 
-    # ── Global layout + header CSS ─────────────────────────────
     bg = st.session_state.get("bg_color", "#ffffff")
     st.markdown(f"""
 <style>
-/* ── Reset block-container padding so header is not glued to top ── */
 .block-container {{
     padding-top: 3.2rem !important;
     padding-bottom: 1rem !important;
     max-width: 100% !important;
 }}
-/* ── Background — full page, no inner container border ── */
 .stApp {{
     background-color: {bg} !important;
 }}
 .main > .block-container {{
     background-color: transparent !important;
 }}
-/* ── All buttons: base style ── */
 button {{
     font-weight: 500 !important;
     border-radius: 8px !important;
@@ -3597,11 +3338,6 @@ button {{
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }}
-
-/* ════════════════════════════════════════════
-   HEADER — force all 6 cols to same height
-   and vertical-center their content
-   ════════════════════════════════════════════ */
 div[data-testid="stHorizontalBlock"]:first-of-type {{
     align-items: center !important;
     min-height: 56px !important;
@@ -3613,22 +3349,18 @@ div[data-testid="stHorizontalBlock"]:first-of-type
     padding-top: 0 !important;
     padding-bottom: 0 !important;
 }}
-/* Brand col: left-align */
 div[data-testid="stHorizontalBlock"]:first-of-type
   > div[data-testid="column"]:first-child {{
     justify-content: flex-start !important;
 }}
-/* Logo col: right-align */
 div[data-testid="stHorizontalBlock"]:first-of-type
   > div[data-testid="column"]:last-child {{
     justify-content: flex-end !important;
 }}
-/* Nav cols: centre */
 div[data-testid="stHorizontalBlock"]:first-of-type
   > div[data-testid="column"]:not(:first-child):not(:last-child) {{
     justify-content: center !important;
 }}
-/* All buttons inside the first horizontal block (the nav row) */
 div[data-testid="stHorizontalBlock"]:first-of-type button {{
     border-radius: 50px !important;
     height: 38px !important;
@@ -3650,7 +3382,6 @@ div[data-testid="stHorizontalBlock"]:first-of-type button:hover {{
     box-shadow: none !important;
     transform: none !important;
 }}
-/* Active nav button */
 div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"] {{
     background: #2563eb !important;
     background-color: #2563eb !important;
@@ -3664,7 +3395,6 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
     color: white !important;
     transform: none !important;
 }}
-/* ── KPI + chart misc ── */
 .kpi-card {{ border-radius:16px; padding:1rem 1.2rem; min-height:100px;
              display:flex; flex-direction:column; justify-content:center; }}
 .kpi-card-yellow {{ background:linear-gradient(135deg,#fef9c3 0%,#fef08a 100%); }}
@@ -3701,15 +3431,10 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
 </style>
 """, unsafe_allow_html=True)
 
-    # ── Header row: single flex row, all items on one straight line ─
     pg = st.session_state.page
 
-    # Brand (left) + nav buttons (centre) + logo (right) in one st.columns
-    # so Streamlit renders them as a proper flex row with consistent height.
-    # Column widths: brand=1.8 | 4 nav buttons = 0.85 each | logo=1.4
     hc = st.columns([1.8, 0.85, 0.85, 0.85, 0.85, 1.4], gap="small")
 
-    # Brand
     with hc[0]:
         st.markdown(
             "<div style='display:flex;flex-direction:column;justify-content:center;"
@@ -3721,7 +3446,6 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
             unsafe_allow_html=True,
         )
 
-    # Nav buttons
     nav_items = [
         ("Dashboard", "Dashboard", "nav_dashboard"),
         ("Genie",     "Genie",     "nav_genai"),
@@ -3735,7 +3459,6 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
                 st.session_state.page = page_key
                 st.rerun()
 
-    # Logo
     with hc[5]:
         st.markdown(
             f"<div style='display:flex;align-items:center;justify-content:flex-end;"
@@ -3749,9 +3472,7 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
         unsafe_allow_html=True,
     )
 
-    # ── Page routing ────────────────────────────────────────────
     if   pg == "Dashboard":
-        # Clear forecast cache when leaving forecast page
         st.session_state.pop("forecast_cf_df", None)
         render_dashboard()
     elif pg == "Genie":
@@ -3759,10 +3480,7 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
     elif pg == "Forecast":
         render_forecast()
     else:
-        # Clear invoice history cache when entering invoices fresh
         render_invoices()
-
-    # BG button is rendered inside render_charts (bottom-right of Spend Trend)
 
 
 if __name__ == "__main__":
