@@ -2948,34 +2948,131 @@ def render_genie():
                 st.session_state.current_messages.append({"role": "assistant", "content": result.get("message", "Error"), "timestamp": datetime.now()})
             st.rerun()
 
-    # Left-aligned welcome header
+    # Welcome header — matches reference app style
     st.markdown("""
-    <div class="welcome-header-left">
-        <h1>Welcome to ProcureIQ Genie</h1>
-        <p>Let Genie run one of these quick analyses for you</p>
+    <div style="margin-bottom:8px;">
+        <h1 style="font-size:28px;font-weight:900;color:#1a1a1a;margin:0 0 4px 0;">Welcome to ProcureIQ Genie</h1>
+        <p style="font-size:16px;color:#64748b;margin:0;">Let Genie run one of these quick analyses for you</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Quick analysis cards (4 columns)
-    cards_data = [
-        {"icon": "📊", "title": "Spending Overview", "description": "Track total spend, monthly trends and major changes"},
-        {"icon": "🏭", "title": "Vendor Analysis", "description": "Understand vendor-wise spend, concentration, and dependency"},
-        {"icon": "⏱️", "title": "Payment Performance", "description": "Identify delays, late payments, and cycle time issues"},
-        {"icon": "📅", "title": "Invoice Aging", "description": "See overdue invoices, risk buckets, and problem areas"}
+    # ── CSS for the tile cards + attached "Ask Genie" button ──────────────────
+    # Exact pattern from reference app: st.form wraps the card HTML + submit button
+    # so the button is flush-attached to the bottom of the card.
+    st.markdown("""
+<style>
+/* Form wrapper: remove all borders/padding, stack card + button flush */
+form:has(.genie-tile-card) {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+}
+/* Card: square top corners on bottom so button attaches */
+form:has(.genie-tile-card) .genie-tile-card {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom: 0 !important;
+}
+/* Submit button: full width, rounded only on bottom, deep purple */
+form:has(.genie-tile-card) [data-testid="stFormSubmitButton"] {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+form:has(.genie-tile-card) [data-testid="stFormSubmitButton"] > button {
+    width: 100% !important;
+    border-radius: 0 0 14px 14px !important;
+    border: 1.5px solid #e5e7eb !important;
+    border-top: 0 !important;
+    background: #3b38ff !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+    box-shadow: 0 2px 8px rgba(59,56,255,.12) !important;
+    cursor: pointer !important;
+}
+form:has(.genie-tile-card) [data-testid="stFormSubmitButton"] > button:hover {
+    background: #2220cc !important;
+}
+/* Hide checkbox label inside tile forms */
+form:has(.genie-tile-card) input[type="checkbox"],
+form:has(.genie-tile-card) [role="checkbox"],
+form:has(.genie-tile-card) .stCheckbox,
+form:has(.genie-tile-card) [data-testid="stCheckbox"],
+form:has(.genie-tile-card) label { display: none !important; visibility: hidden !important; }
+</style>
+""", unsafe_allow_html=True)
+
+    # ── 4 Quick Analysis tile cards (reference app pattern) ───────────────────
+    _BAR_CHART_SVG = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="14" width="4" height="6" rx="1" fill="white"/><rect x="10" y="10" width="4" height="10" rx="1" fill="white"/><rect x="16" y="6" width="4" height="14" rx="1" fill="white"/></svg>'''
+    _VENDOR_SVG    = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="7" r="3" stroke="white" stroke-width="1.5" fill="none"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke="white" stroke-width="1.5" fill="none"/><rect x="14" y="8" width="8" height="2" rx="0.5" fill="white"/><rect x="14" y="12" width="6" height="2" rx="0.5" fill="white"/><rect x="14" y="16" width="8" height="2" rx="0.5" fill="white"/></svg>'''
+    _CLOCK_SVG     = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.5" fill="none"/><path d="M12 6v6l4 2" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>'''
+    _DOC_SVG       = '''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 3h8l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="white" stroke-width="1.5" fill="none"/><line x1="7" y1="9" x2="17" y2="9" stroke="white" stroke-width="1.5"/><line x1="7" y1="13" x2="15" y2="13" stroke="white" stroke-width="1.5"/><line x1="7" y1="17" x2="13" y2="17" stroke="white" stroke-width="1.5"/></svg>'''
+
+    ICON_BG       = "#5046e5"
+    LAVENDER      = "#e8e4f7"
+    CARD_BORDER   = "#e5e7eb"
+    SEL_BORDER    = "#5046e5"
+    TEXT_TITLE    = "#1a1a1a"
+    TEXT_DESC     = "#64748b"
+
+    _tile_cards = [
+        {"key": "Spending Overview",   "icon_svg": _BAR_CHART_SVG,
+         "title": "Spending Overview",
+         "desc":  "Track total spend, monthly trends and major changes"},
+        {"key": "Vendor Analysis",     "icon_svg": _VENDOR_SVG,
+         "title": "Vendor Analysis",
+         "desc":  "Understand vendor-wise spend, concentration, and dependency"},
+        {"key": "Payment Performance", "icon_svg": _CLOCK_SVG,
+         "title": "Payment Performance",
+         "desc":  "Identify delays, late payments, and cycle time issues"},
+        {"key": "Invoice Aging",       "icon_svg": _DOC_SVG,
+         "title": "Invoice Aging",
+         "desc":  "See overdue invoices, risk buckets, and problem areas"},
     ]
-    cols = st.columns(4, gap="small")
-    for idx, (col, card) in enumerate(zip(cols, cards_data)):
+
+    clicked_tile = None
+    sel_key = st.session_state.get("auto_run_query", "")
+
+    tile_cols = st.columns(4, gap="medium")
+    for idx, (col, tile) in enumerate(zip(tile_cols, _tile_cards)):
         with col:
-            st.markdown(f"""
-<div class="quick-card">
-<div class="card-icon">{card['icon']}</div>
-<h3>{card['title']}</h3>
-<p>{card['description']}</p>
+            with st.form(f"tile_form_{idx}", border=False):
+                selected  = bool(sel_key == tile["key"])
+                bg        = LAVENDER if selected else "#ffffff"
+                border    = SEL_BORDER if selected else CARD_BORDER
+                st.markdown(f"""
+<div class="genie-tile-card" style="
+    background:{bg};
+    border:1.5px solid {border};
+    border-radius:14px;
+    padding:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+    min-height:170px;">
+    <div style="width:48px;height:48px;border-radius:12px;display:flex;
+         align-items:center;justify-content:center;
+         margin-bottom:14px;background:{ICON_BG};">
+        {tile['icon_svg']}
+    </div>
+    <div style="font-size:16px;font-weight:800;color:{TEXT_TITLE};margin-bottom:6px;">
+        {tile['title']}
+    </div>
+    <div style="font-size:13px;color:{TEXT_DESC};line-height:1.4;">
+        {tile['desc']}
+    </div>
 </div>
-            """, unsafe_allow_html=True)
-            if st.button("Ask Genie", key=f"card_{idx}", use_container_width=True):
-                st.session_state.auto_run_query = card['title']
-                st.rerun()
+""", unsafe_allow_html=True)
+                if st.form_submit_button("Ask Genie", use_container_width=True):
+                    clicked_tile = tile["key"]
+
+    if clicked_tile is not None:
+        st.session_state.auto_run_query = clicked_tile
+        st.rerun()
 
     st.markdown("---")
 
