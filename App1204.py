@@ -2752,7 +2752,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 '<polyline points="9 22 9 12 15 12 15 22"/>'
                 '</svg>'
             ),
-            "icon_bg": "#8B5CF6",
+            "icon_bg": "#6366F1",
             "desc": "Understand vendor-wise spend, concentration, and dependency",
         },
         {
@@ -2764,7 +2764,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 '<polyline points="12 6 12 12 16 14"/>'
                 '</svg>'
             ),
-            "icon_bg": "#3B82F6",
+            "icon_bg": "#6366F1",
             "desc": "Identify delays, late payments, and cycle time issues",
         },
         {
@@ -2778,7 +2778,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
                 '<line x1="3" y1="10" x2="21" y2="10"/>'
                 '</svg>'
             ),
-            "icon_bg": "#1E3A5F",
+            "icon_bg": "#6366F1",
             "desc": "See overdue invoices, risk buckets, and problem areas",
         },
     ]
