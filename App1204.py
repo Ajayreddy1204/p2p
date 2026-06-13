@@ -669,11 +669,17 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 # ── Dashboard CSS (BG from session_state) ────────────────────
 def inject_dashboard_css():
     bg = st.session_state.get("bg_color", "#ffffff")
+    # Validate color value
+    if not (isinstance(bg, str) and bg.startswith("#") and len(bg) in (4, 7)):
+        bg = "#ffffff"
     st.markdown(f"""<style>
-    /* ── FIX 2: BG color applies to ALL pages globally ── */
-    .stApp {{ background-color:{bg} !important; }}
+    /* ── BG color applies to ALL pages globally — persists across all tabs ── */
+    .stApp {{ background-color:{bg} !important; transition: background-color 0.3s ease; }}
     .main > .block-container {{ background-color:transparent !important; }}
-    html, body {{ background-color:{bg} !important; }}
+    html {{ background-color:{bg} !important; }}
+    body {{ background-color:{bg} !important; }}
+    section[data-testid="stMain"] {{ background-color:{bg} !important; }}
+    div[data-testid="stAppViewContainer"] {{ background-color:{bg} !important; }}
 
     button, .stButton button, button[kind="primary"], button[kind="secondary"],
     button[data-testid^="baseButton"], .stDownloadButton button {{
@@ -689,14 +695,17 @@ def inject_dashboard_css():
     button[kind="secondary"] {{ background-color:#f3f4f6 !important; border-color:#d1d5db !important; color:#1f2937 !important; }}
 
     /* ── FIX 1: Send button hover/click → blue (same as all action buttons) ── */
+    /* Send button: blue on hover/click/focus — all states */
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"],
     div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
     div[data-testid="stForm"] button[kind="primaryFormSubmit"]:active,
-    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus {{
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus,
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus-visible {{
+        background: #2563eb !important;
         background-color: #2563eb !important;
         border-color: #2563eb !important;
         color: white !important;
         box-shadow: 0 4px 10px rgba(37,99,235,0.3) !important;
-        transform: translateY(-1px) !important;
     }}
 
     /* Needs Attention card backgrounds — all light pink */
@@ -1359,11 +1368,7 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
                         with st.container(border=True):
                             if st.button(ref, key=bk):
-                                # FIX 3: Properly navigate to Invoices with selected invoice
                                 st.session_state["invoice_search_from_card"] = ref
-                                st.session_state["inv_search_q"] = ref
-                                st.session_state["selected_invoice_detail"] = ref
-                                st.session_state["page"] = "Invoices"
                                 st.rerun()
                             st.markdown(
                                 f"<div style='text-align:right;margin-top:-24px;"
@@ -1599,71 +1604,6 @@ def render_charts(rng_start, rng_end, vendor_where):
                 use_container_width=True,
             )
 
-    if "bg_color" not in st.session_state:
-        st.session_state.bg_color = "#ffffff"
-    current_bg = st.session_state.bg_color
-    safe_val = current_bg if (isinstance(current_bg, str) and current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
-
-    st.markdown(
-        f"""
-        <style>
-            .theme-anchor {{
-                position: fixed;
-                bottom: 20px;
-                right: 25px;
-                z-index: 1000000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 48px;
-                height: 48px;
-                border-radius: 9999px;
-                background-color: white;
-                border: 2px solid #E5E7EB;
-                box-shadow: 0 4px 10px rgba(15,23,42,0.12);
-                font-size: 13px;
-                font-weight: 700;
-                color: #374151;
-                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                cursor: pointer;
-            }}
-            .theme-anchor .theme-label-text {{
-                pointer-events: none;
-            }}
-            div[data-testid="stColorPicker"] {{
-                position: fixed !important;
-                bottom: 20px !important;
-                right: 25px !important;
-                width: 48px !important;
-                height: 48px !important;
-                z-index: 1000001 !important;
-                opacity: 0 !important;
-            }}
-            div[data-testid="stColorPicker"] * {{
-                width: 100% !important;
-                height: 100% !important;
-            }}
-            div[data-testid="stColorPicker"] label {{
-                display: none !important;
-            }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-        <div class="theme-anchor">
-            <span class="theme-label-text">BG</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    picked = st.color_picker("picker", key="bg_color", label_visibility="collapsed")
-    if picked != current_bg:
-        st.session_state["bg_color"] = picked
-        st.rerun()
 
 
 def render_dashboard():
@@ -1690,17 +1630,25 @@ def render_dashboard():
 
     # ── Cache key: only re-fetch when filters actually change ────────────────
     _kpi_cache_key = f"_kpi_{sl}_{el}_{vendor_where}_{sql_date(ps)}_{sql_date(pe)}"
-    if _kpi_cache_key not in st.session_state:
-        cur_kpi  = fetch_kpi_data(sl, el, vendor_where,
-                                   rng_start.isoformat(), rng_end.isoformat())
-        prev_kpi = fetch_kpi_data(sql_date(ps), sql_date(pe), vendor_where,
-                                   ps.isoformat(), pe.isoformat())
-        st.session_state[_kpi_cache_key] = (cur_kpi, prev_kpi)
-        # Clear old cache keys to save memory
-        for _old_k in [k for k in st.session_state if k.startswith("_kpi_") and k != _kpi_cache_key]:
-            del st.session_state[_old_k]
-    else:
-        cur_kpi, prev_kpi = st.session_state[_kpi_cache_key]
+    try:
+        if _kpi_cache_key not in st.session_state:
+            cur_kpi  = fetch_kpi_data(sl, el, vendor_where,
+                                       rng_start.isoformat(), rng_end.isoformat())
+            prev_kpi = fetch_kpi_data(sql_date(ps), sql_date(pe), vendor_where,
+                                       ps.isoformat(), pe.isoformat())
+            st.session_state[_kpi_cache_key] = (cur_kpi, prev_kpi)
+            # Clear old cache keys to save memory
+            for _old_k in [k for k in list(st.session_state.keys())
+                           if k.startswith("_kpi_") and k != _kpi_cache_key]:
+                del st.session_state[_old_k]
+        else:
+            cur_kpi, prev_kpi = st.session_state[_kpi_cache_key]
+    except Exception as _e:
+        st.error(f"Failed to load KPI data: {_e}")
+        cur_kpi  = {"total_spend": 0, "active_pos": 0, "total_pos": 0,
+                    "pending_inv": 0, "active_vendors": 0,
+                    "avg_processing_days": 0.0, "first_pass_rate": 0.0, "auto_rate": 0.0}
+        prev_kpi = cur_kpi.copy()
 
     save_kpi_snapshot(
         st.session_state.get("preset","Custom"),
@@ -3345,17 +3293,19 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 100% !important; height: 46px !important; min-height: 46px !important;
     border-radius: 10px !important; padding: 0 14px !important;
-    font-size: 14px !important; font-weight: 500 !important;
-    background: #f3f4f6 !important; color: #374151 !important;
-    border: 1.5px solid #e5e7eb !important; box-shadow: none !important;
+    font-size: 14px !important; font-weight: 600 !important;
+    background: #2563eb !important; color: white !important;
+    border: 1.5px solid #2563eb !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
     cursor: pointer !important; display: inline-flex !important;
     align-items: center !important; justify-content: center !important;
     white-space: nowrap !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
 div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background: #e5e7eb !important; border-color: #9ca3af !important;
-    color: #111827 !important; box-shadow: none !important; transform: none !important;
+    background: #1d4ed8 !important; border-color: #1d4ed8 !important;
+    color: white !important; box-shadow: 0 4px 12px rgba(37,99,235,0.4) !important;
+    transform: translateY(-1px) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3415,21 +3365,30 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     min-width: 100px !important;
     max-width: 100px !important;
 }
-/* Send button */
+/* Send button — blue default and blue on hover/click */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
     width: 100% !important;
     height: 48px !important;
     border-radius: 10px !important;
     font-size: 14px !important;
-    font-weight: 500 !important;
-    background: #f3f4f6 !important;
-    color: #374151 !important;
-    border: 1.5px solid #e5e7eb !important;
-    box-shadow: none !important;
+    font-weight: 600 !important;
+    background: #2563eb !important;
+    background-color: #2563eb !important;
+    color: white !important;
+    border: 1.5px solid #2563eb !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
+    cursor: pointer !important;
 }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
-    background: #e5e7eb !important;
-    color: #111827 !important;
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:active,
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus,
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus-visible {
+    background: #1d4ed8 !important;
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.4) !important;
+    transform: translateY(-1px) !important;
 }
 div[data-testid="stForm"] label { display: none !important; }
 /* Form wrapper: no extra bg or border */
@@ -3576,50 +3535,41 @@ def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
 
-    # ── FIX 3: Handle navigation from Needs Attention card click ─────────────
-    from_card = st.session_state.pop("invoice_search_from_card", None)
-    if from_card and not st.session_state.get("selected_invoice_detail"):
-        st.session_state["selected_invoice_detail"] = str(from_card).strip()
-        st.session_state["inv_search_q"] = str(from_card).strip()
+    # ── Show invoice detail if one is selected ────────────────────────────────
+    inv_num = st.session_state.get("selected_invoice_detail")
+    if inv_num:
+        inv_num = str(inv_num).strip()
+        try:
+            isql = f"""SELECT f.invoice_number,f.posting_date AS invoice_date,
+                f.invoice_amount_local AS invoice_amount,
+                f.purchase_order_reference AS po_number,f.po_amount,f.due_date,
+                UPPER(f.invoice_status) AS invoice_status,
+                f.aging_days,f.vendor_id,v.vendor_name,v.vendor_name_2,v.country_code,
+                v.city,v.postal_code,v.street,f.company_code,f.plant_code,f.currency
+                FROM {DATABASE}.fact_all_sources_vw f
+                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
+                WHERE CAST(f.invoice_number AS VARCHAR)='{inv_num}' LIMIT 1"""
+            idf = run_query(isql)
+        except Exception as _e:
+            st.error(f"Error loading invoice: {_e}")
+            idf = pd.DataFrame()
 
-    # Handle legacy query params
-    try:
-        qp = st.experimental_get_query_params()
-        if "invoice" in qp and qp["invoice"][0]:
-            st.session_state.selected_invoice_detail = qp["invoice"][0]
-            st.experimental_set_query_params()
-            st.rerun()
-    except Exception:
-        pass
-
-    if st.session_state.get("selected_invoice_detail"):
-        inv_num = st.session_state.selected_invoice_detail
-        isql = f"""SELECT f.invoice_number,f.posting_date AS invoice_date,f.invoice_amount_local AS invoice_amount,
-            f.purchase_order_reference AS po_number,f.po_amount,f.due_date,UPPER(f.invoice_status) AS invoice_status,
-            f.aging_days,f.vendor_id,v.vendor_name,v.vendor_name_2,v.country_code,v.city,v.postal_code,v.street,
-            f.company_code,f.plant_code,f.currency
-            FROM {DATABASE}.fact_all_sources_vw f LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
-            WHERE CAST(f.invoice_number AS VARCHAR)='{inv_num}' LIMIT 1"""
-        idf = run_query(isql)
         if not idf.empty:
             render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
-            if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
-                # FIX 4: Full reset when going back to list
-                st.session_state.selected_invoice_detail = None
-                st.session_state["inv_search_q"]         = ""
-                st.session_state["invoice_search_input"] = ""
-                st.session_state["invoice_status_filter"] = "All Status"
-                st.session_state["inv_sel_vendor"]        = "All Vendors"
-                st.session_state["inv_sel_status"]        = "All Status"
-                st.session_state["inv_selected_vendor"]   = "All Vendors"
+            if st.button("← Back to All Invoices", key="back_invoices_btn",
+                         use_container_width=True):
+                st.session_state["selected_invoice_detail"] = None
+                st.session_state["invoice_search_input"]    = ""
+                st.session_state["invoice_status_filter"]   = "All Status"
+                st.session_state["inv_selected_vendor"]     = "All Vendors"
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {inv_num} not found.")
-            st.session_state.selected_invoice_detail = None
+            st.session_state["selected_invoice_detail"] = None
             st.rerun()
 
-    # FIX 4: Ensure defaults exist
+    # ── Invoice list (default view) ───────────────────────────────────────────
     for k, v in [("invoice_search_input", ""), ("invoice_status_filter", "All Status"),
                  ("inv_selected_vendor", "All Vendors")]:
         if k not in st.session_state:
@@ -3682,21 +3632,23 @@ def render_invoices():
 
 # ── Main app ──────────────────────────────────────────────────
 def main():
-    # ── Must be FIRST Streamlit call — before any session_state access ────────
-    st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
+    # ── MUST be first Streamlit call ─────────────────────────────────────────
+    st.set_page_config(
+        page_title="ProcureIQ",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
 
-    # ── Guard: initialise ALL session state keys atomically before any render ─
-    # This prevents the "SessionInfo not initialized" error on fast refreshes.
+    # ── Init session state — only set keys that do not exist yet ─────────────
     _defaults = {
-        "bg_color":        "#ffffff",
-        "show_bg_panel":   False,
-        "page":            "Dashboard",
-        "date_range":      compute_range_preset("Last 30 Days"),
-        "selected_vendor": "All Vendors",
-        "preset":          "Last 30 Days",
-        "na_tab":          "Overdue",
-        "na_page":         0,
-        "_preset_clicked": False,
+        "page":                    "Dashboard",
+        "bg_color":                "#ffffff",
+        "date_range":              compute_range_preset("Last 30 Days"),
+        "selected_vendor":         "All Vendors",
+        "preset":                  "Last 30 Days",
+        "na_tab":                  "Overdue",
+        "na_page":                 0,
+        # Genie
         "genie_session_id":        None,
         "current_messages":        [],
         "genie_prefill":           "",
@@ -3708,12 +3660,9 @@ def main():
         "show_analysis":           False,
         "analyst_response":        None,
         "last_custom_query":       "",
-        # Invoice defaults
+        # Invoice
         "selected_invoice_detail": None,
         "invoice_search_from_card": None,
-        "inv_search_q":            "",
-        "inv_sel_vendor":          "All Vendors",
-        "inv_sel_status":          "All Status",
         "invoice_search_input":    "",
         "invoice_status_filter":   "All Status",
         "inv_selected_vendor":     "All Vendors",
@@ -3722,164 +3671,93 @@ def main():
         if _k not in st.session_state:
             st.session_state[_k] = _v
 
+    # ── Invoice card navigation: handle BEFORE rendering ─────────────────────
+    _card_ref = st.session_state.get("invoice_search_from_card")
+    if _card_ref:
+        st.session_state["page"]                    = "Invoices"
+        st.session_state["selected_invoice_detail"] = str(_card_ref).strip()
+        st.session_state["invoice_search_from_card"] = None   # clear flag
+
     init_db()
     inject_dashboard_css()
 
-    bg = st.session_state.get("bg_color", "#ffffff")
-    st.markdown(f"""
+    # ── BG colour picker — fixed bottom-right, visible on ALL tabs ───────────
+    _bg = st.session_state.get("bg_color", "#ffffff")
+    _safe_bg = _bg if (isinstance(_bg, str) and _bg.startswith("#")
+                       and len(_bg) in (4, 7)) else "#ffffff"
+
+    st.markdown("""
 <style>
-.block-container {{
-    padding-top: 3.2rem !important;
-    padding-bottom: 1rem !important;
-    max-width: 100% !important;
-}}
-.stApp {{
-    background-color: {bg} !important;
-}}
-.main > .block-container {{
-    background-color: transparent !important;
-}}
-button {{
-    font-weight: 500 !important;
-    border-radius: 8px !important;
-    transition: all 0.18s ease !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type {{
-    align-items: center !important;
-    min-height: 56px !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type
-  > div[data-testid="column"] {{
-    display: flex !important;
-    align-items: center !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type
-  > div[data-testid="column"]:first-child {{
-    justify-content: flex-start !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type
-  > div[data-testid="column"]:last-child {{
-    justify-content: flex-end !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type
-  > div[data-testid="column"]:not(:first-child):not(:last-child) {{
-    justify-content: center !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type button {{
-    border-radius: 50px !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    border: 1.5px solid #d1d5db !important;
-    background: white !important;
-    color: #374151 !important;
-    box-shadow: none !important;
-    padding: 0 20px !important;
-    width: 100% !important;
-    margin: 0 !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type button:hover {{
-    border-color: #2563eb !important;
-    color: #2563eb !important;
-    background: #f0f7ff !important;
-    box-shadow: none !important;
-    transform: none !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"] {{
-    background: #2563eb !important;
-    background-color: #2563eb !important;
-    color: white !important;
-    border-color: #2563eb !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.35) !important;
-}}
-div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover {{
-    background: #1d4ed8 !important;
-    color: white !important;
-    transform: none !important;
-}}
-.kpi-card {{ border-radius:16px; padding:1rem 1.2rem; min-height:100px;
-             display:flex; flex-direction:column; justify-content:center; }}
-.kpi-card-yellow {{ background:linear-gradient(135deg,#fef9c3 0%,#fef08a 100%); }}
-.kpi-card-cyan   {{ background:linear-gradient(135deg,#cffafe 0%,#a5f3fc 100%); }}
-.kpi-card-pink   {{ background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 100%); }}
-.kpi-card-purple {{ background:linear-gradient(135deg,#f3e8ff 0%,#e9d5ff 100%); }}
-.kpi-card-green  {{ background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%); }}
-.kpi-title {{ font-size:.68rem; font-weight:600; color:#374151; text-transform:uppercase;
-              letter-spacing:.4px; margin-bottom:.3rem;
-              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.kpi-value {{ font-size:2rem; font-weight:800; color:#111827; line-height:1.1; }}
-.kpi-delta {{ font-size:.9rem; font-weight:600; margin-top:.25rem; }}
-.kpi-delta-negative {{ color:#dc2626; }}
-.kpi-delta-positive {{ color:#16a34a; }}
-.grir-card {{ border-radius:14px; padding:.9rem 1rem; border:1px solid #e2e8f0;
-              box-shadow:0 2px 8px rgba(0,0,0,.05); display:flex; flex-direction:column;
-              gap:.2rem; min-height:90px; justify-content:center; }}
-.grir-card-title {{ font-size:.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.6px; }}
-.grir-card-value {{ font-size:1.8rem; font-weight:800; color:#111827; line-height:1.1; }}
-.chart-title {{ font-size:1.1rem; font-weight:700; color:#111827; margin-bottom:.5rem; }}
-.message-user {{ background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:white;
-    padding:10px 16px; border-radius:18px 18px 4px 18px; margin:8px 0;
-    max-width:80%; margin-left:auto; text-align:right; }}
-.message-assistant {{ background:#f1f5f9; color:#1e293b; padding:10px 16px;
-    border-radius:18px 18px 18px 4px; margin:8px 0; max-width:85%; }}
-.start-conversation {{ text-align:center; padding:2rem 1rem; background:#f8fafc; border-radius:20px; margin:1rem 0; }}
-.chat-messages {{ max-height:400px; overflow-y:auto; padding:.5rem; margin-bottom:1rem;
-    background:#fafcff; border-radius:16px; border:1px solid #e2e8f0; }}
-.quick-card {{ background:white; border-radius:16px; padding:1.2rem;
-    box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid #e2e8f0;
-    text-align:center; height:100%; display:flex; flex-direction:column; }}
-.quick-card h3 {{ font-size:1rem; font-weight:600; color:#1e293b; margin:0 0 .4rem 0; }}
-.quick-card p  {{ font-size:.8rem; color:#64748b; flex-grow:1; margin:0 0 .8rem 0; }}
+.theme-anchor {
+    position: fixed; bottom: 22px; right: 28px;
+    z-index: 1000000; width: 50px; height: 50px;
+    border-radius: 9999px; background: white;
+    border: 2px solid #E5E7EB;
+    box-shadow: 0 4px 12px rgba(15,23,42,.14);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #374151;
+    pointer-events: none;
+}
+div[data-testid="stColorPicker"] {
+    position: fixed !important; bottom: 22px !important;
+    right: 28px !important; width: 50px !important;
+    height: 50px !important; z-index: 1000001 !important;
+    opacity: 0 !important; cursor: pointer !important;
+}
+div[data-testid="stColorPicker"] * {
+    width: 100% !important; height: 100% !important;
+}
+div[data-testid="stColorPicker"] label { display: none !important; }
 </style>
+<div class="theme-anchor"><span>BG</span></div>
 """, unsafe_allow_html=True)
 
+    _picked = st.color_picker("bg", value=_safe_bg,
+                              key="bg_color", label_visibility="collapsed")
+    if _picked != _bg:
+        st.session_state["bg_color"] = _picked
+        st.rerun()
+
+    # ── Navigation bar ────────────────────────────────────────────────────────
     pg = st.session_state.page
 
-    hc = st.columns([1.8, 0.85, 0.85, 0.85, 0.85, 1.4], gap="small")
+    _h = st.columns([1.8, 0.85, 0.85, 0.85, 0.85, 1.4], gap="small")
 
-    with hc[0]:
-        st.markdown(
-            "<div style='display:flex;flex-direction:column;justify-content:center;"
-            "height:52px;padding:0;'>"
-            "<span style='font-size:1.45rem;font-weight:800;color:#111827;"
-            "letter-spacing:-0.3px;line-height:1;'>ProcureIQ</span>"
-            "<span style='font-size:0.62rem;color:#9ca3af;line-height:1;"
-            "margin-top:2px;'>P2P Analytics</span></div>",
-            unsafe_allow_html=True,
-        )
+    with _h[0]:
+        st.markdown("""
+<div style='display:flex;align-items:center;gap:10px;padding:6px 0;'>
+  <div>
+    <div style='font-size:22px;font-weight:900;letter-spacing:.2px;
+                line-height:1.1;color:#0f172a;'>ProcureIQ</div>
+    <div style='color:#64748b;font-size:11px;'>P2P Analytics</div>
+  </div>
+</div>""", unsafe_allow_html=True)
 
-    nav_items = [
+    _nav_items = [
         ("Dashboard", "Dashboard", "nav_dashboard"),
-        ("Genie",     "Genie",     "nav_genai"),
+        ("Genie",     "Genie",     "nav_genie"),
         ("Forecast",  "Forecast",  "nav_forecast"),
         ("Invoices",  "Invoices",  "nav_invoices"),
     ]
-    for idx, (label, page_key, nav_key) in enumerate(nav_items):
-        with hc[idx + 1]:
-            if st.button(label, key=nav_key, use_container_width=True,
-                         type="primary" if pg == page_key else "secondary"):
-                if pg != page_key:
-                    prev_page = pg
-                    st.session_state.page = page_key
 
-                    # ── FIX 4: Reset Invoice tab state when leaving Invoice tab ──
-                    if prev_page == "Invoices":
-                        st.session_state.pop("selected_invoice_detail", None)
-                        st.session_state.pop("invoice_search_from_card", None)
-                        st.session_state["inv_search_q"]      = ""
-                        st.session_state["inv_sel_vendor"]    = "All Vendors"
-                        st.session_state["inv_sel_status"]    = "All Status"
-                        st.session_state["inv_page_idx"]      = 0
+    for _idx, (_label, _page_key, _nav_key) in enumerate(_nav_items):
+        with _h[_idx + 1]:
+            _is_active = (pg == _page_key)
+            if st.button(_label, key=_nav_key, use_container_width=True,
+                         type="primary" if _is_active else "secondary"):
+                if not _is_active:
+                    _prev = pg
 
-                    # ── FIX 5: Reset Genie session when leaving Genie tab ──────
-                    if prev_page == "Genie":
+                    # Reset Invoice state when leaving Invoice tab
+                    if _prev == "Invoices":
+                        st.session_state["selected_invoice_detail"] = None
+                        st.session_state["invoice_search_from_card"] = None
+                        st.session_state["invoice_search_input"]    = ""
+                        st.session_state["invoice_status_filter"]   = "All Status"
+                        st.session_state["inv_selected_vendor"]     = "All Vendors"
+
+                    # Reset Genie when leaving Genie tab
+                    if _prev == "Genie":
                         st.session_state["current_messages"]     = []
                         st.session_state["show_summary"]         = False
                         st.session_state["conversation_summary"] = ""
@@ -3888,17 +3766,16 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
                         st.session_state["analyst_response"]     = None
                         st.session_state["selected_analysis"]    = None
                         st.session_state["last_custom_query"]    = ""
-                        st.session_state["genie_input_version"]  = st.session_state.get("genie_input_version", 0) + 1
+                        st.session_state["genie_input_version"]  = (
+                            st.session_state.get("genie_input_version", 0) + 1
+                        )
                         st.session_state.pop("auto_run_query", None)
                         st.session_state.pop("genie_prefill", None)
 
-                    # Clear forecast cache when not needed
-                    if page_key in ("Dashboard", "Genie", "Invoices"):
-                        st.session_state.pop("forecast_cf_df", None)
-
+                    st.session_state["page"] = _page_key
                     st.rerun()
 
-    with hc[5]:
+    with _h[5]:
         st.markdown(
             f"<div style='display:flex;align-items:center;justify-content:flex-end;"
             f"height:52px;'><img src='{LOGO_URL}' "
@@ -3907,10 +3784,12 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
         )
 
     st.markdown(
-        "<hr style='margin:4px 0 10px 0;border:none;border-top:1px solid #e5e7eb;'/>",
+        "<hr style='margin:4px 0 10px 0;border:none;"
+        "border-top:1px solid #e5e7eb;'/>",
         unsafe_allow_html=True,
     )
 
+    # ── Route to page ─────────────────────────────────────────────────────────
     if   pg == "Dashboard":
         render_dashboard()
     elif pg == "Genie":
@@ -3924,18 +3803,21 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as _e:
-        _err = str(_e)
-        # Transient Streamlit errors on fast refresh/page switch — rerun cleanly
-        _transient = (
-            "SessionInfo" in _err
-            or "session" in _err.lower()
-            or "Bad message format" in _err
-            or "ScriptRunContext" in _err
-            or "missing ScriptRunContext" in _err.lower()
-        )
-        if _transient:
+    except Exception as _exc:
+        _msg = str(_exc)
+        _is_transient = any(kw in _msg for kw in (
+            "SessionInfo", "ScriptRunContext", "Bad message format",
+            "RerunException", "StopException",
+        ))
+        if _is_transient:
             st.rerun()
         else:
-            st.error(f"An error occurred: {_err}")
-            raise
+            try:
+                st.error(
+                    "The dashboard encountered an error. "
+                    "Please refresh the page (F5 / Cmd+R)."
+                )
+                if st.button("🔄 Refresh", key="err_refresh_btn"):
+                    st.rerun()
+            except Exception:
+                pass
