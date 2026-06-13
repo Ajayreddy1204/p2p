@@ -3234,7 +3234,7 @@ div.genie-card-wrap button:hover {
 
 
     # ── Ask a question container — same width as AI Assistant ─────────────────
-    _gap_col, ask_col = st.columns([0.70, 0.30], gap="medium")
+    _gap_col, ask_col = st.columns([0.32, 0.68], gap="medium")
     with ask_col:
         with st.container(border=True):
             st.markdown("""
@@ -3295,7 +3295,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 </style>
 """, unsafe_allow_html=True)
             with st.form(key="genie_chat_form", clear_on_submit=True):
-                c_inp, c_btn = st.columns([0.85, 0.15], gap="small")
+                c_inp, c_btn = st.columns([0.95, 0.05], gap="small")
                 with c_inp:
                     prefill = st.session_state.pop("genie_prefill", "")
                     uq = st.text_input(
