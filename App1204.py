@@ -3619,16 +3619,38 @@ def render_invoices():
 
 # ── Main app ──────────────────────────────────────────────────
 def main():
-    init_db()
+    # ── Must be FIRST Streamlit call — before any session_state access ────────
     st.set_page_config(page_title="ProcureIQ", layout="wide", initial_sidebar_state="collapsed")
 
-    if "bg_color" not in st.session_state:
-        st.session_state["bg_color"] = "#ffffff"
-    if "show_bg_panel" not in st.session_state:
-        st.session_state["show_bg_panel"] = False
-    if "page" not in st.session_state:
-        st.session_state["page"] = "Dashboard"
+    # ── Guard: initialise ALL session state keys atomically before any render ─
+    # This prevents the "SessionInfo not initialized" error on fast refreshes.
+    _defaults = {
+        "bg_color":        "#ffffff",
+        "show_bg_panel":   False,
+        "page":            "Dashboard",
+        "date_range":      compute_range_preset("Last 30 Days"),
+        "selected_vendor": "All Vendors",
+        "preset":          "Last 30 Days",
+        "na_tab":          "Overdue",
+        "na_page":         0,
+        "_preset_clicked": False,
+        "genie_session_id":     None,
+        "current_messages":     [],
+        "genie_prefill":        "",
+        "show_summary":         False,
+        "conversation_summary": "",
+        "show_chats_panel":     False,
+        "genie_input_version":  0,
+        "selected_analysis":    None,
+        "show_analysis":        False,
+        "analyst_response":     None,
+        "last_custom_query":    "",
+    }
+    for _k, _v in _defaults.items():
+        if _k not in st.session_state:
+            st.session_state[_k] = _v
 
+    init_db()
     inject_dashboard_css()
 
     bg = st.session_state.get("bg_color", "#ffffff")
@@ -3799,4 +3821,12 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as _e:
+        _err = str(_e)
+        # "SessionInfo not initialized" happens on fast refresh — just rerun
+        if "SessionInfo" in _err or "session" in _err.lower():
+            st.rerun()
+        else:
+            raise
