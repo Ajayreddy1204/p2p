@@ -3363,7 +3363,7 @@ div[data-testid="stForm"] input::placeholder {
     color: #9ca3af !important;
     font-size: 15px !important;
 }
-/* Button column: fixed narrow */
+/* Button column: fixed narrow, INSIDE the container */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
     flex: 0 0 100px !important;
@@ -3388,11 +3388,24 @@ div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
     color: #111827 !important;
 }
 div[data-testid="stForm"] label { display: none !important; }
+/* Form wrapper: no extra bg or border */
+div[data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
             with st.form("genie_question_form", clear_on_submit=True):
-                input_col, btn_col = st.columns([0.80, 0.20])
+                input_col, btn_col = st.columns([0.82, 0.18])
                 with input_col:
                     user_query = st.text_input(
                         "q",
