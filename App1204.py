@@ -3543,48 +3543,101 @@ def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = F
                 st.rerun()
 
 def render_invoices():
-    st.subheader("Invoices")
-    st.markdown("Search, track and manage all invoices in one place")
-
-    # ── Show invoice detail if one is selected ────────────────────────────────
+    # ── Breadcrumb / header — always visible immediately ─────────────────────
     inv_num = st.session_state.get("selected_invoice_detail")
+
     if inv_num:
         inv_num = str(inv_num).strip()
-        try:
-            isql = f"""SELECT f.invoice_number,f.posting_date AS invoice_date,
-                f.invoice_amount_local AS invoice_amount,
-                f.purchase_order_reference AS po_number,f.po_amount,f.due_date,
-                UPPER(f.invoice_status) AS invoice_status,
-                f.aging_days,f.vendor_id,v.vendor_name,v.vendor_name_2,v.country_code,
-                v.city,v.postal_code,v.street,f.company_code,f.plant_code,f.currency
-                FROM {DATABASE}.fact_all_sources_vw f
-                LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
-                WHERE CAST(f.invoice_number AS VARCHAR)='{inv_num}' LIMIT 1"""
-            idf = run_query(isql)
-        except Exception as _e:
-            st.error(f"Error loading invoice: {_e}")
-            idf = pd.DataFrame()
 
-        if not idf.empty:
-            render_invoice_detail(idf.iloc[0].to_dict(), inv_num, show_pay_button=True)
-            if st.button("← Back to All Invoices", key="back_invoices_btn",
-                         use_container_width=True):
-                st.session_state["selected_invoice_detail"] = None
-                st.session_state["invoice_search_input"]    = ""
-                st.session_state["invoice_status_filter"]   = "All Status"
-                st.session_state["inv_selected_vendor"]     = "All Vendors"
-                st.rerun()
-            return
-        else:
-            st.warning(f"Invoice **{inv_num}** not found. Showing all invoices.")
+        # Show header immediately so page is never blank
+        st.markdown(f"""
+<div style='display:flex;align-items:center;gap:10px;margin-bottom:16px;'>
+  <span style='font-size:22px;font-weight:900;color:#0f172a;'>Invoices</span>
+  <span style='color:#9ca3af;font-size:18px;'>›</span>
+  <span style='font-size:18px;font-weight:700;color:#2563eb;'>#{inv_num}</span>
+</div>
+""", unsafe_allow_html=True)
+
+        # Back button always visible immediately
+        if st.button("← Back to All Invoices", key="back_invoices_btn",
+                     use_container_width=False):
             st.session_state["selected_invoice_detail"] = None
-            # Fall through to show invoice list
+            st.session_state["invoice_search_input"]    = ""
+            st.session_state["invoice_status_filter"]   = "All Status"
+            st.session_state["inv_selected_vendor"]     = "All Vendors"
+            # Clear paid keys
+            for _pk in [k for k in list(st.session_state.keys())
+                        if k.startswith("paid_")]:
+                del st.session_state[_pk]
+            st.rerun()
 
-    # ── Invoice list (default view) ───────────────────────────────────────────
-    for k, v in [("invoice_search_input", ""), ("invoice_status_filter", "All Status"),
-                 ("inv_selected_vendor", "All Vendors")]:
-        if k not in st.session_state:
-            st.session_state[k] = v
+        # ── Check cache first ─────────────────────────────────────────────────
+        _cache_key = f"_inv_detail_{inv_num}"
+        idf = st.session_state.get(_cache_key)
+
+        if idf is None:
+            # Show skeleton while loading
+            with st.container():
+                st.markdown(f"""
+<div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+     padding:24px;margin:8px 0;'>
+  <div style='font-size:13px;color:#64748b;margin-bottom:12px;font-weight:600;'>
+    Loading invoice details for <strong>#{inv_num}</strong>...
+  </div>
+  <div style='background:#e2e8f0;height:16px;border-radius:6px;margin-bottom:10px;
+       width:60%;animation:pulse 1.5s infinite;'></div>
+  <div style='background:#e2e8f0;height:16px;border-radius:6px;margin-bottom:10px;
+       width:45%;animation:pulse 1.5s infinite;'></div>
+  <div style='background:#e2e8f0;height:16px;border-radius:6px;margin-bottom:10px;
+       width:75%;animation:pulse 1.5s infinite;'></div>
+</div>
+<style>
+@keyframes pulse {{
+  0%,100% {{ opacity:1; }} 50% {{ opacity:.4; }}
+}}
+</style>
+""", unsafe_allow_html=True)
+
+            # Fetch data
+            try:
+                isql = f"""SELECT f.invoice_number,f.posting_date AS invoice_date,
+                    f.invoice_amount_local AS invoice_amount,
+                    f.purchase_order_reference AS po_number,f.po_amount,f.due_date,
+                    UPPER(f.invoice_status) AS invoice_status,
+                    f.aging_days,f.vendor_id,v.vendor_name,v.vendor_name_2,v.country_code,
+                    v.city,v.postal_code,v.street,f.company_code,f.plant_code,f.currency
+                    FROM {DATABASE}.fact_all_sources_vw f
+                    LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
+                    WHERE CAST(f.invoice_number AS VARCHAR)='{inv_num}' LIMIT 1"""
+                idf = run_query(isql)
+                # Cache result so navigating back doesn't reload
+                st.session_state[_cache_key] = idf
+            except Exception as _e:
+                st.error(f"Error loading invoice {inv_num}: {_e}")
+                st.session_state["selected_invoice_detail"] = None
+                return
+
+            if idf is None or idf.empty:
+                st.warning(f"Invoice **{inv_num}** not found.")
+                st.session_state["selected_invoice_detail"] = None
+                st.session_state.pop(_cache_key, None)
+                return
+
+            # Rerun to render cleanly without skeleton
+            st.rerun()
+
+        # ── Render detail from cache (instant, no blank page) ─────────────────
+        if idf is not None and not idf.empty:
+            render_invoice_detail(idf.iloc[0].to_dict(), inv_num, show_pay_button=True)
+        else:
+            st.warning(f"Invoice **{inv_num}** not found.")
+            st.session_state["selected_invoice_detail"] = None
+            st.session_state.pop(_cache_key, None)
+        return
+
+    # ── Default: Invoice list view ────────────────────────────────────────────
+    st.subheader("Invoices")
+    st.markdown("Search, track and manage all invoices in one place")
 
     cs1,cs2,cs3=st.columns([3,1,1])
     with cs1:
@@ -3653,7 +3706,6 @@ def main():
     # ── Init session state — only set keys that do not exist yet ─────────────
     _defaults = {
         "page":                    "Dashboard",
-        "bg_color":                "#ffffff",
         "date_range":              compute_range_preset("Last 30 Days"),
         "selected_vendor":         "All Vendors",
         "preset":                  "Last 30 Days",
@@ -3686,9 +3738,10 @@ def main():
     inject_dashboard_css()
 
     # ── BG colour picker — fixed bottom-right, visible on ALL tabs ───────────
-    _bg = st.session_state.get("bg_color", "#ffffff")
-    _safe_bg = _bg if (isinstance(_bg, str) and _bg.startswith("#")
-                       and len(_bg) in (4, 7)) else "#ffffff"
+    # Initialise bg_color only if not already set (avoids widget/session conflict)
+    if "bg_color" not in st.session_state:
+        st.session_state["bg_color"] = "#ffffff"
+    _bg = st.session_state["bg_color"]
 
     st.markdown("""
 <style>
@@ -3716,10 +3769,10 @@ div[data-testid="stColorPicker"] label { display: none !important; }
 <div class="theme-anchor"><span>BG</span></div>
 """, unsafe_allow_html=True)
 
-    _picked = st.color_picker("bg", value=_safe_bg,
-                              key="bg_color", label_visibility="collapsed")
+    # NOTE: Do NOT pass value= when key= is used — Streamlit manages the value
+    # via session_state["bg_color"] already set in _defaults above
+    _picked = st.color_picker("bg", key="bg_color", label_visibility="collapsed")
     if _picked != _bg:
-        st.session_state["bg_color"] = _picked
         st.rerun()
 
     # ── Navigation bar ────────────────────────────────────────────────────────
@@ -3759,6 +3812,14 @@ div[data-testid="stColorPicker"] label { display: none !important; }
                         st.session_state["invoice_search_input"]    = ""
                         st.session_state["invoice_status_filter"]   = "All Status"
                         st.session_state["inv_selected_vendor"]     = "All Vendors"
+                        # Clear all paid_* keys so Proceed to Pay never shows outside Invoice tab
+                        for _pk in [k for k in list(st.session_state.keys())
+                                    if k.startswith("paid_")]:
+                            del st.session_state[_pk]
+                        # Clear invoice detail cache
+                        for _ck in [k for k in list(st.session_state.keys())
+                                    if k.startswith("_inv_detail_")]:
+                            del st.session_state[_ck]
 
                     # Reset Genie when leaving Genie tab
                     if _prev == "Genie":
