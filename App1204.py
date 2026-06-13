@@ -670,6 +670,11 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 def inject_dashboard_css():
     bg = st.session_state.get("bg_color", "#ffffff")
     st.markdown(f"""<style>
+    /* ── FIX 2: BG color applies to ALL pages globally ── */
+    .stApp {{ background-color:{bg} !important; }}
+    .main > .block-container {{ background-color:transparent !important; }}
+    html, body {{ background-color:{bg} !important; }}
+
     button, .stButton button, button[kind="primary"], button[kind="secondary"],
     button[data-testid^="baseButton"], .stDownloadButton button {{
         transition: all 0.2s ease !important;
@@ -682,6 +687,18 @@ def inject_dashboard_css():
     }}
     button[kind="primary"] {{ background-color:#2563eb !important; border-color:#2563eb !important; color:white !important; }}
     button[kind="secondary"] {{ background-color:#f3f4f6 !important; border-color:#d1d5db !important; color:#1f2937 !important; }}
+
+    /* ── FIX 1: Send button hover/click → blue (same as all action buttons) ── */
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:active,
+    div[data-testid="stForm"] button[kind="primaryFormSubmit"]:focus {{
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        color: white !important;
+        box-shadow: 0 4px 10px rgba(37,99,235,0.3) !important;
+        transform: translateY(-1px) !important;
+    }}
+
     /* Needs Attention card backgrounds — all light pink */
     [class*="st-key-na_bg_overdue"] {{ background:#FFF0F2!important; border:1.5px solid #f5c6cb!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(229,57,53,.06)!important; }}
     [class*="st-key-na_bg_disputed"] {{ background:#FFF0F2!important; border:1.5px solid #f5c6cb!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(229,57,53,.06)!important; }}
@@ -1342,9 +1359,11 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
                         with st.container(border=True):
                             if st.button(ref, key=bk):
+                                # FIX 3: Properly navigate to Invoices with selected invoice
                                 st.session_state["invoice_search_from_card"] = ref
+                                st.session_state["inv_search_q"] = ref
+                                st.session_state["selected_invoice_detail"] = ref
                                 st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref)
                                 st.rerun()
                             st.markdown(
                                 f"<div style='text-align:right;margin-top:-24px;"
@@ -3557,35 +3576,54 @@ def render_invoices():
     st.subheader("Invoices")
     st.markdown("Search, track and manage all invoices in one place")
 
-    qp=st.experimental_get_query_params()
-    if "invoice" in qp and qp["invoice"][0]:
-        st.session_state.selected_invoice_detail=qp["invoice"][0]
-        st.experimental_set_query_params(); st.rerun()
+    # ── FIX 3: Handle navigation from Needs Attention card click ─────────────
+    from_card = st.session_state.pop("invoice_search_from_card", None)
+    if from_card and not st.session_state.get("selected_invoice_detail"):
+        st.session_state["selected_invoice_detail"] = str(from_card).strip()
+        st.session_state["inv_search_q"] = str(from_card).strip()
+
+    # Handle legacy query params
+    try:
+        qp = st.experimental_get_query_params()
+        if "invoice" in qp and qp["invoice"][0]:
+            st.session_state.selected_invoice_detail = qp["invoice"][0]
+            st.experimental_set_query_params()
+            st.rerun()
+    except Exception:
+        pass
 
     if st.session_state.get("selected_invoice_detail"):
-        inv_num=st.session_state.selected_invoice_detail
-        isql=f"""SELECT f.invoice_number,f.posting_date AS invoice_date,f.invoice_amount_local AS invoice_amount,
+        inv_num = st.session_state.selected_invoice_detail
+        isql = f"""SELECT f.invoice_number,f.posting_date AS invoice_date,f.invoice_amount_local AS invoice_amount,
             f.purchase_order_reference AS po_number,f.po_amount,f.due_date,UPPER(f.invoice_status) AS invoice_status,
             f.aging_days,f.vendor_id,v.vendor_name,v.vendor_name_2,v.country_code,v.city,v.postal_code,v.street,
             f.company_code,f.plant_code,f.currency
             FROM {DATABASE}.fact_all_sources_vw f LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id=v.vendor_id
             WHERE CAST(f.invoice_number AS VARCHAR)='{inv_num}' LIMIT 1"""
-        idf=run_query(isql)
+        idf = run_query(isql)
         if not idf.empty:
-            render_invoice_detail(idf.iloc[0].to_dict(),inv_num)
-            if st.button("← Back to Invoices List",key="back_invoices_btn",use_container_width=True):
-                st.session_state.selected_invoice_detail=None
-                st.session_state.invoice_search_input=""
-                st.session_state.invoice_status_filter="All Status"
-                st.session_state.inv_selected_vendor="All Vendors"
+            render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
+            if st.button("← Back to Invoices List", key="back_invoices_btn", use_container_width=True):
+                # FIX 4: Full reset when going back to list
+                st.session_state.selected_invoice_detail = None
+                st.session_state["inv_search_q"]         = ""
+                st.session_state["invoice_search_input"] = ""
+                st.session_state["invoice_status_filter"] = "All Status"
+                st.session_state["inv_sel_vendor"]        = "All Vendors"
+                st.session_state["inv_sel_status"]        = "All Status"
+                st.session_state["inv_selected_vendor"]   = "All Vendors"
                 st.rerun()
             return
         else:
             st.warning(f"Invoice {inv_num} not found.")
-            st.session_state.selected_invoice_detail=None; st.rerun()
+            st.session_state.selected_invoice_detail = None
+            st.rerun()
 
-    for k,v in [("invoice_search_input",""),("invoice_status_filter","All Status"),("inv_selected_vendor","All Vendors")]:
-        if k not in st.session_state: st.session_state[k]=v
+    # FIX 4: Ensure defaults exist
+    for k, v in [("invoice_search_input", ""), ("invoice_status_filter", "All Status"),
+                 ("inv_selected_vendor", "All Vendors")]:
+        if k not in st.session_state:
+            st.session_state[k] = v
 
     cs1,cs2,cs3=st.columns([3,1,1])
     with cs1:
@@ -3659,17 +3697,26 @@ def main():
         "na_tab":          "Overdue",
         "na_page":         0,
         "_preset_clicked": False,
-        "genie_session_id":     None,
-        "current_messages":     [],
-        "genie_prefill":        "",
-        "show_summary":         False,
-        "conversation_summary": "",
-        "show_chats_panel":     False,
-        "genie_input_version":  0,
-        "selected_analysis":    None,
-        "show_analysis":        False,
-        "analyst_response":     None,
-        "last_custom_query":    "",
+        "genie_session_id":        None,
+        "current_messages":        [],
+        "genie_prefill":           "",
+        "show_summary":            False,
+        "conversation_summary":    "",
+        "show_chats_panel":        False,
+        "genie_input_version":     0,
+        "selected_analysis":       None,
+        "show_analysis":           False,
+        "analyst_response":        None,
+        "last_custom_query":       "",
+        # Invoice defaults
+        "selected_invoice_detail": None,
+        "invoice_search_from_card": None,
+        "inv_search_q":            "",
+        "inv_sel_vendor":          "All Vendors",
+        "inv_sel_status":          "All Status",
+        "invoice_search_input":    "",
+        "invoice_status_filter":   "All Status",
+        "inv_selected_vendor":     "All Vendors",
     }
     for _k, _v in _defaults.items():
         if _k not in st.session_state:
@@ -3819,13 +3866,36 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
             if st.button(label, key=nav_key, use_container_width=True,
                          type="primary" if pg == page_key else "secondary"):
                 if pg != page_key:
-                    # Clear only page-specific cached data, keep filters intact
+                    prev_page = pg
                     st.session_state.page = page_key
-                    # Clear page-specific heavy data to avoid stale renders
-                    if page_key == "Forecast":
+
+                    # ── FIX 4: Reset Invoice tab state when leaving Invoice tab ──
+                    if prev_page == "Invoices":
+                        st.session_state.pop("selected_invoice_detail", None)
+                        st.session_state.pop("invoice_search_from_card", None)
+                        st.session_state["inv_search_q"]      = ""
+                        st.session_state["inv_sel_vendor"]    = "All Vendors"
+                        st.session_state["inv_sel_status"]    = "All Status"
+                        st.session_state["inv_page_idx"]      = 0
+
+                    # ── FIX 5: Reset Genie session when leaving Genie tab ──────
+                    if prev_page == "Genie":
+                        st.session_state["current_messages"]     = []
+                        st.session_state["show_summary"]         = False
+                        st.session_state["conversation_summary"] = ""
+                        st.session_state["show_chats_panel"]     = False
+                        st.session_state["show_analysis"]        = False
+                        st.session_state["analyst_response"]     = None
+                        st.session_state["selected_analysis"]    = None
+                        st.session_state["last_custom_query"]    = ""
+                        st.session_state["genie_input_version"]  = st.session_state.get("genie_input_version", 0) + 1
+                        st.session_state.pop("auto_run_query", None)
+                        st.session_state.pop("genie_prefill", None)
+
+                    # Clear forecast cache when not needed
+                    if page_key in ("Dashboard", "Genie", "Invoices"):
                         st.session_state.pop("forecast_cf_df", None)
-                    if page_key == "Dashboard":
-                        st.session_state.pop("forecast_cf_df", None)
+
                     st.rerun()
 
     with hc[5]:
