@@ -1368,7 +1368,13 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
 
                         with st.container(border=True):
                             if st.button(ref, key=bk):
-                                st.session_state["invoice_search_from_card"] = ref
+                                # Set ALL state atomically — navigate in one rerun
+                                st.session_state["selected_invoice_detail"]   = str(ref).strip()
+                                st.session_state["page"]                      = "Invoices"
+                                st.session_state["invoice_search_from_card"]  = None
+                                st.session_state["invoice_search_input"]      = ""
+                                st.session_state["invoice_status_filter"]     = "All Status"
+                                st.session_state["inv_selected_vendor"]       = "All Vendors"
                                 st.rerun()
                             st.markdown(
                                 f"<div style='text-align:right;margin-top:-24px;"
@@ -3432,7 +3438,7 @@ div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
 
 
 # ── Invoices ──────────────────────────────────────────────────
-def render_invoice_detail(inv_row: dict, inv_num: str):
+def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = False):
     def gv(key,default=""):
         val=inv_row.get(key,default)
         try:
@@ -3524,12 +3530,17 @@ def render_invoice_detail(inv_row: dict, inv_num: str):
         st.markdown(ht,unsafe_allow_html=True)
 
     st.markdown("---")
-    cs=gv("invoice_status","").upper()
-    if st.session_state.get(pk,False): st.success("✅ Invoice has been processed and marked as Paid.")
-    elif cs=="PAID": st.info("ℹ️ This invoice is already marked as PAID.")
-    else:
-        if st.button("✅ Proceed to Pay",key="proceed_pay_btn",use_container_width=True):
-            st.session_state[pk]=True; st.rerun()
+    cs = gv("invoice_status", "").upper()
+    if show_pay_button:
+        if st.session_state.get(pk, False):
+            st.success("✅ Invoice has been processed and marked as Paid.")
+        elif cs in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
+            st.info("ℹ️ This invoice is already marked as PAID.")
+        else:
+            if st.button("✅ Proceed to Pay", key="proceed_pay_btn",
+                         use_container_width=True):
+                st.session_state[pk] = True
+                st.rerun()
 
 def render_invoices():
     st.subheader("Invoices")
@@ -3555,7 +3566,7 @@ def render_invoices():
             idf = pd.DataFrame()
 
         if not idf.empty:
-            render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
+            render_invoice_detail(idf.iloc[0].to_dict(), inv_num, show_pay_button=True)
             if st.button("← Back to All Invoices", key="back_invoices_btn",
                          use_container_width=True):
                 st.session_state["selected_invoice_detail"] = None
@@ -3565,9 +3576,9 @@ def render_invoices():
                 st.rerun()
             return
         else:
-            st.warning(f"Invoice {inv_num} not found.")
+            st.warning(f"Invoice **{inv_num}** not found. Showing all invoices.")
             st.session_state["selected_invoice_detail"] = None
-            st.rerun()
+            # Fall through to show invoice list
 
     # ── Invoice list (default view) ───────────────────────────────────────────
     for k, v in [("invoice_search_input", ""), ("invoice_status_filter", "All Status"),
@@ -3670,13 +3681,6 @@ def main():
     for _k, _v in _defaults.items():
         if _k not in st.session_state:
             st.session_state[_k] = _v
-
-    # ── Invoice card navigation: handle BEFORE rendering ─────────────────────
-    _card_ref = st.session_state.get("invoice_search_from_card")
-    if _card_ref:
-        st.session_state["page"]                    = "Invoices"
-        st.session_state["selected_invoice_detail"] = str(_card_ref).strip()
-        st.session_state["invoice_search_from_card"] = None   # clear flag
 
     init_db()
     inject_dashboard_css()
