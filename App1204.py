@@ -3233,11 +3233,12 @@ div.genie-card-wrap button:hover {
                         else:
                             st.markdown(msg["content"])
 
-            # ── Chat input — reference code logic, full-width input ──────────
-            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-            st.markdown("""
+
+    # ── Ask a question — same width as AI Assistant container ────────────────
+    _spacer_col, ask_col = st.columns([0.32, 0.68], gap="medium")
+    with ask_col:
+        st.markdown("""
 <style>
-/* Form: no outer border/bg — just the input and button */
 div[data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
@@ -3249,7 +3250,6 @@ div[data-testid="stForm"] {
 div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
     padding: 0 !important; gap: 0 !important;
 }
-/* Row: flex so input takes all space, button fixed */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important; align-items: center !important;
     gap: 8px !important; width: 100% !important;
@@ -3268,7 +3268,6 @@ div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
     width: 100% !important; padding: 0 !important; margin: 0 !important;
 }
-/* Input: white, full width, no red border on any state */
 div[data-testid="stForm"] div[data-testid="stTextInput"] input,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
@@ -3287,13 +3286,11 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important; font-size: 14px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-/* Kill BaseWeb red focus ring */
 div[data-testid="stForm"] div[data-baseweb="input"],
 div[data-testid="stForm"] div[data-baseweb="input"]:focus-within {
     border: none !important; box-shadow: none !important;
     outline: none !important; background: transparent !important;
 }
-/* Send button: light gray, rounded */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 100% !important; height: 46px !important; min-height: 46px !important;
@@ -3313,6 +3310,7 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 </style>
 """, unsafe_allow_html=True)
 
+        with st.container(border=True):
             with st.form("genie_question_form", clear_on_submit=True):
                 input_col, btn_col = st.columns([0.85, 0.15])
                 with input_col:
