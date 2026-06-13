@@ -1653,11 +1653,20 @@ def render_dashboard():
     sl  = sql_date(rng_start);  el  = sql_date(rng_end)
     ps, pe = prior_window(rng_start, rng_end)
 
-    with st.spinner("Loading dashboard..."):
+    # ── Cache key: only re-fetch when filters actually change ────────────────
+    _kpi_cache_key = f"_kpi_{sl}_{el}_{vendor_where}_{sql_date(ps)}_{sql_date(pe)}"
+    if _kpi_cache_key not in st.session_state:
         cur_kpi  = fetch_kpi_data(sl, el, vendor_where,
                                    rng_start.isoformat(), rng_end.isoformat())
         prev_kpi = fetch_kpi_data(sql_date(ps), sql_date(pe), vendor_where,
                                    ps.isoformat(), pe.isoformat())
+        st.session_state[_kpi_cache_key] = (cur_kpi, prev_kpi)
+        # Clear old cache keys to save memory
+        for _old_k in [k for k in st.session_state if k.startswith("_kpi_") and k != _kpi_cache_key]:
+            del st.session_state[_old_k]
+    else:
+        cur_kpi, prev_kpi = st.session_state[_kpi_cache_key]
+
     save_kpi_snapshot(
         st.session_state.get("preset","Custom"),
         rng_start.isoformat(), rng_end.isoformat(), cur_kpi
@@ -3793,8 +3802,15 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
         with hc[idx + 1]:
             if st.button(label, key=nav_key, use_container_width=True,
                          type="primary" if pg == page_key else "secondary"):
-                st.session_state.page = page_key
-                st.rerun()
+                if pg != page_key:
+                    # Clear only page-specific cached data, keep filters intact
+                    st.session_state.page = page_key
+                    # Clear page-specific heavy data to avoid stale renders
+                    if page_key == "Forecast":
+                        st.session_state.pop("forecast_cf_df", None)
+                    if page_key == "Dashboard":
+                        st.session_state.pop("forecast_cf_df", None)
+                    st.rerun()
 
     with hc[5]:
         st.markdown(
@@ -3810,7 +3826,6 @@ div[data-testid="stHorizontalBlock"]:first-of-type button[kind="primary"]:hover 
     )
 
     if   pg == "Dashboard":
-        st.session_state.pop("forecast_cf_df", None)
         render_dashboard()
     elif pg == "Genie":
         render_genie()
@@ -3825,8 +3840,16 @@ if __name__ == "__main__":
         main()
     except Exception as _e:
         _err = str(_e)
-        # "SessionInfo not initialized" happens on fast refresh — just rerun
-        if "SessionInfo" in _err or "session" in _err.lower():
+        # Transient Streamlit errors on fast refresh/page switch — rerun cleanly
+        _transient = (
+            "SessionInfo" in _err
+            or "session" in _err.lower()
+            or "Bad message format" in _err
+            or "ScriptRunContext" in _err
+            or "missing ScriptRunContext" in _err.lower()
+        )
+        if _transient:
             st.rerun()
         else:
+            st.error(f"An error occurred: {_err}")
             raise
