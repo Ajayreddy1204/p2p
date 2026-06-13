@@ -2935,17 +2935,18 @@ div.genie-card-wrap button:hover {
         with st.container(border=True):
             st.markdown("""
 <style>
+/* AI Assistant header buttons — white rounded rectangles, matching screenshot */
 button[aria-label="Chats"],
 button[aria-label="Summarize"],
 button[aria-label="Export MD"],
 button[aria-label="Clear"] {
-    height: 38px !important;
-    min-height: 38px !important;
-    border-radius: 50px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 10px !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     white-space: nowrap !important;
-    padding: 0 20px !important;
+    padding: 0 16px !important;
     border: 1.5px solid #d1d5db !important;
     background: white !important;
     color: #374151 !important;
@@ -2956,16 +2957,50 @@ button[aria-label="Chats"]:hover,
 button[aria-label="Summarize"]:hover,
 button[aria-label="Export MD"]:hover,
 button[aria-label="Clear"]:hover {
-    border-color: #2563eb !important;
-    color: #2563eb !important;
-    background: #f0f7ff !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    background: #f9fafb !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 button[kind="primary"][aria-label="Chats"],
 button[kind="primary"][aria-label="Summarize"] {
-    background: #2563eb !important;
-    color: white !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 2px 6px rgba(37,99,235,0.3) !important;
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+}
+/* Empty state container */
+.genie-empty {
+    background: #f1f5f9 !important;
+    border-radius: 16px !important;
+    padding: 3rem 2rem !important;
+    text-align: center !important;
+    margin: 12px 0 !important;
+    min-height: 220px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.genie-empty-icon {
+    font-size: 1.6rem !important;
+    color: #94a3b8 !important;
+    margin-bottom: 10px !important;
+    font-weight: 200 !important;
+}
+.genie-empty-title {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin-bottom: 6px !important;
+}
+.genie-empty-sub {
+    font-size: 0.82rem !important;
+    color: #94a3b8 !important;
+    max-width: 220px !important;
+    line-height: 1.5 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3172,8 +3207,8 @@ button[kind="primary"][aria-label="Summarize"] {
                         else:
                             st.markdown(msg["content"])
 
-        # ── Ask input form — matches screenshot exactly ──────────────────────
-        st.markdown("""
+    # ── Ask input form — OUTSIDE columns so it always shows immediately ───────
+    st.markdown("""
 <style>
 /* Outer form wrapper: large rounded light container */
 div[data-testid="stForm"] {
@@ -3182,7 +3217,7 @@ div[data-testid="stForm"] {
     border-radius: 20px !important;
     padding: 10px 12px !important;
     box-shadow: none !important;
-    margin-top: 10px !important;
+    margin-top: 12px !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
@@ -3190,7 +3225,6 @@ div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
     padding: 0 !important;
     gap: 0 !important;
 }
-/* Inner row: input + button side by side */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     align-items: center !important;
@@ -3200,7 +3234,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     padding: 0 !important;
     margin: 0 !important;
 }
-/* Input column: grows to fill space */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
     flex: 1 1 0% !important;
@@ -3208,7 +3241,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     width: 0 !important;
     padding: 0 !important;
 }
-/* Button column: fixed width */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
     flex: 0 0 52px !important;
@@ -3216,7 +3248,6 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
     min-width: 52px !important;
     padding: 0 !important;
 }
-/* Text input: white rounded pill */
 div[data-testid="stForm"] div[data-testid="stTextInput"] {
     width: 100% !important;
     padding: 0 !important;
@@ -3253,7 +3284,6 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
 div[data-testid="stForm"] div[data-testid="stTextInput"] label {
     display: none !important;
 }
-/* Submit button: square rounded, white bg, dark arrow, matches screenshot */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 48px !important;
@@ -3271,6 +3301,9 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     line-height: 48px !important;
     text-align: center !important;
     cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
 div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
@@ -3283,20 +3316,20 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 </style>
 """, unsafe_allow_html=True)
 
-        with st.form(key="genie_chat_form", clear_on_submit=True):
-            c_inp, c_btn = st.columns([0.88, 0.12], gap="small")
-            with c_inp:
-                prefill = st.session_state.pop("genie_prefill", "")
-                uq = st.text_input(
-                    "q", value=prefill,
-                    placeholder="Ask a question here...",
-                    label_visibility="collapsed",
-                )
-            with c_btn:
-                submitted = st.form_submit_button("→", type="primary",
-                                                  use_container_width=True)
-            if submitted and uq:
-                process_user_question(uq)
+    with st.form(key="genie_chat_form", clear_on_submit=True):
+        c_inp, c_btn = st.columns([0.88, 0.12], gap="small")
+        with c_inp:
+            prefill = st.session_state.pop("genie_prefill", "")
+            uq = st.text_input(
+                "q", value=prefill,
+                placeholder="Ask a question here...",
+                label_visibility="collapsed",
+            )
+        with c_btn:
+            submitted = st.form_submit_button("→", type="primary",
+                                              use_container_width=True)
+        if submitted and uq:
+            process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
