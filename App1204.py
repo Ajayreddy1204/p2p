@@ -1,4 +1,4 @@
-import streamlit as st
+\import streamlit as st
 import boto3
 import awswrangler as wr
 import pandas as pd
@@ -682,6 +682,10 @@ def inject_dashboard_css():
     }}
     button[kind="primary"] {{ background-color:#2563eb !important; border-color:#2563eb !important; color:white !important; }}
     button[kind="secondary"] {{ background-color:#f3f4f6 !important; border-color:#d1d5db !important; color:#1f2937 !important; }}
+    /* Needs Attention card backgrounds */
+    [class*="st-key-na_bg_overdue"] {{ background:#fef2f2!important; border:1px solid #fecaca!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
+    [class*="st-key-na_bg_disputed"] {{ background:#fffbeb!important; border:1px solid #fde68a!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
+    [class*="st-key-na_bg_due"] {{ background:#eff6ff!important; border:1px solid #bfdbfe!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
     .kpi-card {{ border-radius:16px; padding:1rem 1.2rem; min-height:100px; display:flex; flex-direction:column; justify-content:center; }}
     .kpi-card-yellow {{ background:linear-gradient(135deg,#fef9c3 0%,#fef08a 100%); }}
     .kpi-card-cyan   {{ background:linear-gradient(135deg,#cffafe 0%,#a5f3fc 100%); }}
@@ -1158,205 +1162,196 @@ def render_kpi_rows(kpi: dict, prev_kpi: dict):
     with col4: render_kpi_card("AUTOPROCESSED INVOICES %", f"{auto_rate:.1f}%", auto_delta, True, "green")
 
 def render_needs_attention(rng_start, rng_end, vendor_where):
-    for k, v in [("na_tab", "Overdue"), ("na_page", 0)]:
-        if k not in st.session_state:
-            st.session_state[k] = v
+    """Needs Attention section — matches reference code UI exactly."""
+    from datetime import date as _date, timedelta as _timedelta
 
-    current_tab = st.session_state.na_tab
-    page        = st.session_state.na_page
-    start_lit   = sql_date(rng_start)
-    end_lit     = sql_date(rng_end)
+    if "na_tab" not in st.session_state:
+        st.session_state.na_tab = "Overdue"
+    if "na_page" not in st.session_state:
+        st.session_state.na_page = 0
 
-    overdue_df, disputed_df, due_df = fetch_needs_attention(start_lit, end_lit, vendor_where)
-    oc  = len(overdue_df)
-    dc  = len(disputed_df)
-    duc = len(due_df)
-    urgent = oc + dc + duc
+    start_lit = sql_date(rng_start)
+    end_lit   = sql_date(rng_end)
 
-    if current_tab == "Overdue":
-        df = overdue_df;  sl = "Overdue";  tc_color = "#e53935"
-    elif current_tab == "Disputed":
-        df = disputed_df; sl = "Disputed"; tc_color = "#e53935"
-    else:
-        df = due_df;      sl = "Due soon"; tc_color = "#2e7d32"
+    # ── Count all tabs ────────────────────────────────────────────────────────
+    try:
+        counts_sql = f"""
+        SELECT
+            SUM(CASE WHEN FACT.DUE_DATE < CURRENT_DATE()
+                      AND UPPER(FACT.INVOICE_STATUS) IN ('OVERDUE')
+                     THEN 1 ELSE 0 END) AS OVERDUE_COUNT,
+            SUM(CASE WHEN UPPER(FACT.INVOICE_STATUS) IN ('DISPUTE','DISPUTED')
+                     THEN 1 ELSE 0 END) AS DISPUTED_COUNT,
+            SUM(CASE WHEN FACT.DUE_DATE IS NOT NULL
+                      AND FACT.DUE_DATE >= CURRENT_DATE()
+                      AND UPPER(FACT.INVOICE_STATUS) IN ('OPEN')
+                     THEN 1 ELSE 0 END) AS DUE_COUNT
+        FROM {DATABASE}.fact_all_sources_vw FACT
+        WHERE POSTING_DATE BETWEEN {start_lit} AND {end_lit}
+        {vendor_where}
+        """
+        cnts = run_query(counts_sql)
+        overdue_count  = safe_int(cnts.at[0, "OVERDUE_COUNT"], 0) if not cnts.empty else 0
+        disputed_count = safe_int(cnts.at[0, "DISPUTED_COUNT"], 0) if not cnts.empty else 0
+        due_count      = safe_int(cnts.at[0, "DUE_COUNT"], 0) if not cnts.empty else 0
+    except Exception:
+        overdue_count = disputed_count = due_count = 0
 
-    st.markdown(f"""
-<style>
-.na-title {{
-    font-size: 16px; font-weight: 800; color: #111827;
-    margin-bottom: 10px;
-}}
-.na-title span {{ font-weight: 600; color: #6b7280; font-size: 14px; }}
-.na-tabs-row button {{
-    height: 44px !important;
-    min-height: 44px !important;
-    border-radius: 999px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-    border: 1.5px solid #e0e0e0 !important;
-}}
-.na-tabs-row button[kind="secondary"] {{
-    background: #f3f4f6 !important;
-    color: #374151 !important;
-    box-shadow: none !important;
-}}
-.na-tabs-row button[kind="primary"] {{
-    background: #2563eb !important;
-    color: white !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
-}}
-.na-cards-grid {{
-    margin-top: 12px;
-}}
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] {{
-    background: #FFF0F2 !important;
-    border: 1.5px solid #f5c6cb !important;
-    border-radius: 12px !important;
-    box-shadow: 0 1px 4px rgba(229,57,53,0.06) !important;
-    overflow: visible !important;
-}}
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"]
-  > div[data-testid="stVerticalBlock"] {{
-    padding: 8px 10px 8px 10px !important;
-    gap: 0 !important;
-}}
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button {{
-    background:    #f3f4f6 !important;
-    border:        1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    color:         #374151 !important;
-    font-size:     13px !important;
-    font-weight:   700 !important;
-    height:        28px !important;
-    min-height:    28px !important;
-    padding:       0 10px !important;
-    box-shadow:    none !important;
-    outline:       none !important;
-    white-space:   nowrap !important;
-    max-width:     none !important;
-    width:         auto !important;
-}}
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:hover {{
-    background:    #eff6ff !important;
-    border-color:  #2563eb !important;
-    color:         #2563eb !important;
-    box-shadow:    none !important;
-    outline:       none !important;
-}}
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:focus,
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:focus-visible,
-.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"] button:active {{
-    background:         #f3f4f6 !important;
-    border-color:       #d1d5db !important;
-    box-shadow:         none !important;
-    -webkit-box-shadow: none !important;
-    outline:            none !important;
-    outline-width:      0 !important;
-}}
-.na-page-row button {{
-    height: 38px !important;
-    min-height: 38px !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    background: #f3f4f6 !important;
-    border: 1px solid #e0e0e0 !important;
-    color: #374151 !important;
-    box-shadow: none !important;
-}}
-.na-page-info {{
-    text-align: center; color: #6b7280;
-    font-size: 13px; padding: 8px 0;
-}}
-</style>
-""", unsafe_allow_html=True)
+    urgent_count = overdue_count + disputed_count + due_count
+    current_tab  = st.session_state.na_tab
+
+    # ── Fetch data for active tab ─────────────────────────────────────────────
+    try:
+        if current_tab == "Overdue":
+            needs_sql = f"""
+            SELECT FACT.INVOICE_NUMBER AS REF_NO, FACT.INVOICE_AMOUNT_LOCAL AS AMOUNT,
+                   FACT.DUE_DATE, UPPER(FACT.INVOICE_STATUS) AS STATUS,
+                   V.VENDOR_NAME, FACT.AGING_DAYS
+            FROM {DATABASE}.fact_all_sources_vw FACT
+            LEFT JOIN {DATABASE}.dim_vendor_vw V ON FACT.VENDOR_ID = V.VENDOR_ID
+            WHERE POSTING_DATE BETWEEN {start_lit} AND {end_lit} {vendor_where}
+              AND FACT.DUE_DATE < CURRENT_DATE()
+              AND UPPER(FACT.INVOICE_STATUS) IN ('OVERDUE')
+            ORDER BY FACT.DUE_DATE ASC
+            """
+        elif current_tab == "Disputed":
+            needs_sql = f"""
+            SELECT FACT.INVOICE_NUMBER AS REF_NO, FACT.INVOICE_AMOUNT_LOCAL AS AMOUNT,
+                   FACT.DUE_DATE, UPPER(FACT.INVOICE_STATUS) AS STATUS,
+                   V.VENDOR_NAME, FACT.AGING_DAYS
+            FROM {DATABASE}.fact_all_sources_vw FACT
+            LEFT JOIN {DATABASE}.dim_vendor_vw V ON FACT.VENDOR_ID = V.VENDOR_ID
+            WHERE POSTING_DATE BETWEEN {start_lit} AND {end_lit} {vendor_where}
+              AND UPPER(FACT.INVOICE_STATUS) IN ('DISPUTE','DISPUTED')
+            ORDER BY FACT.DUE_DATE ASC
+            """
+        else:
+            needs_sql = f"""
+            SELECT FACT.INVOICE_NUMBER AS REF_NO, FACT.INVOICE_AMOUNT_LOCAL AS AMOUNT,
+                   FACT.DUE_DATE, UPPER(FACT.INVOICE_STATUS) AS STATUS,
+                   V.VENDOR_NAME, FACT.AGING_DAYS
+            FROM {DATABASE}.fact_all_sources_vw FACT
+            LEFT JOIN {DATABASE}.dim_vendor_vw V ON FACT.VENDOR_ID = V.VENDOR_ID
+            WHERE POSTING_DATE BETWEEN {start_lit} AND {end_lit} {vendor_where}
+              AND FACT.DUE_DATE IS NOT NULL
+              AND FACT.DUE_DATE >= CURRENT_DATE()
+              AND UPPER(FACT.INVOICE_STATUS) IN ('OPEN')
+            ORDER BY FACT.DUE_DATE ASC
+            """
+        needs = run_query(needs_sql)
+    except Exception as e:
+        st.error(f"Failed to load needs attention data: {e}")
+        needs = pd.DataFrame()
 
     with st.container(border=True):
+        # Title
         st.markdown(
-            f"<div class='na-title'>Needs Attention "
-            f"<span>({urgent:,})</span></div>",
+            f"<div style='font-size:18px;font-weight:900;color:#1a1a1a;"
+            f"margin-bottom:10px;'>Needs Attention "
+            f"<span style='font-weight:700;color:#6b7280;'>({urgent_count:,})</span></div>",
             unsafe_allow_html=True,
         )
 
-        st.markdown("<div class='na-tabs-row'>", unsafe_allow_html=True)
-        tc1, tc2, tc3 = st.columns([1, 1, 1], gap="small")
-        with tc1:
-            t = "primary" if current_tab == "Overdue" else "secondary"
-            if st.button(f"Overdue ({oc})", key="na_btn_overdue", use_container_width=True, type=t):
-                st.session_state.na_tab = "Overdue"; st.session_state.na_page = 0; st.rerun()
-        with tc2:
-            t = "primary" if current_tab == "Disputed" else "secondary"
-            if st.button(f"Disputed ({dc})", key="na_btn_disputed", use_container_width=True, type=t):
-                st.session_state.na_tab = "Disputed"; st.session_state.na_page = 0; st.rerun()
-        with tc3:
-            t = "primary" if current_tab == "Due" else "secondary"
-            if st.button(f"Due ({duc})", key="na_btn_due30d", use_container_width=True, type=t):
-                st.session_state.na_tab = "Due"; st.session_state.na_page = 0; st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Tab buttons
+        t1, t2, t3 = st.columns(3, gap="small")
+        with t1:
+            btn_type = "primary" if current_tab == "Overdue" else "secondary"
+            if st.button(f"Overdue ({overdue_count})", key="na_btn_overdue",
+                         use_container_width=True, type=btn_type):
+                st.session_state.na_tab = "Overdue"
+                st.session_state.na_page = 0
+                st.rerun()
+        with t2:
+            btn_type = "primary" if current_tab == "Disputed" else "secondary"
+            if st.button(f"Disputed ({disputed_count})", key="na_btn_disputed",
+                         use_container_width=True, type=btn_type):
+                st.session_state.na_tab = "Disputed"
+                st.session_state.na_page = 0
+                st.rerun()
+        with t3:
+            btn_type = "primary" if current_tab == "Due" else "secondary"
+            if st.button(f"Due ({due_count})", key="na_btn_due30d",
+                         use_container_width=True, type=btn_type):
+                st.session_state.na_tab = "Due"
+                st.session_state.na_page = 0
+                st.rerun()
 
-        if df.empty:
+        st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+        if needs is None or needs.empty:
             st.markdown(
                 "<div style='padding:1.5rem;color:#64748b;text-align:center;'>"
                 "No items in this category</div>",
                 unsafe_allow_html=True,
             )
         else:
-            ipp = 8; tot = len(df); tp = max(1, (tot + ipp - 1) // ipp)
-            si2 = page * ipp; ei2 = min(si2 + ipp, tot)
-            page_df = df.iloc[si2:ei2]; gi = 0
+            items_per_page = 8
+            total_items    = len(needs)
+            total_pages    = max(1, (total_items + items_per_page - 1) // items_per_page)
+            page           = st.session_state.na_page
+            start_i        = page * items_per_page
+            end_i          = min(start_i + items_per_page, total_items)
+            page_df        = needs.iloc[start_i:end_i]
 
-            st.markdown("<div class='na-cards-grid'>", unsafe_allow_html=True)
+            # Color scheme per tab
+            if current_tab == "Overdue":
+                tag_label, tag_bg, tag_color, tab_class = "Overdue",  "#fde7e9", "#b42318", "overdue"
+            elif current_tab == "Disputed":
+                tag_label, tag_bg, tag_color, tab_class = "Disputed", "#fff4e5", "#b54708", "disputed"
+            else:
+                tag_label, tag_bg, tag_color, tab_class = "Due soon", "#dbeafe", "#0284c7", "due"
 
+            # Cards in rows of 4
+            gi = 0
             for chunk_start in range(0, len(page_df), 4):
-                row_chunk = page_df.iloc[chunk_start:chunk_start + 4]
-                cols = st.columns(4, gap="small")
-                for col, (_, r) in zip(cols, row_chunk.iterrows()):
+                chunk = page_df.iloc[chunk_start:chunk_start + 4]
+                cols  = st.columns(4, gap="small")
+                for col, (_, r) in zip(cols, chunk.iterrows()):
                     with col:
-                        ref   = format_invoice_number(str(r.get("ref_no", "—")).strip() or "—")
-                        vname = html.escape(str(r.get("vendor_name", "—")))
-                        amt   = safe_number(r.get("amount"))
-                        ddr   = r.get("due_date")
-                        dd    = pd.to_datetime(ddr).date().isoformat() if pd.notna(ddr) else "—"
-                        bk    = f"na_btn_{si2}_{gi}_{ref[:20]}"
+                        ref      = format_invoice_number(str(r.get("REF_NO", "")).strip() or "—")
+                        amt      = safe_number(r.get("AMOUNT"))
+                        ddate_r  = r.get("DUE_DATE")
+                        ddate    = pd.to_datetime(ddate_r).date().isoformat() if pd.notna(ddate_r) else "—"
+                        vendor_n = html.escape(str(r.get("VENDOR_NAME", "—")))
+                        bk       = f"na_btn_{start_i}_{gi}_{ref[:20]}"
 
-                        with st.container(border=True):
-                            if st.button(ref, key=bk):
-                                st.session_state["invoice_search_from_card"] = ref
-                                st.session_state["page"] = "Invoices"
-                                st.experimental_set_query_params(invoice=ref)
-                                st.rerun()
-                            st.markdown(
-                                f"<div style='text-align:right;margin-top:-24px;"
-                                f"font-size:11px;font-weight:700;color:{tc_color};'>"
-                                f"{sl}</div>",
-                                unsafe_allow_html=True,
-                            )
-                            st.markdown(
-                                f"<div style='text-align:right;'>"
-                                f"<div style='font-size:14px;font-weight:800;"
-                                f"color:#111827;line-height:1.2;'>{abbr_currency(amt)}</div>"
-                                f"<div style='font-size:10px;color:#9ca3af;'>"
-                                f"Due: {dd}</div></div>",
-                                unsafe_allow_html=True,
-                            )
-                            st.markdown(
-                                f"<div style='font-size:11px;color:#6b7280;"
-                                f"margin-top:1px;'>{vname}</div>",
-                                unsafe_allow_html=True,
-                            )
+                        with st.container(border=True, key=f"na_bg_{tab_class}_{gi}"):
+                            left_c, right_c = st.columns([2, 1], gap="small")
+                            with left_c:
+                                if st.button(ref, key=bk):
+                                    st.session_state["invoice_search_from_card"] = ref
+                                    st.session_state["page"] = "Invoices"
+                                    st.experimental_set_query_params(invoice=ref)
+                                    st.rerun()
+                                st.markdown(
+                                    f"<div style='color:#64748b;font-size:12px;"
+                                    f"overflow:hidden;text-overflow:ellipsis;'>{vendor_n}</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            with right_c:
+                                st.markdown(
+                                    f"<div style='text-align:right;'>"
+                                    f"<span style='background:{tag_bg};color:{tag_color};"
+                                    f"font-size:11px;padding:3px 9px;border-radius:999px;"
+                                    f"display:inline-block;margin-bottom:5px;font-weight:700;'>"
+                                    f"{tag_label}</span>"
+                                    f"<div style='font-weight:700;font-size:13px;'>"
+                                    f"{abbr_currency(amt)}</div>"
+                                    f"<div style='color:#9ca3af;font-size:10px;'>Due: {ddate}</div>"
+                                    f"</div>",
+                                    unsafe_allow_html=True,
+                                )
                         gi += 1
                 st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)
-
+            # Pagination
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-            st.markdown("<div class='na-page-row'>", unsafe_allow_html=True)
             pc1, pc2, pc3 = st.columns([1, 1, 1], gap="small")
             with pc1:
                 if page > 0:
                     if st.button("← Prev", key="na_prev", use_container_width=True):
-                        st.session_state.na_page = max(0, page - 1); st.rerun()
+                        st.session_state.na_page = max(0, page - 1)
+                        st.rerun()
                 else:
                     st.markdown(
                         "<div style='text-align:center;color:#d1d5db;padding:8px;"
@@ -1365,20 +1360,21 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
                     )
             with pc2:
                 st.markdown(
-                    f"<div class='na-page-info'>{page + 1} of {tp}</div>",
+                    f"<div style='text-align:center;color:#6b7280;padding:8px;"
+                    f"font-size:13px;'>{page + 1} of {total_pages}</div>",
                     unsafe_allow_html=True,
                 )
             with pc3:
-                if page < tp - 1:
+                if page < total_pages - 1:
                     if st.button("Next →", key="na_next", use_container_width=True):
-                        st.session_state.na_page = min(tp - 1, page + 1); st.rerun()
+                        st.session_state.na_page = min(total_pages - 1, page + 1)
+                        st.rerun()
                 else:
                     st.markdown(
                         "<div style='text-align:center;color:#d1d5db;padding:8px;"
                         "font-size:13px;'>Next →</div>",
                         unsafe_allow_html=True,
                     )
-            st.markdown("</div>", unsafe_allow_html=True)
 
 
 
@@ -3230,15 +3226,92 @@ div.genie-card-wrap button:hover {
                         else:
                             st.markdown(msg["content"])
 
-            # ── Chat input — from reference code logic ────────────────────────
+            # ── Chat input — reference code logic, full-width input ──────────
             st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            st.markdown("""
+<style>
+/* Form: no outer border/bg — just the input and button */
+div[data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important; gap: 0 !important;
+}
+/* Row: flex so input takes all space, button fixed */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important; align-items: center !important;
+    gap: 8px !important; width: 100% !important;
+    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 90px !important; width: 90px !important;
+    min-width: 90px !important; padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"],
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important; padding: 0 !important; margin: 0 !important;
+}
+/* Input: white, full width, no red border on any state */
+div[data-testid="stForm"] div[data-testid="stTextInput"] input,
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:hover {
+    width: 100% !important;
+    height: 46px !important; min-height: 46px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    font-size: 14px !important; color: #374151 !important;
+    background: #ffffff !important;
+    padding: 0 16px !important;
+    box-shadow: none !important; outline: none !important;
+    -webkit-box-shadow: none !important; box-sizing: border-box !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important; font-size: 14px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
+/* Kill BaseWeb red focus ring */
+div[data-testid="stForm"] div[data-baseweb="input"],
+div[data-testid="stForm"] div[data-baseweb="input"]:focus-within {
+    border: none !important; box-shadow: none !important;
+    outline: none !important; background: transparent !important;
+}
+/* Send button: light gray, rounded */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
+    width: 100% !important; height: 46px !important; min-height: 46px !important;
+    border-radius: 10px !important; padding: 0 14px !important;
+    font-size: 14px !important; font-weight: 500 !important;
+    background: #f3f4f6 !important; color: #374151 !important;
+    border: 1.5px solid #e5e7eb !important; box-shadow: none !important;
+    cursor: pointer !important; display: inline-flex !important;
+    align-items: center !important; justify-content: center !important;
+    white-space: nowrap !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+    background: #e5e7eb !important; border-color: #9ca3af !important;
+    color: #111827 !important; box-shadow: none !important; transform: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
             with st.form("genie_question_form", clear_on_submit=True):
                 input_col, btn_col = st.columns([0.85, 0.15])
                 with input_col:
                     user_query = st.text_input(
                         "Ask a question",
-                        placeholder="Ask about Procurement to Pay data...",
+                        placeholder="Ask a question here...",
                         label_visibility="collapsed",
                         key=f"genie_chat_input_{st.session_state.get('genie_input_version', 0)}"
                     )
