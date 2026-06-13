@@ -682,10 +682,10 @@ def inject_dashboard_css():
     }}
     button[kind="primary"] {{ background-color:#2563eb !important; border-color:#2563eb !important; color:white !important; }}
     button[kind="secondary"] {{ background-color:#f3f4f6 !important; border-color:#d1d5db !important; color:#1f2937 !important; }}
-    /* Needs Attention card backgrounds */
-    [class*="st-key-na_bg_overdue"] {{ background:#fef2f2!important; border:1px solid #fecaca!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
-    [class*="st-key-na_bg_disputed"] {{ background:#fffbeb!important; border:1px solid #fde68a!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
-    [class*="st-key-na_bg_due"] {{ background:#eff6ff!important; border:1px solid #bfdbfe!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(0,0,0,.05)!important; }}
+    /* Needs Attention card backgrounds — all light pink */
+    [class*="st-key-na_bg_overdue"] {{ background:#FFF0F2!important; border:1.5px solid #f5c6cb!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(229,57,53,.06)!important; }}
+    [class*="st-key-na_bg_disputed"] {{ background:#FFF0F2!important; border:1.5px solid #f5c6cb!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(229,57,53,.06)!important; }}
+    [class*="st-key-na_bg_due"] {{ background:#FFF0F2!important; border:1.5px solid #f5c6cb!important; border-radius:12px!important; box-shadow:0 2px 8px rgba(229,57,53,.06)!important; }}
     .kpi-card {{ border-radius:16px; padding:1rem 1.2rem; min-height:100px; display:flex; flex-direction:column; justify-content:center; }}
     .kpi-card-yellow {{ background:linear-gradient(135deg,#fef9c3 0%,#fef08a 100%); }}
     .kpi-card-cyan   {{ background:linear-gradient(135deg,#cffafe 0%,#a5f3fc 100%); }}
@@ -1220,6 +1220,22 @@ def render_needs_attention(rng_start, rng_end, vendor_where):
     border-radius: 12px !important;
     box-shadow: 0 1px 4px rgba(229,57,53,0.06) !important;
     overflow: visible !important;
+}}
+/* Invoice number button stays inside card — light pink bg matches card */
+.na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"]
+  div[data-testid="stVerticalBlock"] > div:first-child button {{
+    background: #ffe4e8 !important;
+    border: 1px solid #f5c6cb !important;
+    border-radius: 8px !important;
+    color: #b42318 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 10px !important;
+    box-shadow: none !important;
+    width: auto !important;
+    max-width: none !important;
 }}
 .na-cards-grid div[data-testid="stVerticalBlockBorderWrapper"]
   > div[data-testid="stVerticalBlock"] {{
