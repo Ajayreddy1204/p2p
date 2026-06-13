@@ -1128,77 +1128,84 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── BG colour picker — fixed bottom-right, styled as single circle button ──
-    current_bg = st.session_state.get("bg_color", "#ffffff")
-    safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+    # ── BG colour picker — exact pattern from working reference app ──────────
+    # Technique: render a visible .theme-anchor circle div (HTML), then place
+    # the real st.color_picker OVER it with opacity:0 so it is invisible but
+    # fully clickable. Clicking the circle opens the native browser color
+    # picker. No JS, no iframes, no portal hacks needed.
+    if "bg_color" not in st.session_state:
+        st.session_state.bg_color = "#ffffff"
+    current_bg = st.session_state.bg_color
+    safe_val = current_bg if (isinstance(current_bg, str) and current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
 
-    # Inject CSS that fixes the picker wrapper to bottom-right and styles its
-    # swatch button as a white "BG" circle. We use the unique marker class
-    # bg-picker-fixed injected via st.markdown right before the widget render.
-    st.markdown("""
-<style>
-/* Fix the entire color-picker block to bottom-right of viewport */
-.bg-picker-fixed {
-    position: fixed !important;
-    bottom: 32px !important;
-    right: 32px !important;
-    z-index: 9999 !important;
-    width: 56px !important;
-    height: 56px !important;
-}
-/* Hide label */
-.bg-picker-fixed label {
-    display: none !important;
-}
-/* Hide the inner coloured-square div inside the button */
-.bg-picker-fixed button > div {
-    display: none !important;
-}
-/* Style the swatch button as a white BG circle */
-.bg-picker-fixed button {
-    width: 56px !important;
-    height: 56px !important;
-    min-width: 56px !important;
-    min-height: 56px !important;
-    border-radius: 50% !important;
-    background: white !important;
-    border: 2px solid #d1d5db !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
-    cursor: pointer !important;
-    position: relative !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    transition: box-shadow 0.18s ease, transform 0.18s ease !important;
-}
-/* "BG" label via pseudo-element */
-.bg-picker-fixed button::after {
-    content: "BG" !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    color: #374151 !important;
-    pointer-events: none !important;
-    font-family: inherit !important;
-}
-.bg-picker-fixed button:hover {
-    box-shadow: 0 6px 22px rgba(0,0,0,0.26) !important;
-    border-color: #9ca3af !important;
-    transform: scale(1.08) !important;
-    background: white !important;
-}
-/* The wrapper div Streamlit adds around the picker widget */
-.bg-picker-fixed > div {
-    width: 56px !important;
-    height: 56px !important;
-}
-</style>
-<div class="bg-picker-fixed">
-""", unsafe_allow_html=True)
-    picked = st.color_picker("bg", value=safe_val, key="bg_cp", label_visibility="collapsed")
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+            /* Global app background driven by bg_color */
+            .stApp {{
+                background-color: {current_bg} !important;
+                transition: background-color 0.5s ease;
+            }}
+            /* Visible round BG button — fixed bottom-right */
+            .theme-anchor {{
+                position: fixed;
+                bottom: 20px;
+                right: 25px;
+                z-index: 1000000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 44px;
+                height: 44px;
+                border-radius: 9999px;
+                background-color: white;
+                border: 1px solid #E5E7EB;
+                box-shadow: 0 4px 10px rgba(15,23,42,0.10);
+                font-size: 11px;
+                font-weight: 600;
+                color: #111827;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                cursor: pointer;
+            }}
+            .theme-anchor .theme-label-text {{
+                pointer-events: none;
+            }}
+            /* Invisible but clickable color picker sits exactly on top of the anchor */
+            div[data-testid="stColorPicker"] {{
+                position: fixed !important;
+                bottom: 20px !important;
+                right: 25px !important;
+                width: 44px !important;
+                height: 44px !important;
+                z-index: 1000001 !important;
+                opacity: 0 !important;
+            }}
+            /* Ensure the inner clickable element fills the entire area */
+            div[data-testid="stColorPicker"] * {{
+                width: 100% !important;
+                height: 100% !important;
+            }}
+            /* Hide Streamlit's default label */
+            div[data-testid="stColorPicker"] label {{
+                display: none !important;
+            }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Render the visible white "BG" circle (purely decorative — picker sits on top)
+    st.markdown(
+        """
+        <div class="theme-anchor">
+            <span class="theme-label-text">BG</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Render the actual color picker (invisible, but clickable over the circle)
+    picked = st.color_picker("picker", key="bg_color", label_visibility="collapsed")
     if picked != current_bg:
         st.session_state["bg_color"] = picked
         st.rerun()
