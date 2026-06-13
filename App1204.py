@@ -1128,85 +1128,61 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Floating BG button — fixed circle bottom-right corner ──────────────
+    # ── BG colour picker — single styled button beside Spend Trend chart ──────
     current_bg = st.session_state.get("bg_color", "#ffffff")
     safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
     st.markdown("""
 <style>
-/* Floating BG wrapper — fixed position, bottom-right */
-.bg-float-outer {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+/* Style the color-picker swatch button to look like a BG circle */
+div[data-testid="stColorPicker"][data-key="bg_cp"] {
+    position: fixed !important;
+    bottom: 32px !important;
+    right: 32px !important;
+    z-index: 9999 !important;
+    width: 56px !important;
+    height: 56px !important;
 }
-/* Hide the color picker label */
-.bg-float-outer div[data-testid="stColorPicker"] label {
+div[data-testid="stColorPicker"][data-key="bg_cp"] label {
     display: none !important;
 }
-/* Hide the color picker swatch button (coloured square) */
-.bg-float-outer div[data-testid="stColorPicker"] button {
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    pointer-events: none !important;
-}
-/* The white BG circle button */
-.bg-float-outer div[data-testid="stButton"] button[data-testid="baseButton-bg_float_btn"] {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    min-height: 52px !important;
+div[data-testid="stColorPicker"][data-key="bg_cp"] button {
+    width: 56px !important;
+    height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
     border-radius: 50% !important;
     background: white !important;
-    color: #374151 !important;
     border: 2px solid #d1d5db !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+div[data-testid="stColorPicker"][data-key="bg_cp"] button::after {
+    content: "BG" !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     font-size: 13px !important;
     font-weight: 700 !important;
-    padding: 0 !important;
-    cursor: pointer !important;
-    line-height: 52px !important;
-    text-align: center !important;
-}
-.bg-float-outer div[data-testid="stButton"] button[data-testid="baseButton-bg_float_btn"]:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.24) !important;
-    transform: scale(1.08) !important;
-    border-color: #9ca3af !important;
-    background: white !important;
     color: #374151 !important;
+    pointer-events: none !important;
 }
-/* Overlay color picker on top of the circle, invisible but clickable */
-.bg-float-outer div[data-testid="stColorPicker"] {
-    margin-top: -52px !important;
-    width: 52px !important;
-    height: 52px !important;
+div[data-testid="stColorPicker"][data-key="bg_cp"] button > div {
+    display: none !important;
 }
-.bg-float-outer div[data-testid="stColorPicker"] > div {
-    width: 52px !important;
-    height: 52px !important;
-}
-.bg-float-outer div[data-testid="stColorPicker"] input[type="color"] {
-    width: 52px !important;
-    height: 52px !important;
-    opacity: 0.01 !important;
-    cursor: pointer !important;
-    border: none !important;
-    padding: 0 !important;
+div[data-testid="stColorPicker"][data-key="bg_cp"] button:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.26) !important;
+    border-color: #9ca3af !important;
+    transform: scale(1.08) !important;
 }
 </style>
-<div class="bg-float-outer">
 """, unsafe_allow_html=True)
-    st.button("BG", key="bg_float_btn", use_container_width=False)
     picked = st.color_picker("bg", value=safe_val, key="bg_cp", label_visibility="collapsed")
     if picked != current_bg:
         st.session_state["bg_color"] = picked
         st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 def render_dashboard():
     if "bg_color" not in st.session_state:
