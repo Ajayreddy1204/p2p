@@ -2932,8 +2932,7 @@ div.genie-card-wrap button:hover {
 
     # ── RIGHT PANEL — AI Assistant ────────────────────────────────────────────
     with right_col:
-        with st.container(border=True):
-            st.markdown("""
+        st.markdown("""
 <style>
 /* AI Assistant header buttons — white rounded rectangles, matching screenshot */
 button[aria-label="Chats"],
@@ -3005,207 +3004,214 @@ button[kind="primary"][aria-label="Summarize"] {
 </style>
 """, unsafe_allow_html=True)
 
-            c_title, cb1, cb2, cb3, cb4 = st.columns([1.1, 0.72, 0.88, 0.88, 0.65])
-            with c_title:
-                st.markdown(
-                    "<div style='display:flex;align-items:center;height:38px;'>"
-                    "<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b></div>",
-                    unsafe_allow_html=True,
-                )
-            with cb1:
-                chats_on = st.session_state.get("show_chats_panel", False)
-                if st.button("Chats", key="genie_chats_btn",
-                             use_container_width=True,
-                             type="primary" if chats_on else "secondary"):
-                    st.session_state["show_chats_panel"] = not chats_on
-                    st.rerun()
-            with cb2:
-                sum_active = (st.session_state.get("show_summary", False)
-                              and bool(st.session_state.get("conversation_summary", "")))
-                if st.button("Summarize", key="summarize_top",
-                             use_container_width=True,
-                             type="primary" if sum_active else "secondary"):
-                    if st.session_state.current_messages:
-                        if sum_active:
-                            st.session_state.show_summary = False
-                            st.session_state.conversation_summary = ""
-                        else:
-                            summarize_conversation()
-                        st.rerun()
-                    elif sum_active:
+        c_title, cb1, cb2, cb3, cb4 = st.columns([1.1, 0.72, 0.88, 0.88, 0.65])
+        with c_title:
+            st.markdown(
+                "<div style='display:flex;align-items:center;height:38px;'>"
+                "<b style='font-size:1rem;color:#1e293b;'>AI Assistant</b></div>",
+                unsafe_allow_html=True,
+            )
+        with cb1:
+            chats_on = st.session_state.get("show_chats_panel", False)
+            if st.button("Chats", key="genie_chats_btn",
+                         use_container_width=True,
+                         type="primary" if chats_on else "secondary"):
+                st.session_state["show_chats_panel"] = not chats_on
+                st.rerun()
+        with cb2:
+            sum_active = (st.session_state.get("show_summary", False)
+                          and bool(st.session_state.get("conversation_summary", "")))
+            if st.button("Summarize", key="summarize_top",
+                         use_container_width=True,
+                         type="primary" if sum_active else "secondary"):
+                if st.session_state.current_messages:
+                    if sum_active:
                         st.session_state.show_summary = False
                         st.session_state.conversation_summary = ""
-                        st.rerun()
-            with cb3:
-                if st.button("Export MD", key="export_md_top",
-                             use_container_width=True):
-                    if st.session_state.current_messages or st.session_state.conversation_summary:
-                        export_conversation_md()
-            with cb4:
-                if st.button("Clear", key="clear_top",
-                             use_container_width=True):
-                    st.session_state.current_messages = []
+                    else:
+                        summarize_conversation()
+                    st.rerun()
+                elif sum_active:
                     st.session_state.show_summary = False
                     st.session_state.conversation_summary = ""
-                    st.session_state["show_chats_panel"] = False
                     st.rerun()
+        with cb3:
+            if st.button("Export MD", key="export_md_top",
+                         use_container_width=True):
+                if st.session_state.current_messages or st.session_state.conversation_summary:
+                    export_conversation_md()
+        with cb4:
+            if st.button("Clear", key="clear_top",
+                         use_container_width=True):
+                st.session_state.current_messages = []
+                st.session_state.show_summary = False
+                st.session_state.conversation_summary = ""
+                st.session_state["show_chats_panel"] = False
+                st.rerun()
 
-            st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
-                        "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin:6px 0 8px 0;border:none;"
+                    "border-top:1px solid #f1f5f9;'/>", unsafe_allow_html=True)
 
-            # ── Chats panel ───────────────────────────────────────────────────
-            if st.session_state.get("show_chats_panel", False):
-                conn_c = sqlite3.connect(DB_PATH); cur_c = conn_c.cursor()
-                cur_c.execute("""SELECT session_id, session_label, created_at
-                                 FROM chat_sessions WHERE user_name=?
-                                 ORDER BY last_updated DESC LIMIT 10""",
-                              (get_current_user(),))
-                recent = cur_c.fetchall(); session_data = []
-                for sess in recent:
-                    cur_c.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?",
-                                  (sess[0],))
-                    mc = cur_c.fetchone()[0]
-                    if mc > 0:
-                        session_data.append({"session_id": sess[0], "label": sess[1],
-                                             "created_at": sess[2], "msg_count": mc})
-                conn_c.close()
+        # ── Chats panel ───────────────────────────────────────────────────
+        if st.session_state.get("show_chats_panel", False):
+            conn_c = sqlite3.connect(DB_PATH); cur_c = conn_c.cursor()
+            cur_c.execute("""SELECT session_id, session_label, created_at
+                             FROM chat_sessions WHERE user_name=?
+                             ORDER BY last_updated DESC LIMIT 10""",
+                          (get_current_user(),))
+            recent = cur_c.fetchall(); session_data = []
+            for sess in recent:
+                cur_c.execute("SELECT COUNT(*) FROM chat_messages WHERE session_id=?",
+                              (sess[0],))
+                mc = cur_c.fetchone()[0]
+                if mc > 0:
+                    session_data.append({"session_id": sess[0], "label": sess[1],
+                                         "created_at": sess[2], "msg_count": mc})
+            conn_c.close()
 
-                st.markdown("""<div class="resume-panel">
-                    <b>Resume a Previous Conversation</b><br>
-                    <small style='color:#64748b;'>Pick one to continue, or start fresh.</small>
-                </div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="resume-panel">
+                <b>Resume a Previous Conversation</b><br>
+                <small style='color:#64748b;'>Pick one to continue, or start fresh.</small>
+            </div>""", unsafe_allow_html=True)
 
-                if session_data:
-                    for sess in session_data[:5]:
-                        try:
-                            dt = datetime.fromisoformat(str(sess["created_at"]))
-                            age_h = int((datetime.now() - dt).total_seconds() / 3600)
-                            age_s = f"{age_h}h ago" if age_h < 24 else f"{age_h // 24}d ago"
-                        except Exception:
-                            age_s = "–"
-                        ri, rb = st.columns([0.7, 0.3])
-                        with ri:
-                            st.markdown(
-                                f"<div style='font-size:.82rem;font-weight:600;"
-                                f"color:#1e293b;'>{sess['label']}</div>"
-                                f"<div style='font-size:.72rem;color:#94a3b8;'>"
-                                f"{sess['msg_count']} messages · {age_s}</div>",
-                                unsafe_allow_html=True,
-                            )
-                        with rb:
-                            if st.button("Resume", key=f"res_{sess['session_id'][:8]}",
-                                         use_container_width=True, type="primary"):
-                                msgs_r = load_session_messages(sess["session_id"])
-                                st.session_state.genie_session_id = sess["session_id"]
-                                st.session_state.current_messages = [
-                                    {"role": m["role"], "content": m["content"],
-                                     "timestamp": m["timestamp"]} for m in msgs_r
-                                ]
-                                st.session_state["show_chats_panel"] = False
-                                st.rerun()
-                        st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
-                else:
-                    st.caption("No previous conversations.")
+            if session_data:
+                for sess in session_data[:5]:
+                    try:
+                        dt = datetime.fromisoformat(str(sess["created_at"]))
+                        age_h = int((datetime.now() - dt).total_seconds() / 3600)
+                        age_s = f"{age_h}h ago" if age_h < 24 else f"{age_h // 24}d ago"
+                    except Exception:
+                        age_s = "–"
+                    ri, rb = st.columns([0.7, 0.3])
+                    with ri:
+                        st.markdown(
+                            f"<div style='font-size:.82rem;font-weight:600;"
+                            f"color:#1e293b;'>{sess['label']}</div>"
+                            f"<div style='font-size:.72rem;color:#94a3b8;'>"
+                            f"{sess['msg_count']} messages · {age_s}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    with rb:
+                        if st.button("Resume", key=f"res_{sess['session_id'][:8]}",
+                                     use_container_width=True, type="primary"):
+                            msgs_r = load_session_messages(sess["session_id"])
+                            st.session_state.genie_session_id = sess["session_id"]
+                            st.session_state.current_messages = [
+                                {"role": m["role"], "content": m["content"],
+                                 "timestamp": m["timestamp"]} for m in msgs_r
+                            ]
+                            st.session_state["show_chats_panel"] = False
+                            st.rerun()
+                    st.markdown("<div style='height:3px;'></div>", unsafe_allow_html=True)
+            else:
+                st.caption("No previous conversations.")
 
-                if st.button("Start a New Conversation", key="start_new_conv",
-                             use_container_width=True):
-                    st.session_state.current_messages = []
-                    st.session_state.show_summary = False
-                    st.session_state.conversation_summary = ""
-                    st.session_state["show_chats_panel"] = False
-                    st.rerun()
-                st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
+            if st.button("Start a New Conversation", key="start_new_conv",
+                         use_container_width=True):
+                st.session_state.current_messages = []
+                st.session_state.show_summary = False
+                st.session_state.conversation_summary = ""
+                st.session_state["show_chats_panel"] = False
+                st.rerun()
+            st.markdown("<hr style='margin:6px 0;'/>", unsafe_allow_html=True)
 
-            # ── Summary ───────────────────────────────────────────────────────
-            if st.session_state.show_summary and st.session_state.conversation_summary:
-                st.markdown("**Conversation Summary**")
-                st.markdown(st.session_state.conversation_summary)
-                if st.button("Dismiss", key="dismiss_summary", use_container_width=True):
-                    st.session_state.show_summary = False
-                    st.session_state.conversation_summary = ""
-                    st.session_state.current_messages = []
-                    st.session_state["show_chats_panel"] = False
-                    st.rerun()
-                st.markdown("---")
+        # ── Summary ───────────────────────────────────────────────────────
+        if st.session_state.show_summary and st.session_state.conversation_summary:
+            st.markdown("**Conversation Summary**")
+            st.markdown(st.session_state.conversation_summary)
+            if st.button("Dismiss", key="dismiss_summary", use_container_width=True):
+                st.session_state.show_summary = False
+                st.session_state.conversation_summary = ""
+                st.session_state.current_messages = []
+                st.session_state["show_chats_panel"] = False
+                st.rerun()
+            st.markdown("---")
 
-            # ── Empty state ───────────────────────────────────────────────────
-            elif (not st.session_state.current_messages
-                  and not st.session_state.get("show_chats_panel", False)):
-                st.markdown("""
-<div class="genie-empty">
-  <div class="genie-empty-icon">+</div>
-  <div class="genie-empty-title">Start a Conversation</div>
-  <div class="genie-empty-sub">Ask questions about your Procurement to Pay data.</div>
+        # ── Empty state — matches screenshot: centered icon, bold title, subtitle ──
+        elif (not st.session_state.current_messages
+              and not st.session_state.get("show_chats_panel", False)):
+            st.markdown("""
+<div style="text-align:center;padding:3rem 1rem 2.5rem 1rem;background:transparent;">
+  <div style="width:52px;height:52px;border-radius:50%;background:#e2e8f0;
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 1.2rem auto;font-size:1.4rem;color:#94a3b8;font-weight:300;
+      line-height:52px;">+</div>
+  <div style="font-size:1.15rem;font-weight:700;color:#111827;margin-bottom:0.6rem;">
+      Start a Conversation</div>
+  <div style="font-size:0.85rem;color:#6b7280;line-height:1.6;
+      max-width:280px;margin:0 auto;">
+      Ask questions about your Procurement to Pay data, or<br/>
+      select a pre-built analysis from the library.</div>
 </div>""", unsafe_allow_html=True)
 
-            # ── Chat messages ─────────────────────────────────────────────────
-            elif st.session_state.current_messages:
-                for msg in st.session_state.current_messages:
-                    if msg["role"] == "user":
-                        st.markdown(
-                            f'<div class="message-user"><strong>You</strong><br/>'
-                            f'{html.escape(msg["content"])}</div>',
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.markdown(
-                            '<div class="message-assistant"><strong>Genie</strong></div>',
-                            unsafe_allow_html=True,
-                        )
-                        if "response" in msg and msg["response"]:
-                            resp = msg["response"]
-                            layout = resp.get("layout")
-                            if layout == "static":
-                                st.info(resp["analyst_response"])
-                            elif layout == "cash_flow":
-                                render_cash_flow_response(resp)
-                            elif layout == "early_payment":
-                                render_early_payment_response(resp)
-                            elif layout == "payment_timing":
-                                render_payment_timing_response(resp)
-                            elif layout == "late_payment_trend":
-                                render_late_payment_trend_response(resp)
-                            elif layout == "grir_hotspots":
-                                render_grir_hotspots(resp)
-                            elif layout == "grir_root_causes":
-                                render_grir_root_causes(resp)
-                            elif layout == "grir_working_capital":
-                                render_grir_working_capital(resp)
-                            elif layout == "grir_vendor_followup":
-                                render_grir_vendor_followup(resp)
-                            elif layout == "quick":
-                                render_quick_analysis_response(resp)
-                            elif layout == "analyst":
-                                if resp.get("analyst_response"):
-                                    st.markdown(resp["analyst_response"])
-                                try:
-                                    raw_df = resp.get("df", [])
-                                    if isinstance(raw_df, list) and len(raw_df) > 0:
-                                        df_r = pd.DataFrame(raw_df)
-                                    elif isinstance(raw_df, dict):
-                                        df_r = pd.DataFrame([raw_df])
-                                    else:
-                                        df_r = pd.DataFrame()
-                                except Exception:
+        # ── Chat messages ─────────────────────────────────────────────────
+        elif st.session_state.current_messages:
+            for msg in st.session_state.current_messages:
+                if msg["role"] == "user":
+                    st.markdown(
+                        f'<div class="message-user"><strong>You</strong><br/>'
+                        f'{html.escape(msg["content"])}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        '<div class="message-assistant"><strong>Genie</strong></div>',
+                        unsafe_allow_html=True,
+                    )
+                    if "response" in msg and msg["response"]:
+                        resp = msg["response"]
+                        layout = resp.get("layout")
+                        if layout == "static":
+                            st.info(resp["analyst_response"])
+                        elif layout == "cash_flow":
+                            render_cash_flow_response(resp)
+                        elif layout == "early_payment":
+                            render_early_payment_response(resp)
+                        elif layout == "payment_timing":
+                            render_payment_timing_response(resp)
+                        elif layout == "late_payment_trend":
+                            render_late_payment_trend_response(resp)
+                        elif layout == "grir_hotspots":
+                            render_grir_hotspots(resp)
+                        elif layout == "grir_root_causes":
+                            render_grir_root_causes(resp)
+                        elif layout == "grir_working_capital":
+                            render_grir_working_capital(resp)
+                        elif layout == "grir_vendor_followup":
+                            render_grir_vendor_followup(resp)
+                        elif layout == "quick":
+                            render_quick_analysis_response(resp)
+                        elif layout == "analyst":
+                            if resp.get("analyst_response"):
+                                st.markdown(resp["analyst_response"])
+                            try:
+                                raw_df = resp.get("df", [])
+                                if isinstance(raw_df, list) and len(raw_df) > 0:
+                                    df_r = pd.DataFrame(raw_df)
+                                elif isinstance(raw_df, dict):
+                                    df_r = pd.DataFrame([raw_df])
+                                else:
                                     df_r = pd.DataFrame()
-                                if not df_r.empty:
-                                    st.markdown("**Supporting Data**")
-                                    st.dataframe(
-                                        safe_dataframe_display(df_r),
-                                        use_container_width=True,
-                                        hide_index=True,
-                                    )
-                                    ch_r = auto_chart(df_r)
-                                    if ch_r:
-                                        st.altair_chart(ch_r, use_container_width=True)
-                                sql_s = _safe_sql_string(resp.get("sql", ""))
-                                if sql_s and sql_s.strip():
-                                    with st.expander("View SQL"):
-                                        st.code(sql_s, language="sql")
-                            elif layout == "error":
-                                st.error(resp.get("message", "Unknown error"))
-                        else:
-                            st.markdown(msg["content"])
+                            except Exception:
+                                df_r = pd.DataFrame()
+                            if not df_r.empty:
+                                st.markdown("**Supporting Data**")
+                                st.dataframe(
+                                    safe_dataframe_display(df_r),
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+                                ch_r = auto_chart(df_r)
+                                if ch_r:
+                                    st.altair_chart(ch_r, use_container_width=True)
+                            sql_s = _safe_sql_string(resp.get("sql", ""))
+                            if sql_s and sql_s.strip():
+                                with st.expander("View SQL"):
+                                    st.code(sql_s, language="sql")
+                        elif layout == "error":
+                            st.error(resp.get("message", "Unknown error"))
+                    else:
+                        st.markdown(msg["content"])
 
     # ── Ask input form — OUTSIDE columns so it always shows immediately ───────
     st.markdown("""
