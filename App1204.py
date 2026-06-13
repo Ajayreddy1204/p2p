@@ -3221,102 +3221,136 @@ div.genie-card-wrap button:hover {
 
 
 
-    # ── Ask a question — exact image format ─────────────────────────────────────
+    # ── Ask a question + Send — in container, exact image format ────────────────
     st.markdown("""
 <style>
-/* No outer wrapper styling — fully transparent */
+/* Form: transparent wrapper */
 div[data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
-    margin-top: 10px !important;
+    margin: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
 div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
-    padding: 0 !important; gap: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display: flex !important; align-items: center !important;
-    gap: 8px !important; width: 100% !important;
-    flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
-/* Input column: stretch to fill */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
-    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
 }
-/* Button column: fixed */
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
-    flex: 0 0 90px !important; width: 90px !important;
-    min-width: 90px !important; padding: 0 !important;
+    flex: 0 0 90px !important;
+    width: 90px !important;
+    min-width: 90px !important;
+    padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"],
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important; padding: 0 !important; margin: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
-/* Input: pure white, NO red border on ANY state */
+/* Input: pure white, no red border on any state */
 div[data-testid="stForm"] div[data-testid="stTextInput"] input,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:hover {
     width: 100% !important;
-    height: 46px !important; min-height: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 10px !important;
-    font-size: 14px !important; color: #374151 !important;
+    font-size: 14px !important;
+    color: #374151 !important;
     background: #ffffff !important;
     padding: 0 16px !important;
-    box-shadow: none !important; outline: none !important;
-    -webkit-box-shadow: none !important; box-sizing: border-box !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-box-shadow: none !important;
+    box-sizing: border-box !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #9ca3af !important; font-size: 14px !important;
+    color: #9ca3af !important;
+    font-size: 14px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-/* Kill BaseWeb red ring completely */
 div[data-testid="stForm"] div[data-baseweb="input"],
 div[data-testid="stForm"] div[data-baseweb="input"]:focus-within {
-    border: none !important; box-shadow: none !important;
-    outline: none !important; background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    background: transparent !important;
 }
-/* Send button: light gray bg, rounded, compact */
+/* Send button: light gray, rounded, compact */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
-    width: 100% !important; height: 46px !important; min-height: 46px !important;
-    border-radius: 10px !important; padding: 0 14px !important;
-    font-size: 14px !important; font-weight: 500 !important;
-    background: #f3f4f6 !important; color: #374151 !important;
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 10px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    background: #f3f4f6 !important;
+    color: #374151 !important;
     border: 1.5px solid #e5e7eb !important;
-    box-shadow: none !important; cursor: pointer !important;
-    display: inline-flex !important; align-items: center !important;
-    justify-content: center !important; white-space: nowrap !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
 div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background: #e5e7eb !important; border-color: #9ca3af !important;
-    color: #111827 !important; box-shadow: none !important; transform: none !important;
+    background: #e5e7eb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+/* Style the st.container border to match image */
+div[data-testid="stVerticalBlockBorderWrapper"]:last-of-type {
+    border: 1.5px solid #e5e7eb !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    box-shadow: none !important;
+    background: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-    with st.form(key="genie_chat_form", clear_on_submit=True):
-        c_inp, c_btn = st.columns([0.84, 0.16], gap="small")
-        with c_inp:
-            prefill = st.session_state.pop("genie_prefill", "")
-            uq = st.text_input(
-                "q", value=prefill,
-                placeholder="Ask a question here...",
-                label_visibility="collapsed",
-            )
-        with c_btn:
-            submitted = st.form_submit_button("Send →", type="primary",
-                                              use_container_width=True)
-        if submitted and uq:
-            process_user_question(uq)
-# ── Invoices ──────────────────────────────────────────────────
+    with st.container(border=True):
+        with st.form(key="genie_chat_form", clear_on_submit=True):
+            c_inp, c_btn = st.columns([0.84, 0.16], gap="small")
+            with c_inp:
+                prefill = st.session_state.pop("genie_prefill", "")
+                uq = st.text_input(
+                    "q", value=prefill,
+                    placeholder="Ask a question here...",
+                    label_visibility="collapsed",
+                )
+            with c_btn:
+                submitted = st.form_submit_button("Send →", type="primary",
+                                                  use_container_width=True)
+            if submitted and uq:
+                process_user_question(uq)
 def render_invoice_detail(inv_row: dict, inv_num: str):
     def gv(key,default=""):
         val=inv_row.get(key,default)
