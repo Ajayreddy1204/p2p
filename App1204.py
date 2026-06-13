@@ -3234,7 +3234,7 @@ div.genie-card-wrap button:hover {
 
 
     # ── Ask a question container — same width as AI Assistant ─────────────────
-    _gap_col, ask_col = st.columns([0.32, 0.68], gap="medium")
+    _gap_col, ask_col = st.columns([0.70, 0.30], gap="medium")
     with ask_col:
         with st.container(border=True):
             st.markdown("""
