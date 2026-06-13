@@ -2367,7 +2367,7 @@ def export_conversation_md():
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
-    # ── Form CSS — matches screenshot: light gray outer box, white input, square arrow button ──
+    # ── Form CSS — matches reference code: clean input + Send button ──
     st.markdown("""
 <style>
 /* Form wrapper: transparent, no border */
@@ -2484,7 +2484,8 @@ input:focus { outline: none !important; }
     # ── Session state init ────────────────────────────────────────────────────
     for k, v in [("genie_session_id", None), ("current_messages", []),
                  ("genie_prefill", ""), ("show_summary", False),
-                 ("conversation_summary", ""), ("show_chats_panel", False)]:
+                 ("conversation_summary", ""), ("show_chats_panel", False),
+                 ("genie_input_version", 0)]:
         if k not in st.session_state:
             st.session_state[k] = v
     if st.session_state.genie_session_id is None:
@@ -3229,85 +3230,30 @@ div.genie-card-wrap button:hover {
                         else:
                             st.markdown(msg["content"])
 
+            # ── Chat input — from reference code logic ────────────────────────
+            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-
-
-
-    # ── Ask a question container — same width as AI Assistant ─────────────────
-    _gap_col, ask_col = st.columns([0.32, 0.68], gap="medium")
-    with ask_col:
-        with st.container(border=True):
-            st.markdown("""
-<style>
-div[data-testid="stForm"] {
-    background: transparent !important; border: none !important;
-    box-shadow: none !important; padding: 0 !important;
-    margin: 0 !important; width: 100% !important;
-    box-sizing: border-box !important;
-}
-div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] { padding:0!important; gap:0!important; }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
-    display:flex!important; align-items:center!important; gap:8px!important;
-    width:100%!important; flex-wrap:nowrap!important; padding:0!important; margin:0!important;
-}
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    flex:1 1 0%!important; min-width:0!important; padding:0!important;
-}
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    flex:0 0 90px!important; width:90px!important; min-width:90px!important; max-width:90px!important; padding:0!important;
-}
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    flex:1 1 auto!important; min-width:0!important; width:100%!important; padding:0!important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"],
-div[data-testid="stForm"] div[data-testid="stTextInput"] > div { width:100%!important; padding:0!important; margin:0!important; }
-div[data-testid="stForm"] div[data-testid="stTextInput"] input,
-div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
-div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
-div[data-testid="stForm"] div[data-testid="stTextInput"] input:hover {
-    width:100%!important; height:46px!important; min-height:46px!important;
-    border:1.5px solid #e2e8f0!important; border-radius:10px!important;
-    font-size:14px!important; color:#374151!important; background:#ffffff!important;
-    padding:0 16px!important; box-shadow:none!important; outline:none!important;
-    -webkit-box-shadow:none!important; box-sizing:border-box!important;
-}
-div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder { color:#9ca3af!important; font-size:14px!important; }
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display:none!important; }
-div[data-testid="stForm"] div[data-baseweb="input"],
-div[data-testid="stForm"] div[data-baseweb="input"]:focus-within {
-    border:none!important; box-shadow:none!important; outline:none!important; background:transparent!important;
-}
-div[data-testid="stForm"] button[kind="primaryFormSubmit"],
-div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
-    width:100%!important; height:46px!important; min-height:46px!important;
-    border-radius:10px!important; padding:0 14px!important;
-    font-size:14px!important; font-weight:500!important;
-    background:#f3f4f6!important; color:#374151!important;
-    border:1.5px solid #e5e7eb!important; box-shadow:none!important;
-    cursor:pointer!important; display:inline-flex!important;
-    align-items:center!important; justify-content:center!important; white-space:nowrap!important;
-}
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
-div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background:#e5e7eb!important; border-color:#9ca3af!important;
-    color:#111827!important; box-shadow:none!important; transform:none!important;
-}
-</style>
-""", unsafe_allow_html=True)
-            with st.form(key="genie_chat_form", clear_on_submit=True):
-                c_inp, c_btn = st.columns([0.95, 0.05], gap="small")
-                with c_inp:
-                    prefill = st.session_state.pop("genie_prefill", "")
-                    uq = st.text_input(
-                        "q", value=prefill,
-                        placeholder="Ask a question here...",
+            with st.form("genie_question_form", clear_on_submit=True):
+                input_col, btn_col = st.columns([0.85, 0.15])
+                with input_col:
+                    user_query = st.text_input(
+                        "Ask a question",
+                        placeholder="Ask about Procurement to Pay data...",
                         label_visibility="collapsed",
+                        key=f"genie_chat_input_{st.session_state.get('genie_input_version', 0)}"
                     )
-                with c_btn:
-                    submitted = st.form_submit_button("Send →", type="primary",
-                                                      use_container_width=True)
-                if submitted and uq:
-                    process_user_question(uq)
+                with btn_col:
+                    send_clicked = st.form_submit_button("Send →", use_container_width=True)
+
+            if send_clicked and user_query and user_query.strip():
+                st.session_state.selected_analysis = "custom"
+                st.session_state.last_custom_query = user_query.strip()
+                st.session_state.show_analysis = True
+                st.session_state["genie_input_version"] = st.session_state.get("genie_input_version", 0) + 1
+                with st.spinner("Analyzing..."):
+                    process_user_question(user_query.strip())
+
+
 
 
 
