@@ -1128,13 +1128,17 @@ def render_charts(rng_start, rng_end, vendor_where):
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── BG colour picker — single styled button beside Spend Trend chart ──────
+    # ── BG colour picker — fixed bottom-right, styled as single circle button ──
     current_bg = st.session_state.get("bg_color", "#ffffff")
     safe_val = current_bg if (current_bg.startswith("#") and len(current_bg) in (4, 7)) else "#ffffff"
+
+    # Inject CSS that fixes the picker wrapper to bottom-right and styles its
+    # swatch button as a white "BG" circle. We use the unique marker class
+    # bg-picker-fixed injected via st.markdown right before the widget render.
     st.markdown("""
 <style>
-/* Style the color-picker swatch button to look like a BG circle */
-div[data-testid="stColorPicker"][data-key="bg_cp"] {
+/* Fix the entire color-picker block to bottom-right of viewport */
+.bg-picker-fixed {
     position: fixed !important;
     bottom: 32px !important;
     right: 32px !important;
@@ -1142,10 +1146,16 @@ div[data-testid="stColorPicker"][data-key="bg_cp"] {
     width: 56px !important;
     height: 56px !important;
 }
-div[data-testid="stColorPicker"][data-key="bg_cp"] label {
+/* Hide label */
+.bg-picker-fixed label {
     display: none !important;
 }
-div[data-testid="stColorPicker"][data-key="bg_cp"] button {
+/* Hide the inner coloured-square div inside the button */
+.bg-picker-fixed button > div {
+    display: none !important;
+}
+/* Style the swatch button as a white BG circle */
+.bg-picker-fixed button {
     width: 56px !important;
     height: 56px !important;
     min-width: 56px !important;
@@ -1157,8 +1167,11 @@ div[data-testid="stColorPicker"][data-key="bg_cp"] button {
     cursor: pointer !important;
     position: relative !important;
     overflow: visible !important;
+    padding: 0 !important;
+    transition: box-shadow 0.18s ease, transform 0.18s ease !important;
 }
-div[data-testid="stColorPicker"][data-key="bg_cp"] button::after {
+/* "BG" label via pseudo-element */
+.bg-picker-fixed button::after {
     content: "BG" !important;
     position: absolute !important;
     top: 50% !important;
@@ -1168,18 +1181,24 @@ div[data-testid="stColorPicker"][data-key="bg_cp"] button::after {
     font-weight: 700 !important;
     color: #374151 !important;
     pointer-events: none !important;
+    font-family: inherit !important;
 }
-div[data-testid="stColorPicker"][data-key="bg_cp"] button > div {
-    display: none !important;
-}
-div[data-testid="stColorPicker"][data-key="bg_cp"] button:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.26) !important;
+.bg-picker-fixed button:hover {
+    box-shadow: 0 6px 22px rgba(0,0,0,0.26) !important;
     border-color: #9ca3af !important;
     transform: scale(1.08) !important;
+    background: white !important;
+}
+/* The wrapper div Streamlit adds around the picker widget */
+.bg-picker-fixed > div {
+    width: 56px !important;
+    height: 56px !important;
 }
 </style>
+<div class="bg-picker-fixed">
 """, unsafe_allow_html=True)
     picked = st.color_picker("bg", value=safe_val, key="bg_cp", label_visibility="collapsed")
+    st.markdown("</div>", unsafe_allow_html=True)
     if picked != current_bg:
         st.session_state["bg_color"] = picked
         st.rerun()
