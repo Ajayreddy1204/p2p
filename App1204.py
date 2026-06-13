@@ -3257,22 +3257,28 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:first-child {
-    flex: 1 1 0% !important; min-width: 0 !important; padding: 0 !important;
+    flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
     flex: 0 0 90px !important; width: 90px !important;
-    min-width: 90px !important; padding: 0 !important;
+    min-width: 90px !important; max-width: 90px !important; padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"],
-div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div,
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div > div,
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div > div > div {
     width: 100% !important; padding: 0 !important; margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-baseweb="base-input"],
+div[data-testid="stForm"] div[data-baseweb="base-input"] input {
+    width: 100% !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:hover {
-    width: 100% !important;
+    width: 100% !important; min-width: 100% !important;
     height: 46px !important; min-height: 46px !important;
     border: 1.5px solid #e2e8f0 !important;
     border-radius: 10px !important;
@@ -3311,11 +3317,85 @@ div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
 """, unsafe_allow_html=True)
 
         with st.container(border=True):
+            # CSS: force input to fill all space, button fixed right
+            st.markdown("""
+<style>
+/* Make the form row a proper flex container */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+}
+/* Input column: take ALL remaining space */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+/* All nested wrappers inside input col must be 100% */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child * {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+/* The actual input element */
+div[data-testid="stForm"] input[type="text"],
+div[data-testid="stForm"] input {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    color: #374151 !important;
+    background: #ffffff !important;
+    padding: 0 18px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] input::placeholder {
+    color: #9ca3af !important;
+    font-size: 15px !important;
+}
+/* Button column: fixed narrow */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 100px !important;
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+}
+/* Send button */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+    width: 100% !important;
+    height: 48px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1.5px solid #e5e7eb !important;
+    box-shadow: none !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+    background: #e5e7eb !important;
+    color: #111827 !important;
+}
+div[data-testid="stForm"] label { display: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
             with st.form("genie_question_form", clear_on_submit=True):
-                input_col, btn_col = st.columns([0.85, 0.15])
+                input_col, btn_col = st.columns([0.80, 0.20])
                 with input_col:
                     user_query = st.text_input(
-                        "Ask a question",
+                        "q",
                         placeholder="Ask a question here...",
                         label_visibility="collapsed",
                         key=f"genie_chat_input_{st.session_state.get('genie_input_version', 0)}"
