@@ -3219,88 +3219,150 @@ div.genie-card-wrap button:hover {
                             st.markdown(msg["content"])
 
 
-        # ── Ask a question box — no gray bg, no red border, large white input ──
+
+
+    # ── Ask a question box — same width as AI Assistant container ───────────────
+    _lc2, right_col2 = st.columns([0.32, 0.68], gap="medium")
+    with right_col2:
         st.markdown("""
 <style>
-/* Kill ALL Streamlit default red/colored borders on text inputs */
-div[data-testid="stForm"] { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-top: 8px !important; }
-div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] { padding: 0 !important; gap: 0 !important; }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] { display: flex !important; align-items: center !important; gap: 10px !important; width: 100% !important; flex-wrap: nowrap !important; padding: 0 !important; margin: 0 !important; }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child { flex: 1 1 0% !important; min-width: 0 !important; width: 0 !important; padding: 0 !important; }
-div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child { flex: 0 0 58px !important; width: 58px !important; min-width: 58px !important; padding: 0 !important; }
-div[data-testid="stForm"] div[data-testid="stTextInput"] { width: 100% !important; padding: 0 !important; margin: 0 !important; }
-div[data-testid="stForm"] div[data-testid="stTextInput"] > div { width: 100% !important; padding: 0 !important; }
-
-/* Input: white, tall, NO red border ever */
+/* ── Form: transparent, no border ── */
+div[data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
+}
+/* Inner horizontal block: flex row, input fills all space, button fixed */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* Input column: take ALL remaining width */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+/* Button column: fixed 60px */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 60px !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    padding: 0 !important;
+}
+/* Text input element: full width */
+div[data-testid="stForm"] div[data-testid="stTextInput"],
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div,
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div > div {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* Input: white, tall, NO red border on any state */
 div[data-testid="stForm"] div[data-testid="stTextInput"] input,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:active,
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:hover {
     width: 100% !important;
-    height: 56px !important;
-    min-height: 56px !important;
+    height: 54px !important;
+    min-height: 54px !important;
     border: 1.5px solid #e2e8f0 !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     font-size: 15px !important;
     color: #374151 !important;
     background: white !important;
-    padding: 0 20px !important;
+    padding: 0 18px !important;
     box-shadow: none !important;
     outline: none !important;
-    outline-offset: 0 !important;
     -webkit-box-shadow: none !important;
     box-sizing: border-box !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder { color: #9ca3af !important; font-size: 15px !important; }
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-
-/* Force override any Streamlit red/colored focus ring */
-div[data-testid="stForm"] div[data-testid="stTextInput"] div[data-baseweb="input"] {
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important;
+    font-size: 15px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] label {
+    display: none !important;
+}
+/* Kill BaseWeb red ring */
+div[data-testid="stForm"] div[data-baseweb="input"],
+div[data-testid="stForm"] div[data-baseweb="input"]:focus-within {
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
     background: transparent !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-/* Square rounded button — white, dark arrow */
+/* Arrow button: white square rounded, same height as input */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
-    width: 56px !important; height: 56px !important;
-    min-height: 56px !important; min-width: 56px !important;
-    border-radius: 14px !important; padding: 0 !important;
-    font-size: 20px !important; font-weight: 600 !important;
-    background: white !important; color: #111827 !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    min-width: 54px !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    background: white !important;
+    color: #111827 !important;
     border: 1.5px solid #e2e8f0 !important;
-    box-shadow: none !important; cursor: pointer !important;
-    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
 div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background: #f9fafb !important; border-color: #9ca3af !important;
-    color: #111827 !important; box-shadow: none !important; transform: none !important;
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+/* Outer container border styling */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 16px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 10px 12px !important;
+    box-shadow: none !important;
+    background: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-        with st.form(key="genie_chat_form", clear_on_submit=True):
-            c_inp, c_btn = st.columns([0.88, 0.12], gap="small")
-            with c_inp:
-                prefill = st.session_state.pop("genie_prefill", "")
-                uq = st.text_input(
-                    "q", value=prefill,
-                    placeholder="Ask a question here...",
-                    label_visibility="collapsed",
-                )
-            with c_btn:
-                submitted = st.form_submit_button("→", type="primary",
-                                                  use_container_width=True)
-            if submitted and uq:
-                process_user_question(uq)
+        with st.container(border=True):
+            with st.form(key="genie_chat_form", clear_on_submit=True):
+                c_inp, c_btn = st.columns([0.88, 0.12], gap="small")
+                with c_inp:
+                    prefill = st.session_state.pop("genie_prefill", "")
+                    uq = st.text_input(
+                        "q", value=prefill,
+                        placeholder="Ask a question here...",
+                        label_visibility="collapsed",
+                    )
+                with c_btn:
+                    submitted = st.form_submit_button("→", type="primary",
+                                                      use_container_width=True)
+                if submitted and uq:
+                    process_user_question(uq)
 
 
 # ── Invoices ──────────────────────────────────────────────────
