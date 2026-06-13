@@ -2367,22 +2367,28 @@ def export_conversation_md():
         file_name=f"genie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",mime="text/markdown",key="export_md_btn")
 
 def render_genie():
-    # ── Form CSS ─────────────────────────────────────────────────────────────
+    # ── Form CSS — matches screenshot: light gray outer box, white input, square arrow button ──
     st.markdown("""
 <style>
+/* Outer form: light gray rounded container */
 div[data-testid="stForm"] {
-    background: white !important;
-    border: 1.5px solid #111827 !important;
-    border-radius: 8px !important;
-    padding: 6px 10px !important;
+    background: #f5f5f5 !important;
+    border: 1.5px solid #e8e8e8 !important;
+    border-radius: 20px !important;
+    padding: 10px 12px !important;
     box-shadow: none !important;
     margin-top: 10px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 10px !important;
     width: 100% !important;
     flex-wrap: nowrap !important;
     padding: 0 !important;
@@ -2396,9 +2402,9 @@ div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
 }
 div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
   > div[data-testid="column"]:last-child {
-    flex: 0 0 54px !important;
-    width: 54px !important;
-    min-width: 54px !important;
+    flex: 0 0 52px !important;
+    width: 52px !important;
+    min-width: 52px !important;
     padding: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] {
@@ -2407,44 +2413,66 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] {
     margin: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
-    width: 100% !important; padding: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
 }
+/* Input: white, rounded, no heavy border */
 div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     width: 100% !important;
-    height: 44px !important; min-height: 44px !important;
-    font-size: 14px !important; padding: 0 14px !important;
-    border: none !important;
-    border-radius: 6px !important;
-    background: white !important; color: #111827 !important;
-    box-shadow: none !important; outline: none !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+    background: white !important;
+    padding: 0 18px !important;
+    box-shadow: none !important;
+    outline: none !important;
     box-sizing: border-box !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important; background: white !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+    border-color: #d1d5db !important;
+    background: white !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
-    color: #9ca3af !important; font-size: 13.5px !important;
+    color: #9ca3af !important;
+    font-size: 14px !important;
 }
-div[data-testid="stForm"] div[data-testid="stTextInput"] label { display: none !important; }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-    flex-shrink: 0 !important;
-    width: 50px !important; height: 50px !important;
-    min-width: 50px !important; min-height: 50px !important;
-    border-radius: 50% !important; padding: 0 !important;
-    font-size: 18px !important; font-weight: 700 !important;
-    background: #2563eb !important; color: white !important;
-    border: none !important;
-    box-shadow: 0 3px 12px rgba(37,99,235,0.30) !important;
-    line-height: 50px !important; text-align: center !important;
-    display: inline-flex !important;
-    align-items: center !important; justify-content: center !important;
+div[data-testid="stForm"] div[data-testid="stTextInput"] label {
+    display: none !important;
+}
+/* Submit button: square rounded, white bg, dark arrow — matches screenshot exactly */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
+    width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    background: white !important;
+    color: #111827 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    line-height: 48px !important;
+    text-align: center !important;
     cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
-div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 5px 16px rgba(37,99,235,0.42) !important;
-    transform: scale(1.06) !important;
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -2671,49 +2699,56 @@ div[data-testid="stForm"] div[data-testid="stTextInput"] input {
     height: 48px !important;
     min-height: 48px !important;
     border: 1.5px solid #e2e8f0 !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
     font-size: 14px !important;
-    color: #111827 !important;
-    background: #f5f5f5 !important;
+    color: #374151 !important;
+    background: white !important;
     padding: 0 18px !important;
     box-shadow: none !important;
     outline: none !important;
     box-sizing: border-box !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important;
+    border-color: #d1d5db !important;
     background: white !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.10) !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
     color: #9ca3af !important;
-    font-size: 13.5px !important;
+    font-size: 14px !important;
 }
 div[data-testid="stForm"] div[data-testid="stTextInput"] label {
     display: none !important;
 }
+/* Square rounded button — white bg, dark arrow, matches screenshot */
 div[data-testid="stForm"] button[kind="primaryFormSubmit"],
 div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
     width: 48px !important;
     height: 48px !important;
     min-height: 48px !important;
     min-width: 48px !important;
-    border-radius: 50% !important;
+    border-radius: 12px !important;
     padding: 0 !important;
     font-size: 18px !important;
-    font-weight: 700 !important;
-    background: #2563eb !important;
-    color: white !important;
-    border: none !important;
-    box-shadow: 0 3px 10px rgba(37,99,235,0.30) !important;
+    font-weight: 600 !important;
+    background: white !important;
+    color: #111827 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    box-shadow: none !important;
     line-height: 48px !important;
     text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
 div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.40) !important;
-    transform: scale(1.05) !important;
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3137,17 +3172,128 @@ button[kind="primary"][aria-label="Summarize"] {
                         else:
                             st.markdown(msg["content"])
 
+        # ── Ask input form — matches screenshot exactly ──────────────────────
+        st.markdown("""
+<style>
+/* Outer form wrapper: large rounded light container */
+div[data-testid="stForm"] {
+    background: #f5f5f5 !important;
+    border: 1.5px solid #e8e8e8 !important;
+    border-radius: 20px !important;
+    padding: 10px 12px !important;
+    box-shadow: none !important;
+    margin-top: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
+}
+/* Inner row: input + button side by side */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* Input column: grows to fill space */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:first-child {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
+}
+/* Button column: fixed width */
+div[data-testid="stForm"] div[data-testid="stHorizontalBlock"]
+  > div[data-testid="column"]:last-child {
+    flex: 0 0 52px !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    padding: 0 !important;
+}
+/* Text input: white rounded pill */
+div[data-testid="stForm"] div[data-testid="stTextInput"] {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+    width: 100% !important;
+    padding: 0 !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+    background: white !important;
+    padding: 0 18px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input:focus {
+    border-color: #d1d5db !important;
+    background: white !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] input::placeholder {
+    color: #9ca3af !important;
+    font-size: 14px !important;
+}
+div[data-testid="stForm"] div[data-testid="stTextInput"] label {
+    display: none !important;
+}
+/* Submit button: square rounded, white bg, dark arrow, matches screenshot */
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-primary"] {
+    width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    background: white !important;
+    color: #111827 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    line-height: 48px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+}
+div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover,
+div[data-testid="stForm"] button[data-testid="baseButton-primary"]:hover {
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
         with st.form(key="genie_chat_form", clear_on_submit=True):
-            c_inp, c_btn = st.columns([0.91, 0.09], gap="small")
+            c_inp, c_btn = st.columns([0.88, 0.12], gap="small")
             with c_inp:
                 prefill = st.session_state.pop("genie_prefill", "")
                 uq = st.text_input(
                     "q", value=prefill,
-                    placeholder="Ask a question here…",
+                    placeholder="Ask a question here...",
                     label_visibility="collapsed",
                 )
             with c_btn:
-                submitted = st.form_submit_button("->", type="primary",
+                submitted = st.form_submit_button("→", type="primary",
                                                   use_container_width=True)
             if submitted and uq:
                 process_user_question(uq)
