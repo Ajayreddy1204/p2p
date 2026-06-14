@@ -1527,40 +1527,63 @@ def render_charts(rng_start, rng_end, vendor_where):
                 status_df = pd.DataFrame([
                     {"status":"Paid","cnt":450},{"status":"Pending","cnt":180},
                     {"status":"Disputed","cnt":33},{"status":"Other","cnt":30}])
-            total = status_df["cnt"].sum()
+            total = int(status_df["cnt"].sum())
             status_df["percentage"] = (status_df["cnt"] / total * 100).round(1) if total > 0 else 0.0
-            status_df["legend_label"] = status_df.apply(
-                lambda r: f"{r['status']}  {r['percentage']}%", axis=1
-            )
-            cs = alt.Scale(domain=["Paid","Pending","Disputed","Other"],
-                           range=["#22c55e","#f59e0b","#ef4444","#3b82f6"])
-            lcs = alt.Scale(
-                domain=status_df["legend_label"].tolist(),
+            status_df["pct_label"]  = status_df["percentage"].apply(lambda x: f"{x}%")
+
+            # Legend label includes status name only (percentage shown on slice)
+            cs = alt.Scale(
+                domain=["Paid","Pending","Disputed","Other"],
                 range=["#22c55e","#f59e0b","#ef4444","#3b82f6"]
             )
+
             base_chart = alt.Chart(status_df).encode(
                 theta=alt.Theta("cnt:Q", stack=True),
-                color=alt.Color("legend_label:N", scale=lcs,
-                                legend=alt.Legend(
-                                    orient="right", title=None,
-                                    labelFontSize=11, symbolSize=80,
-                                    labelLimit=120,
-                                )),
+                color=alt.Color(
+                    "status:N", scale=cs,
+                    legend=alt.Legend(
+                        orient="right", title=None,
+                        labelFontSize=12, symbolSize=100,
+                        labelLimit=100,
+                    )
+                ),
             )
+
+            # Donut arcs — larger radius to match image
             donut = base_chart.mark_arc(
-                innerRadius=42, outerRadius=62,
+                innerRadius=55, outerRadius=95,
                 stroke="white", strokeWidth=2
-            ).encode(tooltip=["legend_label:N", "cnt:Q", "percentage:Q"])
-            ct = alt.Chart(pd.DataFrame({"t":[str(total)]})).mark_text(
+            ).encode(
+                tooltip=[
+                    alt.Tooltip("status:N", title="Status"),
+                    alt.Tooltip("cnt:Q",    title="Count"),
+                    alt.Tooltip("pct_label:N", title="Share"),
+                ]
+            )
+
+            # Percentage labels on slices — only show if >= 3%
+            pct_labels = base_chart.transform_filter(
+                alt.datum.percentage >= 3
+            ).mark_text(
+                radius=115, fontSize=11, fontWeight="bold", color="#1f2937"
+            ).encode(
+                text=alt.Text("pct_label:N")
+            )
+
+            # Centre: total number
+            ct = alt.Chart(pd.DataFrame({"t": [str(total)]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=22, fontWeight="bold", color="#111827"
+                fontSize=26, fontWeight="bold", color="#111827"
             ).encode(text="t:N")
-            cl = alt.Chart(pd.DataFrame({"t":["TOTAL"]})).mark_text(
+
+            # Centre: TOTAL label below number
+            cl = alt.Chart(pd.DataFrame({"t": ["TOTAL"]})).mark_text(
                 align="center", baseline="middle",
-                fontSize=10, color="#6b7280", dy=15
+                fontSize=10, color="#6b7280", dy=18
             ).encode(text="t:N")
+
             st.altair_chart(
-                (donut + ct + cl).properties(height=280),
+                (donut + pct_labels + ct + cl).properties(height=280),
                 use_container_width=True,
             )
 
@@ -2160,7 +2183,7 @@ def render_cash_flow_response(r):
     cdf=df[df["forecast_bucket"]!="TOTAL_UNPAID"].copy()
     if not cdf.empty: alt_bar(cdf,x="forecast_bucket",y="total_amount",horizontal=True,height=300,color="#3b82f6")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_early_payment_response(r):
@@ -2170,14 +2193,14 @@ def render_early_payment_response(r):
         ts=df["savings_if_2pct_discount"].sum(); hp=df[df["early_pay_priority"]=="High"].shape[0]
         c1,c2=st.columns(2); c1.metric("Total Potential Savings",abbr_currency(ts)); c2.metric("High-Priority Invoices",hp)
         st.dataframe(safe_dataframe_display(df.head(10)),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_payment_timing_response(r):
     df=pd.DataFrame(r["df"])
     if df.empty: st.error("No payment timing data."); return
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_late_payment_trend_response(r):
@@ -2187,7 +2210,7 @@ def render_late_payment_trend_response(r):
         df["month_str"]=pd.to_datetime(df["month"]).dt.strftime("%b %Y")
         alt_line_monthly(df[["month_str","late_pct"]].rename(columns={"late_pct":"VALUE"}),month_col="month_str",value_col="VALUE",height=300,title="Late Payments %")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_hotspots(r):
@@ -2197,14 +2220,14 @@ def render_grir_hotspots(r):
     cdf['ym']=cdf['year'].astype(str)+'-'+cdf['month'].astype(str).str.zfill(2)
     alt_bar(cdf,x="ym",y="total_grir_balance",horizontal=False,height=300,color="#ef4444")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_root_causes(r):
     df=pd.DataFrame(r.get("df",[])); edf=pd.DataFrame(r.get("extra_df",[]))
     if not df.empty: st.subheader("GR/IR Aging"); st.dataframe(safe_dataframe_display(df),use_container_width=True)
     if not edf.empty: st.subheader("Outstanding Balances"); st.dataframe(safe_dataframe_display(edf),use_container_width=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_working_capital(r):
@@ -2212,13 +2235,13 @@ def render_grir_working_capital(r):
     c1.metric("WC Release (>60 days)",abbr_currency(m.get("older_60",0))); c2.metric("WC Release (>90 days)",abbr_currency(m.get("older_90",0)))
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_vendor_followup(r):
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_quick_analysis_response(r):
