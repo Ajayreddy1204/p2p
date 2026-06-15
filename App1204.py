@@ -668,10 +668,10 @@ def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> s
 
 # ── Dashboard CSS (BG from session_state) ────────────────────
 def inject_dashboard_css():
-    bg = st.session_state.get("bg_color", "#ffffff")
+    bg = st.session_state.get("bg_color", "#FBF9F4")
     # Validate color value
     if not (isinstance(bg, str) and bg.startswith("#") and len(bg) in (4, 7)):
-        bg = "#ffffff"
+        bg = "#FBF9F4"
     st.markdown(f"""<style>
     /* ── BG color applies to ALL pages globally — persists across all tabs ── */
     .stApp {{ background-color:{bg} !important; transition: background-color 0.3s ease; }}
@@ -799,7 +799,7 @@ def render_grir_metric_card(title: str, value: str, bg_color: str = "#ffffff"):
 </div>""", unsafe_allow_html=True)
 
 def render_bg_button_sidebar():
-    current_bg = st.session_state.get("bg_color", "#ffffff")
+    current_bg = st.session_state.get("bg_color", "#FBF9F4")
 
     st.markdown("""
 <style>
@@ -838,7 +838,7 @@ div[data-testid="stColorPicker"] button {
 
     safe_val = current_bg if (
         current_bg.startswith("#") and len(current_bg) in (4, 7)
-    ) else "#ffffff"
+    ) else "#FBF9F4"
     picked = st.color_picker(
         "bg", value=safe_val,
         key="bg_cp", label_visibility="collapsed",
@@ -2183,7 +2183,7 @@ def render_cash_flow_response(r):
     cdf=df[df["forecast_bucket"]!="TOTAL_UNPAID"].copy()
     if not cdf.empty: alt_bar(cdf,x="forecast_bucket",y="total_amount",horizontal=True,height=300,color="#3b82f6")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_early_payment_response(r):
@@ -2193,14 +2193,14 @@ def render_early_payment_response(r):
         ts=df["savings_if_2pct_discount"].sum(); hp=df[df["early_pay_priority"]=="High"].shape[0]
         c1,c2=st.columns(2); c1.metric("Total Potential Savings",abbr_currency(ts)); c2.metric("High-Priority Invoices",hp)
         st.dataframe(safe_dataframe_display(df.head(10)),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_payment_timing_response(r):
     df=pd.DataFrame(r["df"])
     if df.empty: st.error("No payment timing data."); return
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_late_payment_trend_response(r):
@@ -2210,7 +2210,7 @@ def render_late_payment_trend_response(r):
         df["month_str"]=pd.to_datetime(df["month"]).dt.strftime("%b %Y")
         alt_line_monthly(df[["month_str","late_pct"]].rename(columns={"late_pct":"VALUE"}),month_col="month_str",value_col="VALUE",height=300,title="Late Payments %")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_hotspots(r):
@@ -2220,14 +2220,14 @@ def render_grir_hotspots(r):
     cdf['ym']=cdf['year'].astype(str)+'-'+cdf['month'].astype(str).str.zfill(2)
     alt_bar(cdf,x="ym",y="total_grir_balance",horizontal=False,height=300,color="#ef4444")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_root_causes(r):
     df=pd.DataFrame(r.get("df",[])); edf=pd.DataFrame(r.get("extra_df",[]))
     if not df.empty: st.subheader("GR/IR Aging"); st.dataframe(safe_dataframe_display(df),use_container_width=True)
     if not edf.empty: st.subheader("Outstanding Balances"); st.dataframe(safe_dataframe_display(edf),use_container_width=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_working_capital(r):
@@ -2235,13 +2235,13 @@ def render_grir_working_capital(r):
     c1.metric("WC Release (>60 days)",abbr_currency(m.get("older_60",0))); c2.metric("WC Release (>90 days)",abbr_currency(m.get("older_90",0)))
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_grir_vendor_followup(r):
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### Key Insights"); st.markdown(r["analyst_response"])
+    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
     with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
 
 def render_quick_analysis_response(r):
@@ -3223,8 +3223,29 @@ div.genie-card-wrap button:hover {
                             elif layout == "quick":
                                 render_quick_analysis_response(resp)
                             elif layout == "analyst":
-                                if resp.get("analyst_response"):
-                                    st.markdown(resp["analyst_response"])
+                                # ── Parse Descriptive / Prescriptive sections ─
+                                _ar = resp.get("analyst_response", "") or ""
+                                _desc, _pres = "", ""
+                                if _ar:
+                                    import re as _re
+                                    _d = _re.split(r'(?i)prescriptive', _ar, maxsplit=1)
+                                    if len(_d) == 2:
+                                        _desc = _re.sub(r'(?i)^\s*descriptive[:\s*\-]*', '', _d[0]).strip()
+                                        _pres = _re.sub(r'(?i)^[:\s*\-]*', '', _d[1]).strip()
+                                    else:
+                                        _desc = _re.sub(r'(?i)^\s*descriptive[:\s*\-]*', '', _ar).strip()
+
+                                if _desc:
+                                    with st.expander("Descriptive — What the data shows", expanded=True):
+                                        st.markdown(_desc)
+                                if _pres:
+                                    with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
+                                        st.markdown(_pres)
+                                if not _desc and not _pres and _ar:
+                                    with st.expander("Analysis", expanded=True):
+                                        st.markdown(_ar)
+
+                                # ── Supporting data ───────────────────────────
                                 try:
                                     raw_df = resp.get("df", [])
                                     if isinstance(raw_df, list) and len(raw_df) > 0:
@@ -3236,7 +3257,6 @@ div.genie-card-wrap button:hover {
                                 except Exception:
                                     df_r = pd.DataFrame()
                                 if not df_r.empty:
-                                    st.markdown("**Supporting Data**")
                                     st.dataframe(
                                         safe_dataframe_display(df_r),
                                         use_container_width=True,
@@ -3245,9 +3265,11 @@ div.genie-card-wrap button:hover {
                                     ch_r = auto_chart(df_r)
                                     if ch_r:
                                         st.altair_chart(ch_r, use_container_width=True)
+
+                                # ── Query used ────────────────────────────────
                                 sql_s = _safe_sql_string(resp.get("sql", ""))
                                 if sql_s and sql_s.strip():
-                                    with st.expander("View SQL"):
+                                    with st.expander("Query used", expanded=False):
                                         st.code(sql_s, language="sql")
                             elif layout == "error":
                                 st.error(resp.get("message", "Unknown error"))
@@ -3763,7 +3785,7 @@ def main():
     # ── BG colour picker — fixed bottom-right, visible on ALL tabs ───────────
     # Initialise bg_color only if not already set (avoids widget/session conflict)
     if "bg_color" not in st.session_state:
-        st.session_state["bg_color"] = "#ffffff"
+        st.session_state["bg_color"] = "#FBF9F4"
     _bg = st.session_state["bg_color"]
 
     st.markdown("""
