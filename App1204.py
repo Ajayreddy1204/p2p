@@ -3678,6 +3678,7 @@ def render_invoices():
             render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
 
             # ── Proceed to Pay — ONLY inside render_invoices() ───────────
+            st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
             _inv_status = str(idf.iloc[0].get("invoice_status", "")).upper()
             _pk = f"paid_{inv_num}"
             if st.session_state.get(_pk, False):
