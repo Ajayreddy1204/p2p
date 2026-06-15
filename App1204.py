@@ -3171,6 +3171,7 @@ div.genie-card-wrap button:hover {
                                 st.session_state.genie_session_id = sess["session_id"]
                                 st.session_state.current_messages = [
                                     {"role": m["role"], "content": m["content"],
+                                     "sql_used": m.get("sql_used", ""),
                                      "timestamp": m["timestamp"]} for m in msgs_r
                                 ]
                                 st.session_state["show_chats_panel"] = False
@@ -3283,7 +3284,16 @@ div.genie-card-wrap button:hover {
                             elif layout == "error":
                                 st.error(resp.get("message", "Unknown error"))
                         else:
-                            st.markdown(msg["content"])
+                            # No structured response object — message loaded from DB (resumed)
+                            if msg.get("role") == "assistant":
+                                # Show in expander format matching live responses
+                                _sql_used = msg.get("sql_used", "") or ""
+                                _render_response_expanders(
+                                    msg["content"],
+                                    sql=_sql_used if _sql_used.strip() else None
+                                )
+                            else:
+                                st.markdown(msg["content"])
 
 
     # ── Ask a question — same width as AI Assistant container ────────────────
