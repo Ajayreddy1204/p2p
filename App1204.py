@@ -2171,6 +2171,50 @@ def _quick_invoice_aging():
 
 
 # ── Genie render helpers ──────────────────────────────────────
+
+def _render_response_expanders(analyst_text: str, sql=None, predictive_text: str = ""):
+    """Render analyst response as collapsible expanders matching the image format:
+    › Descriptive — What the data shows   (collapsed)
+    › Prescriptive — Recommendations & next steps  (collapsed)
+    › Predictive — 30–90 Day Forecast  (collapsed, if available)
+    › Query used  (collapsed)
+    """
+    import re as _re
+
+    if analyst_text:
+        # Split on Prescriptive marker
+        _parts = _re.split(r'(?i)\n?\*{0,2}prescriptive\*{0,2}[:\s\-—]*', analyst_text, maxsplit=1)
+        _desc = _parts[0].strip()
+        # Clean leading "Descriptive" header
+        _desc = _re.sub(r'(?i)^\*{0,2}descriptive\*{0,2}[:\s\-—]*', '', _desc).strip()
+        _pres = _parts[1].strip() if len(_parts) > 1 else ""
+
+        if _desc:
+            with st.expander("Descriptive — What the data shows", expanded=False):
+                st.markdown(_desc)
+        if _pres:
+            with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
+                st.markdown(_pres)
+        if not _desc and not _pres:
+            with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
+                st.markdown(analyst_text)
+
+    if predictive_text:
+        with st.expander("Predictive — 30–90 Day Forecast", expanded=False):
+            st.markdown(predictive_text)
+
+    if sql:
+        sql_str = _safe_sql_string(sql)
+        if sql_str and sql_str.strip():
+            with st.expander("Query used", expanded=False):
+                if isinstance(sql, dict):
+                    for n, q in sql.items():
+                        if q:
+                            st.markdown(f"**{n}**")
+                            st.code(str(q), language="sql")
+                else:
+                    st.code(sql_str, language="sql")
+
 def render_cash_flow_response(r):
     df=pd.DataFrame(r["df"])
     if df.empty: st.error("No cash flow data."); return
@@ -2183,8 +2227,7 @@ def render_cash_flow_response(r):
     cdf=df[df["forecast_bucket"]!="TOTAL_UNPAID"].copy()
     if not cdf.empty: alt_bar(cdf,x="forecast_bucket",y="total_amount",horizontal=True,height=300,color="#3b82f6")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_early_payment_response(r):
     df=pd.DataFrame(r["df"])
@@ -2193,15 +2236,13 @@ def render_early_payment_response(r):
         ts=df["savings_if_2pct_discount"].sum(); hp=df[df["early_pay_priority"]=="High"].shape[0]
         c1,c2=st.columns(2); c1.metric("Total Potential Savings",abbr_currency(ts)); c2.metric("High-Priority Invoices",hp)
         st.dataframe(safe_dataframe_display(df.head(10)),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_payment_timing_response(r):
     df=pd.DataFrame(r["df"])
     if df.empty: st.error("No payment timing data."); return
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_late_payment_trend_response(r):
     df=pd.DataFrame(r["df"])
@@ -2210,8 +2251,7 @@ def render_late_payment_trend_response(r):
         df["month_str"]=pd.to_datetime(df["month"]).dt.strftime("%b %Y")
         alt_line_monthly(df[["month_str","late_pct"]].rename(columns={"late_pct":"VALUE"}),month_col="month_str",value_col="VALUE",height=300,title="Late Payments %")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_grir_hotspots(r):
     df=pd.DataFrame(r["df"])
@@ -2220,29 +2260,25 @@ def render_grir_hotspots(r):
     cdf['ym']=cdf['year'].astype(str)+'-'+cdf['month'].astype(str).str.zfill(2)
     alt_bar(cdf,x="ym",y="total_grir_balance",horizontal=False,height=300,color="#ef4444")
     st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_grir_root_causes(r):
     df=pd.DataFrame(r.get("df",[])); edf=pd.DataFrame(r.get("extra_df",[]))
     if not df.empty: st.subheader("GR/IR Aging"); st.dataframe(safe_dataframe_display(df),use_container_width=True)
     if not edf.empty: st.subheader("Outstanding Balances"); st.dataframe(safe_dataframe_display(edf),use_container_width=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_grir_working_capital(r):
     m=r.get("metrics",{}); c1,c2=st.columns(2)
     c1.metric("WC Release (>60 days)",abbr_currency(m.get("older_60",0))); c2.metric("WC Release (>90 days)",abbr_currency(m.get("older_90",0)))
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_grir_vendor_followup(r):
     df=pd.DataFrame(r["df"])
     if not df.empty: st.dataframe(safe_dataframe_display(df),use_container_width=True,hide_index=True)
-    if r.get("analyst_response"): st.markdown("### 💡 Key Insights"); st.markdown(r["analyst_response"])
-    with st.expander("View SQL"): st.code(_safe_sql_string(r.get("sql")),language="sql")
+    _render_response_expanders(r.get("analyst_response",""), sql=r.get("sql"))
 
 def render_quick_analysis_response(r):
     at=r.get("analysis_type","spending_overview"); m=r.get("metrics",{}); ar=r.get("analyst_response",""); sq=r.get("sql",{})
@@ -2277,11 +2313,7 @@ def render_quick_analysis_response(r):
         adf=pd.DataFrame(r.get("aging_df",[]))
         if not adf.empty:
             st.altair_chart(alt.Chart(adf).mark_bar(color="#dc2626").encode(x=alt.X("total_amount:Q",axis=alt.Axis(format="~s")),y=alt.Y("aging_bucket:N",sort=alt.EncodingSortField(field="total_amount",order="descending")),tooltip=["aging_bucket:N",alt.Tooltip("total_amount:Q",format="$,.0f"),"invoice_count:Q"]).properties(height=250),use_container_width=True)
-    if ar: st.markdown("### Prescriptive — Recommendations & next steps"); st.markdown(ar)
-    with st.expander("Show SQL"):
-        if isinstance(sq,dict):
-            for n,q in sq.items(): st.code(q,language="sql")
-        elif isinstance(sq,str): st.code(sq,language="sql")
+    _render_response_expanders(ar, sql=sq)
 
 GRIR_HOTSPOTS_Q  = "Show GR/IR outstanding balance by month and highlight which recent months have the highest GR/IR balance so we can prioritize clearing."
 GRIR_ROOTCAUSE_Q = "Using GR/IR aging and outstanding balance data, explain the likely root-cause buckets (missing goods receipt, invoice not posted, price or quantity mismatch) and for each bucket suggest 2–3 concrete remediation actions."
@@ -3223,29 +3255,7 @@ div.genie-card-wrap button:hover {
                             elif layout == "quick":
                                 render_quick_analysis_response(resp)
                             elif layout == "analyst":
-                                # ── Parse Descriptive / Prescriptive sections ─
-                                _ar = resp.get("analyst_response", "") or ""
-                                _desc, _pres = "", ""
-                                if _ar:
-                                    import re as _re
-                                    _d = _re.split(r'(?i)prescriptive', _ar, maxsplit=1)
-                                    if len(_d) == 2:
-                                        _desc = _re.sub(r'(?i)^\s*descriptive[:\s*\-]*', '', _d[0]).strip()
-                                        _pres = _re.sub(r'(?i)^[:\s*\-]*', '', _d[1]).strip()
-                                    else:
-                                        _desc = _re.sub(r'(?i)^\s*descriptive[:\s*\-]*', '', _ar).strip()
-
-                                if _desc:
-                                    with st.expander("Descriptive — What the data shows", expanded=True):
-                                        st.markdown(_desc)
-                                if _pres:
-                                    with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
-                                        st.markdown(_pres)
-                                if not _desc and not _pres and _ar:
-                                    with st.expander("Analysis", expanded=True):
-                                        st.markdown(_ar)
-
-                                # ── Supporting data ───────────────────────────
+                                # ── Supporting data first ─────────────────────
                                 try:
                                     raw_df = resp.get("df", [])
                                     if isinstance(raw_df, list) and len(raw_df) > 0:
@@ -3265,12 +3275,11 @@ div.genie-card-wrap button:hover {
                                     ch_r = auto_chart(df_r)
                                     if ch_r:
                                         st.altair_chart(ch_r, use_container_width=True)
-
-                                # ── Query used ────────────────────────────────
-                                sql_s = _safe_sql_string(resp.get("sql", ""))
-                                if sql_s and sql_s.strip():
-                                    with st.expander("Query used", expanded=False):
-                                        st.code(sql_s, language="sql")
+                                # ── Expander toggles ─────────────────────────
+                                _render_response_expanders(
+                                    resp.get("analyst_response", ""),
+                                    sql=resp.get("sql", "")
+                                )
                             elif layout == "error":
                                 st.error(resp.get("message", "Unknown error"))
                         else:
