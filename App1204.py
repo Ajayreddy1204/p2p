@@ -3677,17 +3677,20 @@ def render_invoices():
         if idf is not None and not idf.empty:
             render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
 
-            # ── Proceed to Pay — ONLY here, ONLY on Invoice tab ──────────────
+            # ── Proceed to Pay — ONLY inside render_invoices() ───────────
             _inv_status = str(idf.iloc[0].get("invoice_status", "")).upper()
             _pk = f"paid_{inv_num}"
             if st.session_state.get(_pk, False):
                 st.success("✅ Invoice has been processed and marked as Paid.")
+                # Clear immediately after showing so it never leaks to other tabs
+                del st.session_state[_pk]
             elif _inv_status in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
                 st.info("ℹ️ This invoice is already marked as PAID.")
             else:
                 if st.button("✅ Proceed to Pay",
                              key=f"proceed_pay_{inv_num}",
                              use_container_width=True):
+                    # Set flag and rerun to show success message once
                     st.session_state[_pk] = True
                     st.rerun()
         else:
@@ -3794,6 +3797,14 @@ def main():
     for _k, _v in _defaults.items():
         if _k not in st.session_state:
             st.session_state[_k] = _v
+
+    # ── CLEAR paid_/proceed_pay_ BEFORE any rendering ────────────────────────
+    # Runs on EVERY rerun. If not on Invoices tab, wipe all pay-related keys
+    # so Proceed to Pay NEVER appears on other tabs under any condition.
+    if st.session_state.get("page", "Dashboard") != "Invoices":
+        for _clr_k in list(st.session_state.keys()):
+            if _clr_k.startswith("paid_") or _clr_k.startswith("proceed_pay_"):
+                del st.session_state[_clr_k]
 
     init_db()
     inject_dashboard_css()
@@ -3916,12 +3927,6 @@ div[data-testid="stColorPicker"] label { display: none !important; }
     )
 
     # ── Route to page ─────────────────────────────────────────────────────────
-    # ALWAYS clear Proceed to Pay state when not on Invoice tab
-    if pg != "Invoices":
-        for _k in list(st.session_state.keys()):
-            if _k.startswith("paid_") or _k.startswith("proceed_pay_"):
-                del st.session_state[_k]
-
     if   pg == "Dashboard":
         render_dashboard()
     elif pg == "Genie":
