@@ -2975,29 +2975,29 @@ div.genie-card-wrap button:hover {
             with st.expander("Frequently Asked by You"):
                 faqs = get_frequent_questions_by_user_cached(5)
                 if faqs:
-                    for faq in faqs[:5]:
-                        if st.button(faq["query"][:45], key=f"faq_{faq['query'][:20]}",
+                    for i, faq in enumerate(faqs[:5]):
+                        if st.button(faq["query"][:55], key=f"faq_you_{i}",
                                      use_container_width=True):
-                            st.session_state.genie_prefill = faq["query"]
+                            st.session_state.auto_run_query = faq["query"]
                             st.rerun()
                 else:
-                    for sug in ["Total spend YTD and trends",
-                                "Top vendors by spend",
-                                "Overdue invoices summary"]:
-                        if st.button(sug, key=f"sug_{sug[:15]}", use_container_width=True):
-                            st.session_state.genie_prefill = sug
+                    for i, sug in enumerate([
+                        "Total spend YTD and trends",
+                        "Top vendors by spend",
+                        "Overdue invoices summary",
+                    ]):
+                        if st.button(sug, key=f"sug_you_{i}", use_container_width=True):
+                            st.session_state.auto_run_query = sug
                             st.rerun()
 
             with st.expander("Most Frequent (All)"):
                 af = get_frequent_questions_all_cached(5)
                 if af:
-                    for faq in af[:5]:
-                        st.markdown(
-                            f"<div style='text-align:left;color:#374151;"
-                            f"font-size:0.83rem;padding:3px 0;cursor:default;'>"
-                            f"{faq['query'][:45]}</div>",
-                            unsafe_allow_html=True,
-                        )
+                    for i, faq in enumerate(af[:5]):
+                        if st.button(faq["query"][:55], key=f"faq_all_{i}",
+                                     use_container_width=True):
+                            st.session_state.auto_run_query = faq["query"]
+                            st.rerun()
                 else:
                     st.caption("No questions yet")
 
