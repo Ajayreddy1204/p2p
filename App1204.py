@@ -3499,7 +3499,7 @@ div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
 
 
 # ── Invoices ──────────────────────────────────────────────────
-def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = False):
+def render_invoice_detail(inv_row: dict, inv_num: str):
     def gv(key,default=""):
         val=inv_row.get(key,default)
         try:
@@ -3546,10 +3546,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = F
     else:
         hdf.columns=[c.lower() for c in hdf.columns]
         hdf=hdf[["status","effective_date","status_notes"]].copy()
-    pk=f"paid_{inv_num}"
-    if st.session_state.get(pk,False) and "PAID" not in hdf["status"].values:
-        hdf=pd.concat([hdf,pd.DataFrame([{"status":"PAID","effective_date":date.today().strftime("%Y-%m-%d"),"status_notes":"Processed via ProcureIQ"}])],ignore_index=True)
-    hdf["effective_date"]=hdf["effective_date"].apply(lambda x: x.strftime("%Y-%m-%d") if isinstance(x,(date,datetime)) else str(x))
+    # Pay button deliberately removed from here — rendered only in render_invoices()
     render_simple_table(
         hdf[["status", "effective_date", "status_notes"]],
         col_labels={
@@ -3590,20 +3587,7 @@ def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = F
         ht+='</tr></table>'
         st.markdown(ht,unsafe_allow_html=True)
 
-    st.markdown("---")
-    cs = gv("invoice_status", "").upper()
-    # Strictly guard: only show Proceed to Pay on Invoices tab
-    _on_invoice_tab = st.session_state.get("page", "") == "Invoices"
-    if show_pay_button and _on_invoice_tab:
-        if st.session_state.get(pk, False):
-            st.success("✅ Invoice has been processed and marked as Paid.")
-        elif cs in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
-            st.info("ℹ️ This invoice is already marked as PAID.")
-        else:
-            if st.button("✅ Proceed to Pay", key="proceed_pay_btn",
-                         use_container_width=True):
-                st.session_state[pk] = True
-                st.rerun()
+    # Pay button deliberately removed from here — rendered only in render_invoices()
 
 def render_invoices():
     # ── Breadcrumb / header — always visible immediately ─────────────────────
@@ -3691,7 +3675,21 @@ def render_invoices():
 
         # ── Render detail from cache (instant, no blank page) ─────────────────
         if idf is not None and not idf.empty:
-            render_invoice_detail(idf.iloc[0].to_dict(), inv_num, show_pay_button=True)
+            render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
+
+            # ── Proceed to Pay — ONLY here, ONLY on Invoice tab ──────────────
+            _inv_status = str(idf.iloc[0].get("invoice_status", "")).upper()
+            _pk = f"paid_{inv_num}"
+            if st.session_state.get(_pk, False):
+                st.success("✅ Invoice has been processed and marked as Paid.")
+            elif _inv_status in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
+                st.info("ℹ️ This invoice is already marked as PAID.")
+            else:
+                if st.button("✅ Proceed to Pay",
+                             key=f"proceed_pay_{inv_num}",
+                             use_container_width=True):
+                    st.session_state[_pk] = True
+                    st.rerun()
         else:
             st.warning(f"Invoice **{inv_num}** not found.")
             st.session_state["selected_invoice_detail"] = None
@@ -3877,7 +3875,7 @@ div[data-testid="stColorPicker"] label { display: none !important; }
                         st.session_state["inv_selected_vendor"]     = "All Vendors"
                         # Clear all paid_* keys so Proceed to Pay never shows outside Invoice tab
                         for _pk in [k for k in list(st.session_state.keys())
-                                    if k.startswith("paid_")]:
+                                    if k.startswith("paid_") or k.startswith("proceed_pay_")]:
                             del st.session_state[_pk]
                         # Clear invoice detail cache
                         for _ck in [k for k in list(st.session_state.keys())
@@ -3921,7 +3919,7 @@ div[data-testid="stColorPicker"] label { display: none !important; }
     # ALWAYS clear Proceed to Pay state when not on Invoice tab
     if pg != "Invoices":
         for _k in list(st.session_state.keys()):
-            if _k.startswith("paid_") or _k == "proceed_pay_btn":
+            if _k.startswith("paid_") or _k.startswith("proceed_pay_"):
                 del st.session_state[_k]
 
     if   pg == "Dashboard":
