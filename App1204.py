@@ -2978,8 +2978,7 @@ div.genie-card-wrap button:hover {
                     for i, faq in enumerate(faqs[:5]):
                         if st.button(faq["query"][:55], key=f"faq_you_{i}",
                                      use_container_width=True):
-                            st.session_state.auto_run_query = faq["query"]
-                            st.rerun()
+                            process_user_question(faq["query"])
                 else:
                     for i, sug in enumerate([
                         "Total spend YTD and trends",
@@ -2987,8 +2986,7 @@ div.genie-card-wrap button:hover {
                         "Overdue invoices summary",
                     ]):
                         if st.button(sug, key=f"sug_you_{i}", use_container_width=True):
-                            st.session_state.auto_run_query = sug
-                            st.rerun()
+                            process_user_question(sug)
 
             with st.expander("Most Frequent (All)"):
                 af = get_frequent_questions_all_cached(5)
@@ -2996,8 +2994,7 @@ div.genie-card-wrap button:hover {
                     for i, faq in enumerate(af[:5]):
                         if st.button(faq["query"][:55], key=f"faq_all_{i}",
                                      use_container_width=True):
-                            st.session_state.auto_run_query = faq["query"]
-                            st.rerun()
+                            process_user_question(faq["query"])
                 else:
                     st.caption("No questions yet")
 
@@ -3595,7 +3592,9 @@ def render_invoice_detail(inv_row: dict, inv_num: str, show_pay_button: bool = F
 
     st.markdown("---")
     cs = gv("invoice_status", "").upper()
-    if show_pay_button:
+    # Strictly guard: only show Proceed to Pay on Invoices tab
+    _on_invoice_tab = st.session_state.get("page", "") == "Invoices"
+    if show_pay_button and _on_invoice_tab:
         if st.session_state.get(pk, False):
             st.success("✅ Invoice has been processed and marked as Paid.")
         elif cs in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
@@ -3919,6 +3918,12 @@ div[data-testid="stColorPicker"] label { display: none !important; }
     )
 
     # ── Route to page ─────────────────────────────────────────────────────────
+    # ALWAYS clear Proceed to Pay state when not on Invoice tab
+    if pg != "Invoices":
+        for _k in list(st.session_state.keys()):
+            if _k.startswith("paid_") or _k == "proceed_pay_btn":
+                del st.session_state[_k]
+
     if   pg == "Dashboard":
         render_dashboard()
     elif pg == "Genie":
