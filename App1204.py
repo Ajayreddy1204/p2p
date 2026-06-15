@@ -3677,23 +3677,28 @@ def render_invoices():
         if idf is not None and not idf.empty:
             render_invoice_detail(idf.iloc[0].to_dict(), inv_num)
 
-            # ── Proceed to Pay — ONLY inside render_invoices() ───────────
+            # ── Proceed to Pay — rendered ONLY when page == Invoices ────
             st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
-            _inv_status = str(idf.iloc[0].get("invoice_status", "")).upper()
-            _pk = f"paid_{inv_num}"
-            if st.session_state.get(_pk, False):
-                st.success("✅ Invoice has been processed and marked as Paid.")
-                # Clear immediately after showing so it never leaks to other tabs
-                del st.session_state[_pk]
-            elif _inv_status in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
-                st.info("ℹ️ This invoice is already marked as PAID.")
-            else:
-                if st.button("✅ Proceed to Pay",
-                             key=f"proceed_pay_{inv_num}",
-                             use_container_width=True):
-                    # Set flag and rerun to show success message once
-                    st.session_state[_pk] = True
-                    st.rerun()
+            if st.session_state.get("page", "") == "Invoices":
+                _inv_status = str(idf.iloc[0].get("invoice_status", "")).upper()
+                _pk = f"paid_{inv_num}"
+                _paid_flag = st.session_state.get(_pk, False)
+
+                if _paid_flag:
+                    st.success("✅ Invoice has been processed and marked as Paid.")
+                    st.session_state.pop(_pk, None)
+                elif _inv_status in ("PAID", "CLEARED", "CLOSED", "SETTLED"):
+                    st.info("ℹ️ This invoice is already marked as PAID.")
+                else:
+                    # Use a form so the submit button doesn't persist as a widget key
+                    with st.form(key=f"pay_form_{inv_num}", clear_on_submit=True):
+                        submitted = st.form_submit_button(
+                            "✅ Proceed to Pay",
+                            use_container_width=True
+                        )
+                    if submitted:
+                        st.session_state[_pk] = True
+                        st.rerun()
         else:
             st.warning(f"Invoice **{inv_num}** not found.")
             st.session_state["selected_invoice_detail"] = None
@@ -3804,7 +3809,7 @@ def main():
     # so Proceed to Pay NEVER appears on other tabs under any condition.
     if st.session_state.get("page", "Dashboard") != "Invoices":
         for _clr_k in list(st.session_state.keys()):
-            if _clr_k.startswith("paid_") or _clr_k.startswith("proceed_pay_"):
+            if _clr_k.startswith("paid_") or _clr_k.startswith("proceed_pay_") or _clr_k.startswith("pay_form_"):
                 del st.session_state[_clr_k]
 
     init_db()
@@ -3887,7 +3892,7 @@ div[data-testid="stColorPicker"] label { display: none !important; }
                         st.session_state["inv_selected_vendor"]     = "All Vendors"
                         # Clear all paid_* keys so Proceed to Pay never shows outside Invoice tab
                         for _pk in [k for k in list(st.session_state.keys())
-                                    if k.startswith("paid_") or k.startswith("proceed_pay_")]:
+                                    if k.startswith("paid_") or k.startswith("proceed_pay_") or k.startswith("pay_form_")]:
                             del st.session_state[_pk]
                         # Clear invoice detail cache
                         for _ck in [k for k in list(st.session_state.keys())
