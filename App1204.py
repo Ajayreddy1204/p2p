@@ -245,7 +245,7 @@ def auto_chart(df: pd.DataFrame):
 
 # ── Athena client ────────────────────────────────────────────
 @st.cache_resource
-def get_aws_session(): return boto3.Session()
+def get_aws_session(): return boto3.Session(region_name=ATHENA_REGION)
 
 @st.cache_data(ttl=600, show_spinner=False)
 def run_query(sql: str) -> pd.DataFrame:
