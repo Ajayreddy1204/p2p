@@ -2067,6 +2067,7 @@ def process_custom_query(query: str, history: str="") -> dict:
                 "layout": "analyst",
                 "sql": sql or "",
                 "df": [],
+                "driver_df": [],
                 "question": query,
                 "reinterpreted_question": reinterpreted,
                 "chart_title": chart_title,
@@ -2348,10 +2349,12 @@ def _render_question_box(question: str, reinterpreted: str = ""):
 
 def _render_supporting_data(df_main: pd.DataFrame, driver_df: pd.DataFrame = None,
                             sql=None, chart_title: str = "This Month vs Previous Month — Where Spend Changed"):
-    """Renders the collapsible 'View supporting data (charts & table)' expander:
-    grouped bar chart (this month vs last month by driver) + data table +
-    Download Results button. SQL is shown in its own 'View SQL used' expander,
-    matching the reference screenshots.
+    """Renders two SIBLING (not nested) collapsible expanders:
+    1. 'View supporting data (charts & table)' — chart + table + Download Results
+    2. 'View SQL used' — the SQL query, on its own, directly below #1
+    Both are ALWAYS rendered for every answer, with graceful fallback content
+    when no chart/table/SQL data is available, matching the required fixed
+    response format: Descriptive → Prescriptive → View supporting data → View SQL used.
     """
     _required_driver_cols = {"driver", "this_month_spend", "last_month_spend"}
     has_driver = (
@@ -2362,10 +2365,9 @@ def _render_supporting_data(df_main: pd.DataFrame, driver_df: pd.DataFrame = Non
     )
     has_main = df_main is not None and isinstance(df_main, pd.DataFrame) and not df_main.empty
 
-    if not has_driver and not has_main:
-        return
-
+    # ── 1. View supporting data (charts & table) + Download Results ───────────
     with st.expander("View supporting data (charts & table)", expanded=False):
+        _csv_bytes = None
         try:
             if has_driver:
                 st.markdown(f"**{chart_title}**")
@@ -2402,40 +2404,40 @@ def _render_supporting_data(df_main: pd.DataFrame, driver_df: pd.DataFrame = Non
                 })
                 st.dataframe(safe_dataframe_display(display_driver), use_container_width=True, hide_index=True)
                 _csv_bytes = display_driver.to_csv(index=False).encode()
-                st.download_button(
-                    "Download Results",
-                    data=_csv_bytes,
-                    file_name="genie_supporting_data.csv",
-                    mime="text/csv",
-                    key=f"dl_{hashlib.md5(_csv_bytes).hexdigest()[:10]}",
-                )
             elif has_main:
                 st.dataframe(safe_dataframe_display(df_main), use_container_width=True, hide_index=True)
                 ch = auto_chart(df_main)
                 if ch:
                     st.altair_chart(ch, use_container_width=True)
                 _csv_bytes = df_main.to_csv(index=False).encode()
-                st.download_button(
-                    "Download Results",
-                    data=_csv_bytes,
-                    file_name="genie_supporting_data.csv",
-                    mime="text/csv",
-                    key=f"dl_{hashlib.md5(_csv_bytes).hexdigest()[:10]}",
-                )
-        except Exception as _e:
+            else:
+                st.caption("No chart or table data is available for this question.")
+        except Exception:
             st.info("Supporting chart/table unavailable for this question.")
 
-        if sql:
-            sql_str = _safe_sql_string(sql)
-            if sql_str and sql_str.strip():
-                with st.expander("View SQL used", expanded=False):
-                    if isinstance(sql, dict):
-                        for n, q in sql.items():
-                            if q:
-                                st.markdown(f"**{n}**")
-                                st.code(str(q), language="sql")
-                    else:
-                        st.code(sql_str, language="sql")
+        # Download Results — always present, inside the supporting-data expander
+        if _csv_bytes is None:
+            _csv_bytes = "No data available".encode()
+        st.download_button(
+            "Download Results",
+            data=_csv_bytes,
+            file_name="genie_supporting_data.csv",
+            mime="text/csv",
+            key=f"dl_{hashlib.md5(_csv_bytes).hexdigest()[:10]}",
+        )
+
+    # ── 2. View SQL used — sibling expander, directly below #1 ────────────────
+    with st.expander("View SQL used", expanded=False):
+        sql_str = _safe_sql_string(sql) if sql else ""
+        if isinstance(sql, dict) and sql:
+            for n, q in sql.items():
+                if q:
+                    st.markdown(f"**{n}**")
+                    st.code(str(q), language="sql")
+        elif sql_str and sql_str.strip():
+            st.code(sql_str, language="sql")
+        else:
+            st.caption("No SQL was used to answer this question.")
 
 def _render_response_expanders(analyst_text: str, sql=None, predictive_text: str = ""):
     """Render analyst response as collapsible expanders matching the image format:
@@ -2618,8 +2620,21 @@ def process_user_question(user_question: str):
     Pre-built library analyses (Forecast tab playbooks, GR/IR buttons, quick
     cards) go through auto_run_query / _dispatch_query instead and keep their
     specialized layouts.
+
+    Every question that reaches this function — relevant or not, cached or
+    freshly computed — is recorded via save_question() so 'Frequently Asked
+    by You' / 'Most Frequent (All)' always reflect what was typed in chat,
+    not just what was clicked on a tile.
     """
     with st.spinner("Generating insights..."):
+        # ── Always record the question first, regardless of outcome ───────────
+        try:
+            save_question(user_question, "chat")
+            get_frequent_questions_by_user_cached.clear()
+            get_frequent_questions_all_cached.clear()
+        except Exception:
+            pass
+
         if not is_relevant_question(user_question):
             result = {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": user_question}
             st.session_state.current_messages = [
@@ -2643,9 +2658,6 @@ def process_user_question(user_question: str):
             save_chat_message(st.session_state.genie_session_id,1,"assistant",
                               cached.get('analyst_response',''),source="cache",
                               sql_used=_safe_sql_string(cached.get("sql")))
-            save_question(user_question,"custom")
-            get_frequent_questions_by_user_cached.clear()
-            get_frequent_questions_all_cached.clear()
         else:
             history = build_bedrock_context(
                 st.session_state.genie_session_id, max_turns=6
@@ -2662,9 +2674,6 @@ def process_user_question(user_question: str):
                 save_chat_message(st.session_state.genie_session_id,0,"user",user_question)
                 save_chat_message(st.session_state.genie_session_id,1,"assistant",ac,
                                   sql_used=_safe_sql_string(result.get("sql")))
-                save_question(user_question,"forecast")
-                get_frequent_questions_by_user_cached.clear()
-                get_frequent_questions_all_cached.clear()
                 infer_and_save_preferences(user_question, result)
             else:
                 st.session_state.current_messages.append({"role":"assistant","content":result.get("message","Error"),"timestamp":datetime.now()})
@@ -3545,7 +3554,7 @@ div.genie-card-wrap button:hover {
                                     resp.get("reinterpreted_question", "")
                                 )
 
-                                # ── Prescriptive expander (from analyst_response) ──
+                                # ── Prescriptive expander — always present ───────
                                 import re as _re_an
                                 _analyst_text = resp.get("analyst_response", "") or ""
                                 _pres_parts = _re_an.split(
@@ -3553,9 +3562,8 @@ div.genie-card-wrap button:hover {
                                     _analyst_text, maxsplit=1
                                 )
                                 _pres_text = _pres_parts[1].strip() if len(_pres_parts) > 1 else _analyst_text.strip()
-                                if _pres_text:
-                                    with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
-                                        st.markdown(_pres_text)
+                                with st.expander("Prescriptive — Recommendations & next steps", expanded=False):
+                                    st.markdown(_pres_text if _pres_text else "No specific recommendations were generated for this question. Try rephrasing with more detail for a tailored suggestion.")
 
                                 # ── Supporting data: chart + table + download + SQL ──
                                 try:
