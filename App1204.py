@@ -641,17 +641,23 @@ def get_saved_insights_cached(page="genie", limit=20):
 @st.cache_data(ttl=600)
 def get_frequent_questions_by_user_cached(limit=10):
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
-    c.execute('SELECT normalized_query,COUNT(*) as cnt FROM question_history WHERE user_name=? GROUP BY normalized_query ORDER BY cnt DESC LIMIT ?',
+    c.execute('''SELECT normalized_query, COUNT(*) AS cnt, MAX(asked_at) AS last_asked
+                 FROM question_history WHERE user_name=?
+                 GROUP BY normalized_query
+                 ORDER BY last_asked DESC LIMIT ?''',
               (get_current_user(), limit))
     rows = c.fetchall(); conn.close()
-    return [{"query":r[0],"count":r[1]} for r in rows]
+    return [{"query":r[0],"count":r[1],"last_asked":r[2]} for r in rows]
 
 @st.cache_data(ttl=600)
 def get_frequent_questions_all_cached(limit=10):
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
-    c.execute('SELECT normalized_query,COUNT(*) as cnt FROM question_history GROUP BY normalized_query ORDER BY cnt DESC LIMIT ?', (limit,))
+    c.execute('''SELECT normalized_query, COUNT(*) AS cnt, MAX(asked_at) AS last_asked
+                 FROM question_history
+                 GROUP BY normalized_query
+                 ORDER BY last_asked DESC LIMIT ?''', (limit,))
     rows = c.fetchall(); conn.close()
-    return [{"query":r[0],"count":r[1]} for r in rows]
+    return [{"query":r[0],"count":r[1],"last_asked":r[2]} for r in rows]
 
 def get_recent_conversation_context(limit: int = 20, max_age_days: int = 2) -> str:
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
@@ -1951,14 +1957,33 @@ def _fetch_month_over_month_drivers(vendor_or_category: str = "vendor") -> pd.Da
     """Builds the THIS_MONTH_SPEND vs LAST_MONTH_SPEND driver table used as
     'supporting data' for custom Genie questions, matching the reference format:
     ROW_TYPE | DRIVER | THIS_MONTH_SPEND | LAST_MONTH_SPEND | SPEND_CHANGE
+
+    Uses the latest month that actually has posting_date data in the warehouse
+    (rather than hard-coding CURRENT_DATE), so this still works correctly on
+    historical / demo datasets where "today" doesn't fall inside the loaded
+    data range.
     """
+    latest_sql = f"""
+        SELECT MAX(DATE_TRUNC('month', posting_date)) AS latest_month
+        FROM {DATABASE}.fact_all_sources_vw
+        WHERE posting_date IS NOT NULL
+    """
+    latest_df = run_query(latest_sql)
+    anchor_month_expr = "DATE_TRUNC('month', CURRENT_DATE)"
+    if not latest_df.empty and pd.notna(latest_df.iloc[0].get("latest_month")):
+        try:
+            latest_month = pd.to_datetime(latest_df.iloc[0]["latest_month"]).date()
+            anchor_month_expr = f"DATE '{latest_month.isoformat()}'"
+        except Exception:
+            pass
+
     sql = f"""
         WITH this_month AS (
             SELECT COALESCE(v.vendor_name,'Unknown') AS driver,
                    SUM(COALESCE(f.invoice_amount_local,0)) AS spend
             FROM {DATABASE}.fact_all_sources_vw f
             LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE DATE_TRUNC('month', f.posting_date) = DATE_TRUNC('month', CURRENT_DATE)
+            WHERE DATE_TRUNC('month', f.posting_date) = {anchor_month_expr}
               AND UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED')
             GROUP BY 1
         ),
@@ -1967,7 +1992,7 @@ def _fetch_month_over_month_drivers(vendor_or_category: str = "vendor") -> pd.Da
                    SUM(COALESCE(f.invoice_amount_local,0)) AS spend
             FROM {DATABASE}.fact_all_sources_vw f
             LEFT JOIN {DATABASE}.dim_vendor_vw v ON f.vendor_id = v.vendor_id
-            WHERE DATE_TRUNC('month', f.posting_date) = DATE_TRUNC('month', DATE_ADD('month', -1, CURRENT_DATE))
+            WHERE DATE_TRUNC('month', f.posting_date) = DATE_ADD('month', -1, {anchor_month_expr})
               AND UPPER(f.invoice_status) NOT IN ('CANCELLED','REJECTED')
             GROUP BY 1
         )
@@ -2302,6 +2327,8 @@ def _quick_invoice_aging():
 def _render_question_box(question: str, reinterpreted: str = ""):
     """Renders the 'Your question' header + blue Descriptive interpretation box
     shown at the top of every custom Genie response, matching the reference image."""
+    question = str(question) if question else ""
+    reinterpreted = str(reinterpreted) if reinterpreted else ""
     st.markdown(
         f"<div style='font-size:13px;color:#64748b;margin-bottom:2px;'>Your question</div>"
         f"<div style='font-size:16px;font-weight:700;color:#0f172a;margin-bottom:10px;'>{html.escape(question)}</div>",
@@ -3476,10 +3503,11 @@ div.genie-card-wrap button:hover {
             # ── Chat messages ─────────────────────────────────────────────────
             elif st.session_state.current_messages:
                 for msg in st.session_state.current_messages:
+                  try:
                     if msg["role"] == "user":
                         st.markdown(
                             f'<div class="message-user"><strong>You</strong><br/>'
-                            f'{html.escape(msg["content"])}</div>',
+                            f'{html.escape(str(msg.get("content","")))}</div>',
                             unsafe_allow_html=True,
                         )
                     else:
@@ -3491,7 +3519,7 @@ div.genie-card-wrap button:hover {
                             resp = msg["response"]
                             layout = resp.get("layout")
                             if layout == "static":
-                                st.info(resp["analyst_response"])
+                                st.info(resp.get("analyst_response",""))
                             elif layout == "cash_flow":
                                 render_cash_flow_response(resp)
                             elif layout == "early_payment":
@@ -3519,7 +3547,7 @@ div.genie-card-wrap button:hover {
 
                                 # ── Prescriptive expander (from analyst_response) ──
                                 import re as _re_an
-                                _analyst_text = resp.get("analyst_response", "")
+                                _analyst_text = resp.get("analyst_response", "") or ""
                                 _pres_parts = _re_an.split(
                                     r'(?i)\n?\*{0,2}prescriptive\*{0,2}[:\s\-—]*',
                                     _analyst_text, maxsplit=1
@@ -3558,6 +3586,8 @@ div.genie-card-wrap button:hover {
                                 )
                             else:
                                 st.markdown(msg["content"])
+                  except Exception as _msg_err:
+                    st.warning("This response couldn't be displayed. Try asking the question again.")
 
 
     # ── Ask a question — same width as AI Assistant container ────────────────
