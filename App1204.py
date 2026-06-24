@@ -1991,63 +1991,94 @@ def _fetch_month_over_month_drivers(vendor_or_category: str = "vendor") -> pd.Da
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0.0)
     return df
 
+def _derive_chart_title(question: str) -> str:
+    """Builds the dynamic chart title shown above the bar chart, matching the
+    reference format: 'This Month vs Previous Month — Where Spend Increased/Changed'."""
+    ql = question.lower()
+    if any(w in ql for w in ["higher", "increase", "more", "up", "rose", "rising", "grew"]):
+        suffix = "Where Spend Increased"
+    elif any(w in ql for w in ["lower", "decrease", "less", "down", "fell", "dropped", "declin"]):
+        suffix = "Where Spend Decreased"
+    else:
+        suffix = "Where Spend Changed"
+    return f"This Month vs Previous Month — {suffix}"
+
 def process_custom_query(query: str, history: str="") -> dict:
     if not is_relevant_question(query):
         return {"layout":"static","analyst_response":OUT_OF_DOMAIN_MSG,"question":query}
 
-    # ── Reinterpreted question (shown in the blue "Descriptive" box) ──────────
-    reinterpreted = _reinterpret_question(query)
+    try:
+        # ── Reinterpreted question (shown in the blue "Descriptive" box) ──────
+        reinterpreted = _reinterpret_question(query)
+        chart_title = _derive_chart_title(query)
 
-    # ── Try to answer with a free-form SQL query first ────────────────────────
-    sql = generate_sql(query)
-    custom_df = pd.DataFrame()
-    if sql and is_safe_sql(sql):
-        sql = ensure_limit(sql)
-        custom_df = run_query(sql)
+        # ── Try to answer with a free-form SQL query first ────────────────────
+        sql = generate_sql(query)
+        custom_df = pd.DataFrame()
+        if sql and is_safe_sql(sql):
+            sql = ensure_limit(sql)
+            custom_df = run_query(sql)
 
-    # ── Always build the month-over-month driver comparison as supporting data ─
-    driver_df = _fetch_month_over_month_drivers()
+        # ── Always build the month-over-month driver comparison as supporting data ─
+        driver_df = _fetch_month_over_month_drivers()
 
-    # Pick whichever dataset actually has rows to drive the chart/table;
-    # prefer the targeted SQL result if it returned something usable.
-    if not custom_df.empty:
-        preview_df = custom_df
-    elif not driver_df.empty:
-        preview_df = driver_df
-    else:
-        preview_df = pd.DataFrame()
+        # Pick whichever dataset actually has rows to drive the chart/table;
+        # prefer the targeted SQL result if it returned something usable.
+        if not custom_df.empty:
+            preview_df = custom_df
+        elif not driver_df.empty:
+            preview_df = driver_df
+        else:
+            preview_df = pd.DataFrame()
 
-    if preview_df.empty:
-        # Still respond — never show a bare "no data" error for custom questions
+        if preview_df.empty:
+            # Still respond — never show a bare "no data" error for custom questions
+            txt = ask_bedrock(
+                f'{history}\nUser asked: "{query}"\nNo matching data was found in the warehouse for this '
+                f'specific question. Provide a brief, honest Descriptive note that data was insufficient, '
+                f'and a Prescriptive suggestion for how to rephrase or what data to check next.',
+                SYS_ANALYST)
+            return {
+                "layout": "analyst",
+                "sql": sql or "",
+                "df": [],
+                "question": query,
+                "reinterpreted_question": reinterpreted,
+                "chart_title": chart_title,
+                "analyst_response": txt or "Descriptive — No matching records were found for this question.\n\nPrescriptive — Try specifying a vendor name, date range, or invoice status.",
+            }
+
+        preview = preview_df.head(10).to_string(index=False, max_colwidth=40)
         txt = ask_bedrock(
-            f'{history}\nUser asked: "{query}"\nNo matching data was found in the warehouse for this '
-            f'specific question. Provide a brief, honest Descriptive note that data was insufficient, '
-            f'and a Prescriptive suggestion for how to rephrase or what data to check next.',
-            SYS_ANALYST)
+            f'{history}\nUser asked: "{query}"\nReinterpreted as: "{reinterpreted}"\n'
+            f'Data:\n{preview}\nSQL:\n{sql or "(none — used month-over-month driver comparison)"}',
+            SYS_ANALYST
+        )
         return {
             "layout": "analyst",
             "sql": sql or "",
-            "df": [],
+            "df": preview_df.to_dict(orient="records"),
+            "driver_df": driver_df.to_dict(orient="records") if not driver_df.empty else [],
             "question": query,
             "reinterpreted_question": reinterpreted,
-            "analyst_response": txt or "Descriptive — No matching records were found for this question.\n\nPrescriptive — Try specifying a vendor name, date range, or invoice status.",
+            "chart_title": chart_title,
+            "analyst_response": txt or preview,
         }
-
-    preview = preview_df.head(10).to_string(index=False, max_colwidth=40)
-    txt = ask_bedrock(
-        f'{history}\nUser asked: "{query}"\nReinterpreted as: "{reinterpreted}"\n'
-        f'Data:\n{preview}\nSQL:\n{sql or "(none — used month-over-month driver comparison)"}',
-        SYS_ANALYST
-    )
-    return {
-        "layout": "analyst",
-        "sql": sql or "",
-        "df": preview_df.to_dict(orient="records"),
-        "driver_df": driver_df.to_dict(orient="records") if not driver_df.empty else [],
-        "question": query,
-        "reinterpreted_question": reinterpreted,
-        "analyst_response": txt or preview,
-    }
+    except Exception as _e:
+        return {
+            "layout": "analyst",
+            "sql": "",
+            "df": [],
+            "driver_df": [],
+            "question": query,
+            "reinterpreted_question": query,
+            "chart_title": "This Month vs Previous Month — Where Spend Changed",
+            "analyst_response": (
+                "Descriptive — We hit an issue retrieving data for this question.\n\n"
+                "Prescriptive — Please try rephrasing with a specific vendor name, date range, "
+                "or invoice status, or try again in a moment."
+            ),
+        }
 
 def process_cash_flow_forecast(question: str, history: str="") -> dict:
     if not is_relevant_question(question): return {"layout":"static","analyst_response":OUT_OF_DOMAIN_MSG}
@@ -2295,62 +2326,77 @@ def _render_supporting_data(df_main: pd.DataFrame, driver_df: pd.DataFrame = Non
     Download Results button. SQL is shown in its own 'View SQL used' expander,
     matching the reference screenshots.
     """
-    has_driver = driver_df is not None and not driver_df.empty
-    has_main   = df_main is not None and not df_main.empty
+    _required_driver_cols = {"driver", "this_month_spend", "last_month_spend"}
+    has_driver = (
+        driver_df is not None
+        and isinstance(driver_df, pd.DataFrame)
+        and not driver_df.empty
+        and _required_driver_cols.issubset(set(driver_df.columns))
+    )
+    has_main = df_main is not None and isinstance(df_main, pd.DataFrame) and not df_main.empty
 
     if not has_driver and not has_main:
         return
 
     with st.expander("View supporting data (charts & table)", expanded=False):
-        if has_driver:
-            st.markdown(f"**{chart_title}**")
-            chart_df = driver_df.copy()
-            melted = chart_df.melt(
-                id_vars=["driver"], value_vars=["this_month_spend", "last_month_spend"],
-                var_name="period", value_name="spend"
-            )
-            melted["period"] = melted["period"].map(
-                {"this_month_spend": "This Month", "last_month_spend": "Previous Month"}
-            )
-            st.altair_chart(
-                alt.Chart(melted).mark_bar().encode(
-                    x=alt.X("driver:N", sort=alt.EncodingSortField(field="spend", order="descending"),
-                             axis=alt.Axis(title=None, labelAngle=-35)),
-                    y=alt.Y("spend:Q", axis=alt.Axis(title=None, format="~s")),
-                    color=alt.Color("period:N",
-                        scale=alt.Scale(domain=["This Month", "Previous Month"], range=["#16a34a", "#2563eb"]),
-                        legend=alt.Legend(orient="top-right", title=None)),
-                    xOffset="period:N",
-                    tooltip=["driver:N", "period:N", alt.Tooltip("spend:Q", format="$,.0f")]
-                ).properties(height=300),
-                use_container_width=True,
-            )
-            display_driver = driver_df.rename(columns={
-                "row_type": "ROW_TYPE", "driver": "DRIVER",
-                "this_month_spend": "THIS_MONTH_SPEND",
-                "last_month_spend": "LAST_MONTH_SPEND",
-                "spend_change": "SPEND_CHANGE",
-            })
-            st.dataframe(safe_dataframe_display(display_driver), use_container_width=True, hide_index=True)
-            st.download_button(
-                "Download Results",
-                data=display_driver.to_csv(index=False).encode(),
-                file_name="genie_supporting_data.csv",
-                mime="text/csv",
-                key=f"dl_{hashlib.md5(str(driver_df.values.tobytes()).encode()).hexdigest()[:10]}",
-            )
-        elif has_main:
-            st.dataframe(safe_dataframe_display(df_main), use_container_width=True, hide_index=True)
-            ch = auto_chart(df_main)
-            if ch:
-                st.altair_chart(ch, use_container_width=True)
-            st.download_button(
-                "Download Results",
-                data=df_main.to_csv(index=False).encode(),
-                file_name="genie_supporting_data.csv",
-                mime="text/csv",
-                key=f"dl_{hashlib.md5(str(df_main.values.tobytes()).encode()).hexdigest()[:10]}",
-            )
+        try:
+            if has_driver:
+                st.markdown(f"**{chart_title}**")
+                chart_df = driver_df.copy()
+                chart_df["driver"] = chart_df["driver"].astype(str)
+                for c in ["this_month_spend", "last_month_spend"]:
+                    chart_df[c] = pd.to_numeric(chart_df[c], errors="coerce").fillna(0.0)
+
+                melted = chart_df.melt(
+                    id_vars=["driver"], value_vars=["this_month_spend", "last_month_spend"],
+                    var_name="period", value_name="spend"
+                )
+                melted["period"] = melted["period"].map(
+                    {"this_month_spend": "This Month", "last_month_spend": "Previous Month"}
+                )
+                st.altair_chart(
+                    alt.Chart(melted).mark_bar().encode(
+                        x=alt.X("driver:N", sort=alt.EncodingSortField(field="spend", order="descending"),
+                                 axis=alt.Axis(title=None, labelAngle=-35)),
+                        y=alt.Y("spend:Q", axis=alt.Axis(title=None, format="~s")),
+                        color=alt.Color("period:N",
+                            scale=alt.Scale(domain=["This Month", "Previous Month"], range=["#16a34a", "#2563eb"]),
+                            legend=alt.Legend(orient="top-right", title=None)),
+                        xOffset="period:N",
+                        tooltip=["driver:N", "period:N", alt.Tooltip("spend:Q", format="$,.0f")]
+                    ).properties(height=300),
+                    use_container_width=True,
+                )
+                display_driver = chart_df.rename(columns={
+                    "row_type": "ROW_TYPE", "driver": "DRIVER",
+                    "this_month_spend": "THIS_MONTH_SPEND",
+                    "last_month_spend": "LAST_MONTH_SPEND",
+                    "spend_change": "SPEND_CHANGE",
+                })
+                st.dataframe(safe_dataframe_display(display_driver), use_container_width=True, hide_index=True)
+                _csv_bytes = display_driver.to_csv(index=False).encode()
+                st.download_button(
+                    "Download Results",
+                    data=_csv_bytes,
+                    file_name="genie_supporting_data.csv",
+                    mime="text/csv",
+                    key=f"dl_{hashlib.md5(_csv_bytes).hexdigest()[:10]}",
+                )
+            elif has_main:
+                st.dataframe(safe_dataframe_display(df_main), use_container_width=True, hide_index=True)
+                ch = auto_chart(df_main)
+                if ch:
+                    st.altair_chart(ch, use_container_width=True)
+                _csv_bytes = df_main.to_csv(index=False).encode()
+                st.download_button(
+                    "Download Results",
+                    data=_csv_bytes,
+                    file_name="genie_supporting_data.csv",
+                    mime="text/csv",
+                    key=f"dl_{hashlib.md5(_csv_bytes).hexdigest()[:10]}",
+                )
+        except Exception as _e:
+            st.info("Supporting chart/table unavailable for this question.")
 
         if sql:
             sql_str = _safe_sql_string(sql)
@@ -2538,6 +2584,14 @@ def _dispatch_query(q: str, history: str) -> dict:
     return process_custom_query(q, history)
 
 def process_user_question(user_question: str):
+    """Handles every question typed into the Ask-a-question box, and every
+    click on 'Frequently Asked by You' / 'Most Frequent (All)' suggestions.
+    Always renders in the unified format: Your question → Descriptive box →
+    Prescriptive expander → View supporting data (chart + table + download + SQL).
+    Pre-built library analyses (Forecast tab playbooks, GR/IR buttons, quick
+    cards) go through auto_run_query / _dispatch_query instead and keep their
+    specialized layouts.
+    """
     with st.spinner("Generating insights..."):
         if not is_relevant_question(user_question):
             result = {"layout": "static", "analyst_response": OUT_OF_DOMAIN_MSG, "question": user_question}
@@ -2550,7 +2604,10 @@ def process_user_question(user_question: str):
             return
 
         cached = get_cache_with_ttl(user_question, cache_type="genie")
-        if cached:
+        if cached and cached.get("layout") == "analyst":
+            # Only reuse cache if it's already in the unified format —
+            # stale cache entries from older specialized layouts are skipped
+            # so they don't render with the wrong shape.
             st.session_state.current_messages=[
                 {"role":"user","content":user_question,"timestamp":datetime.now()},
                 {"role":"assistant","content":cached.get('analyst_response',''),
@@ -2560,11 +2617,16 @@ def process_user_question(user_question: str):
                               cached.get('analyst_response',''),source="cache",
                               sql_used=_safe_sql_string(cached.get("sql")))
             save_question(user_question,"custom")
+            get_frequent_questions_by_user_cached.clear()
+            get_frequent_questions_all_cached.clear()
         else:
             history = build_bedrock_context(
                 st.session_state.genie_session_id, max_turns=6
             )
-            result = _dispatch_query(user_question, history)
+            # Always route free-typed / suggested questions through the
+            # unified custom-query handler — never the specialized
+            # cash-flow / early-payment / GR/IR layouts.
+            result = process_custom_query(user_question, history)
             st.session_state.current_messages=[{"role":"user","content":user_question,"timestamp":datetime.now()}]
             if result.get("layout")!="error":
                 ac=result.get('analyst_response','Analysis complete.')
@@ -2574,6 +2636,8 @@ def process_user_question(user_question: str):
                 save_chat_message(st.session_state.genie_session_id,1,"assistant",ac,
                                   sql_used=_safe_sql_string(result.get("sql")))
                 save_question(user_question,"forecast")
+                get_frequent_questions_by_user_cached.clear()
+                get_frequent_questions_all_cached.clear()
                 infer_and_save_preferences(user_question, result)
             else:
                 st.session_state.current_messages.append({"role":"assistant","content":result.get("message","Error"),"timestamp":datetime.now()})
@@ -2760,6 +2824,8 @@ input:focus { outline: none !important; }
                 save_chat_message(st.session_state.genie_session_id, 1, "assistant", ac,
                                   sql_used=_safe_sql_string(result.get("sql")))
                 save_question(auto_query, "forecast")
+                get_frequent_questions_by_user_cached.clear()
+                get_frequent_questions_all_cached.clear()
                 set_cache(auto_query, result)
             else:
                 st.session_state.current_messages.append(
@@ -3475,7 +3541,10 @@ div.genie-card-wrap button:hover {
                                 except Exception:
                                     driver_r = pd.DataFrame()
 
-                                _render_supporting_data(df_r, driver_r, sql=resp.get("sql", ""))
+                                _render_supporting_data(
+                                    df_r, driver_r, sql=resp.get("sql", ""),
+                                    chart_title=resp.get("chart_title", "This Month vs Previous Month — Where Spend Changed")
+                                )
                             elif layout == "error":
                                 st.error(resp.get("message", "Unknown error"))
                         else:
