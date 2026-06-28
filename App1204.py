@@ -257,7 +257,12 @@ def run_query(sql: str) -> pd.DataFrame:
                 df[col] = df[col].astype(float)
         return df
     except Exception as e:
-        st.error(f"Athena query failed: {e}\nSQL: {sql[:500]}")
+        # Don't surface raw Athena/SQL errors to the user — every caller
+        # already handles an empty DataFrame gracefully (fallback data,
+        # friendly messages, etc). This avoids the brief "Athena query
+        # failed..." flash that used to appear for a second before the
+        # real (correct) answer rendered on rerun. Log quietly instead.
+        print(f"[run_query] Athena query failed: {e}\nSQL: {sql[:500]}")
         return pd.DataFrame()
 
 # ── Bedrock client ───────────────────────────────────────────
@@ -1873,7 +1878,11 @@ CRITICAL RULES:
 - payment_processing_cycle_time_vw: NO posting_date. Use year/month. Column = avg_payment_cycle_time_days.
 - full_payment_rate_vw: NO posting_date. Use year/month. Column = full_payment_rate_pct (NOT full_payment_rate).
 - fact_all_sources_vw: HAS posting_date for date range filters.
-- Always COALESCE numeric columns. Use Presto functions. LIMIT 1000 unless aggregating.
+- Always COALESCE numeric columns. Use Presto functions ONLY (this is Amazon Athena / Presto SQL, NOT MySQL,
+  NOT generic ANSI SQL). Use date_trunc(), date_add(), date_diff(), EXTRACT(field FROM date) for date math.
+  NEVER use date_part(), DATEPART(), DATEADD(), GETDATE(), or any SQL Server / MySQL-style function — these
+  do not exist in Athena/Presto and will throw FUNCTION_NOT_FOUND.
+- LIMIT 1000 unless aggregating.
 - Output only SQL, no markdown/explanation.
 
 Semantic model:
