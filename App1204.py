@@ -1648,9 +1648,9 @@ def render_charts(rng_start, rng_end, vendor_where):
 
 def render_dashboard():
     for k, v in [
-        ("date_range",      compute_range_preset("Last 30 Days")),
+        ("date_range",      compute_range_preset("YTD")),
         ("selected_vendor", "All Vendors"),
-        ("preset",          "Last 30 Days"),
+        ("preset",          "YTD"),
         ("na_tab",          "Overdue"),
         ("na_page",         0),
         ("_preset_clicked", False),
@@ -1694,7 +1694,7 @@ def render_dashboard():
         st.session_state.get("preset","Custom"),
         rng_start.isoformat(), rng_end.isoformat(), cur_kpi
     )
-    preset_now = st.session_state.get("preset","Last 30 Days")
+    preset_now = st.session_state.get("preset","YTD")
     if preset_now != "Custom":
         set_user_memory("preferred_preset", preset_now, "preference", "inferred", 0.9)
 
@@ -4110,9 +4110,9 @@ def main():
     # ── Init session state — only set keys that do not exist yet ─────────────
     _defaults = {
         "page":                    "Dashboard",
-        "date_range":              compute_range_preset("Last 30 Days"),
+        "date_range":              compute_range_preset("YTD"),
         "selected_vendor":         "All Vendors",
-        "preset":                  "Last 30 Days",
+        "preset":                  "YTD",
         "na_tab":                  "Overdue",
         "na_page":                 0,
         # Genie
